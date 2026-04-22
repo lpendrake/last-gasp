@@ -1,0 +1,15 @@
+{
+  "plot:beast": { "color": "#8b0000", "description": "Main antagonist arc — the beast in the volcano" },
+  "plot:twin-thorns": { "color": "#2e8b57", "description": "Twin Thorns investigation" },
+  "plot:ancients": { "color": "#4682b4", "description": "Ancients awakening from stasis" },
+  "faction:abadar": { "color": "#d4af37", "description": "Church of Abadar — order and trade" },
+  "faction:asmodeus": { "color": "#6a0dad", "description": "Church of Asmodeus — contracts and law" },
+  "faction:pharasma": { "color": "#5a5a8a", "description": "Church of Pharasma — death and the cycle" },
+  "faction:free-sails": { "color": "#1e90ff", "description": "The Free Sails — naval faction" },
+  "faction:smokers": { "color": "#8b4513", "description": "The Smokers — industrial faction" },
+  "location:stormhaven": { "color": "#708090", "description": "City of Stormhaven" },
+  "location:fort": { "color": "#556b2f", "description": "The party's fort" },
+  "location:boat": { "color": "#4169e1", "description": "The party's boat" },
+  "gm-notes": { "color": "#777777", "description": "GM-facing notes" },
+  "foreshadowing": { "color": "#b87333", "description": "Seeds planted for future payoff" }
+}

@@ -1,0 +1,30 @@
+{
+  "theme": {
+    "background":       "#1a1a1a",
+    "surface":          "#242420",
+    "panel":            "#2d3d2a",
+    "panel_accent":     "#3a4d35",
+    "text_primary":     "#d8d0b8",
+    "text_secondary":   "#a89a80",
+    "text_muted":       "#7a6f58",
+    "accent_gold":      "#c9a860",
+    "accent_warm":      "#b87840",
+    "link":             "#4fb8d0",
+    "border":           "#3a3a30",
+    "border_strong":    "#5a4530",
+    "item_banner_from": "#5a2820",
+    "item_banner_to":   "#7a4028",
+    "session_band_a":   "#1d1d18",
+    "session_band_b":   "#22221d",
+    "dotted_future":    "#7a6f58"
+  },
+  "weekdays": {
+    "monday":    "#8da8c4",
+    "tuesday":   "#a07850",
+    "wednesday": "#d4a850",
+    "thursday":  "#5a8090",
+    "friday":    "#c06040",
+    "saturday":  "#7560a0",
+    "sunday":    "#e5b860"
+  }
+}

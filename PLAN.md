@@ -1,7 +1,7 @@
 # The Last Gasp of Civilisation — Campaign Timeline App
 
 **Status:** planning complete, ready to implement
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-21
 **Author:** Laurie (GM) + Claude (pairing)
 
 This document is the single source of truth for building and evolving the timeline webapp that sits alongside the campaign bible. It's written to be self-contained: an LLM or developer picking this up fresh should be able to read it and understand context, decisions, and what to build, without needing prior conversation history.
@@ -22,7 +22,7 @@ The app renders a horizontal timeline with filterable events, each event being a
 - **Optional rules in use:** Proficiency Without Level, Free Archetype (no restrictions), Automatic Bonus Progression.
 - **Setting:** Island of Emberheart, city of Stormhaven. Trapped by a multi-dimensional barrier preventing escape. Fractured theocracy split between Abadar (order/trade), Asmodeus (contracts/law), Pharasma (death/cycle), the Free Sails (naval), and the Smokers (industrial). Ancients awakening from stasis. Portals opening to other planes.
 - **In-game calendar:** Golarian calendar (see §5 Calendar Specification).
-- **Campaign start:** 1st of Pharast (roughly spring equivalent). Current in-game date at time of planning: **4726-05-04** (Wealday, 4th of Desnus, 4726 AR).
+- **Campaign start:** 1st of Pharast (roughly spring equivalent). Current in-game date at time of planning: **4726-05-04** (Wednesday, 4th of Desnus, 4726 AR).
 - **Primary source of truth for lore:** the Google Doc `The Last Gasp of Civilisation` (id `1bU6jgwIQEjMUmmZJ4wG0PUEk1VGPOurUkHaW-z2pdbo`). Content will be migrated incrementally into this repo.
 
 ### 1.3 Rejected alternatives (don't revisit)
@@ -68,7 +68,7 @@ The app renders a horizontal timeline with filterable events, each event being a
 | Timelines | Tags on events; filters show/hide | Same event can belong to multiple threads without duplication |
 | Axis | Single horizontal timeline, no swim lanes | Simplicity; vertical is used only for stacking overlapping events |
 | Calendar | Golarian with Gregorian month lengths and leap rule | Matches Foundry VTT calendar in use |
-| Weekday anchor | 4726-05-04 = Wealday | Verified against three other dates Laurie confirmed |
+| Weekday anchor | 4726-05-04 = Wednesday | Verified against three other dates Laurie confirmed |
 | Links | Relative markdown (`../npcs/bob.md`) | Renders in any markdown viewer, works without custom tooling |
 | Tech stack | Vite + vanilla TypeScript, no framework | Small app, fast startup, IntelliJ has first-class Vite support |
 | Sessions | Represented as a tag `session:YYYY-MM-DD` (real-world date) | Forces discipline; one system for everything |
@@ -187,16 +187,19 @@ writeFileAtomic(path, content):
 
 Node's `fs.writeFile` does *not* fsync by default — must open with `fs.open`, write, then `fs.fsync` the handle explicitly. After this pattern, a crash at any instant leaves the file in either the old-complete or new-complete state. Never partial, never corrupt.
 
-#### 4.5.2 Draft auto-save
+#### 4.5.2 Draft auto-save (browser localStorage)
 
-While an editor modal is open, the frontend persists the current buffer to `events/.drafts/<filename>.md` every ~2 seconds of idle (debounced, not per-keystroke). Drafts:
+Live editing in the app is expected to span hours — a single combat can take a whole session, and the GM will keep one event open and continually editing it as play progresses. Losing that buffer to a page reload or browser crash is unacceptable. The editor persists the current buffer to `localStorage` while typing:
 
-- Live in a hidden `.drafts/` subfolder, gitignored.
-- Are distinct files from the real event file — they never overwrite the real content.
-- Are deleted on successful save or explicit discard.
-- Survive crashes.
+- One key per editor instance: `draft:<filename>` (or `draft:new:<timestamp>` for unsaved new events).
+- Value is the full buffer (title, frontmatter fields, body) serialised to JSON.
+- Written on every keystroke, debounced ~500ms. No server round-trip — localStorage writes are synchronous and sub-millisecond.
+- Cleared on successful save or explicit discard.
+- Persist across tab close, browser crash, and machine restart. Not synced across browsers/machines — by design (single-user app).
 
-On modal open, the server checks for a draft matching the target filename with mtime newer than the real file. If present, UI shows a "Restore unsaved draft from HH:MM?" prompt with Restore / Discard draft / View both options.
+On editor open, the frontend checks for a draft matching the target. If present and newer than the file's last known mtime, UI shows a "Restore unsaved draft from HH:MM?" prompt with Restore / Discard draft / View both options.
+
+**Why localStorage and not disk:** no server round-trip per keystroke, survives any browser-level crash, no file-watcher churn in IntelliJ, nothing to gitignore, no race with the mtime-conflict detection on the real file. The tradeoff is drafts are scoped to the browser profile — clearing browser data clears drafts — which is the right scope for a local single-user tool.
 
 #### 4.5.3 Save-state UI
 
@@ -238,29 +241,21 @@ Covers: two-tabs-open, IntelliJ-edit-while-modal-open, file-watcher-refresh-afte
   - On confirm: runs `git add -A && git commit -m "<message>"` via a `/api/git/commit` endpoint.
 - Not auto-run. Recommended habit: hit it at end of each session, or any time you've done meaningful editing.
 
-#### 4.5.7 Autosnapshot branch (opt-in paranoia layer)
-
-- Disabled by default. Enable via a flag in `state.json`:
-  ```json
-  { "autosnapshot": { "enabled": true, "interval_minutes": 60 } }
-  ```
-- When enabled: every N minutes, if any files under tracked paths have changed, the server commits them to a dedicated `autosnapshots` branch with a timestamped message. Never touches `main` / working branch.
-- Recovery: `git log autosnapshots` to browse; `git checkout autosnapshots -- events/foo.md` to restore a single file; or full reset with a merge or cherry-pick.
-- Opt-in because it has footguns (branch churn, merge conflicts if mishandled). But cheap to add and cheap to ignore if not wanted.
-
-#### 4.5.8 Recovery matrix
+#### 4.5.7 Recovery matrix
 
 | Scenario | Outcome |
 |---|---|
 | Hit Save, got success response, crash 5 seconds later | File on disk, safe. Atomic write + fsync guarantees. |
 | Hit Save, crash mid-write | File is either the old complete version or the new complete version. No corruption. |
-| Typed for a minute without saving, crash | Most recent draft in `events/.drafts/` survives. Up to ~2s of typing may be lost. Prompt on next open. |
-| Typed for hours, saved a few times, crash | All saved content safe. Only the post-last-save typing is vulnerable, and up to ~2s of that survives as draft. |
+| Typed for a minute without saving, browser crash or reload | Buffer in `localStorage` survives. Up to ~500ms of typing may be lost. Restore prompt on next editor open. |
+| Typed for hours with editor open during a session, page reload | Same as above — localStorage retains the buffer; restore prompt on reopen. |
+| Typed for hours, saved a few times, crash | All saved content safe. Only the post-last-save typing is vulnerable, and up to ~500ms of that survives in localStorage. |
 | Accidentally deleted an event | In `events/.trash/`, restorable from Settings → Trash. |
 | Committed to git yesterday, disaster-edits today, want to roll back | `git reset --hard HEAD`. Standard git. |
-| Hours of uncommitted work, want a snapshot without touching main | Autosnapshot branch (if enabled) or manual Commit changes button. |
+| Hours of uncommitted work, want a snapshot | Hit the "Commit changes" toolbar button (§4.5.6). |
 | Edited same file in two tabs simultaneously | Second-to-save gets 409 conflict, sees current state, chooses merge strategy. No silent overwrite. |
 | Edited in IntelliJ while modal open in browser | Same as above: 409 on save attempt. |
+| Cleared browser data | localStorage drafts are lost. Saved files (disk) and git history unaffected. Only risk is unsaved in-flight content. |
 
 ### 4.6 `palette.json` — theme and weekday colours
 
@@ -288,20 +283,20 @@ Centralises all colour choices in a single file at repo root. Swap the file, swa
     "dotted_future":    "#7a6f58"
   },
   "weekdays": {
-    "moonday":  "#8da8c4",
-    "toilday":  "#a07850",
-    "wealday":  "#d4a850",
-    "oathday":  "#5a8090",
-    "fireday":  "#c06040",
-    "starday":  "#7560a0",
-    "sunday":   "#e5b860"
+    "monday":    "#8da8c4",
+    "tuesday":   "#a07850",
+    "wednesday": "#d4a850",
+    "thursday":  "#5a8090",
+    "friday":    "#c06040",
+    "saturday":  "#7560a0",
+    "sunday":    "#e5b860"
   }
 }
 ```
 
 **Aesthetic north star:** Archives of Nethys dark theme — near-black background, dark olive-green panels, warm earthy item banners (brown-red gradient), cream body text, gold accent text, sky-blue links. Familiar to anyone who's ever looked up a PF2e rule. Not coincidentally, this is the colour vocabulary the GM is already reading every session.
 
-**Weekday colours:** inspired by each day's name semantics and tuned to pop against the dark background without being gaudy. Moonday = pale cold moon-blue (intentional contrast with the warm theme), Toilday = earth brown, Wealday = gold, Oathday = deep contract teal-blue, Fireday = fire red, Starday = deep night violet, Sunday = bright sun amber.
+**Weekday colours:** tuned to pop against the dark background without being gaudy, with enough spread that adjacent days read as distinct when zoomed out. Monday = pale cool blue, Tuesday = earth brown, Wednesday = gold, Thursday = deep teal-blue, Friday = fire red, Saturday = deep violet, Sunday = bright amber.
 
 **Rules for colour use:**
 
@@ -336,15 +331,15 @@ Centralises all colour choices in a single file at repo root. Swap the file, swa
 
 ### 5.2 Leap year rule
 
-Same as Gregorian: year is leap if divisible by 4, except centuries not divisible by 400. So 4728 is leap (divisible by 4, not a century), 4700 is leap (divisible by 400), 4800 is leap, 4900 is *not* leap (divisible by 100, not 400).
+Same as Gregorian: year is leap if divisible by 4, except centuries not divisible by 400. So 4728 is leap (divisible by 4, not a century), 4800 is leap (divisible by 400), 4700 is *not* leap (divisible by 100, not 400), 4900 is *not* leap (divisible by 100, not 400).
 
 ### 5.3 Weekdays
 
-Seven-day week: **Moonday, Toilday, Wealday, Oathday, Fireday, Starday, Sunday**.
+Seven-day week: **Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday**.
 
 ### 5.4 Anchor
 
-**4726-05-04 is Wealday.** All other weekday calculations derive from this by `(days_between_target_and_anchor mod 7)`.
+**4726-05-04 is Wednesday.** All other weekday calculations derive from this by `(days_between_target_and_anchor mod 7)`.
 
 ### 5.5 Internal representation
 
@@ -359,11 +354,11 @@ Epoch = year 0 AR, day 1 of Abadius, 00:00:00. Whether "year 0 AR" is valid in P
 
 ### 5.6 Display formats
 
-Per-card (expanded): **"Wealday, 4th of Desnus, 4726 AR — 18:30"**
+Per-card (expanded): **"Wednesday, 4th of Desnus, 4726 AR — 18:30"**
 Per-card (collapsed date chip): **"Wed 4 Desnus 4726"**
 Axis major tick (day resolution): **"4 Desnus"**
 Axis minor tick (zoomed in, hour resolution): **"09:00"**
-Floating header (day): **"Desnus 3rd, Wealday, 4726 AR"**
+Floating header (day): **"Desnus 4th, Wednesday, 4726 AR"**
 Floating header (month): **"Desnus 4726 AR"**
 
 ### 5.7 Precision handling
@@ -377,18 +372,18 @@ Floating header (month): **"Desnus 4726 AR"**
 
 | Input date | Expected weekday | Days from anchor | mod 7 |
 |---|---|---|---|
-| 4726-05-04 | Wealday (Wed) | 0 | 0 |
-| 4726-10-28 | Starday... wait no, **Friday** | 177 | 2 |
+| 4726-05-04 | Wednesday | 0 | 0 |
+| 4726-10-28 | Friday | 177 | 2 |
 | 4727-04-16 | Sunday | 347 | 4 |
-| 4728-02-29 | Oathday (Thursday) | 666 | 1 |
+| 4728-02-29 | Thursday | 666 | 1 |
 
-(Weekday index: Moonday=0, Toilday=1, Wealday=2, Oathday=3, Fireday=4, Starday=5, Sunday=6. Wealday is day 2; add mod-7 offset to get target.)
+(Weekday index: Monday=0, Tuesday=1, Wednesday=2, Thursday=3, Friday=4, Saturday=5, Sunday=6. Wednesday is day 2; add mod-7 offset to get target.)
 
 Additional edge cases to test:
 - Date exactly at year boundary (`4726-12-31` → `4727-01-01`)
 - Date on Feb 29 of non-leap year should fail validation
-- `4700-02-29` should succeed (divisible by 400)
-- `4800-02-29` should succeed
+- `4700-02-29` should fail (divisible by 100, not 400)
+- `4800-02-29` should succeed (divisible by 400)
 - `4900-02-29` should fail (divisible by 100, not 400)
 
 ---
@@ -444,7 +439,7 @@ Additional edge cases to test:
 **Past events**: solid border in `theme.border`.
 **Status=planned** override: always dotted regardless of date.
 
-**Weekday colour cycle rationale:** because every event has a date and every date has a weekday, card header colours cycle through the seven palette entries in a predictable rhythm as you pan. Zoomed-out views show repeating colour patterns that make week boundaries visible even when day labels become illegible. Pattern recognition builds over sessions: "the gold ones are Wealdays" becomes ambient knowledge.
+**Weekday colour cycle rationale:** because every event has a date and every date has a weekday, card header colours cycle through the seven palette entries in a predictable rhythm as you pan. Zoomed-out views show repeating colour patterns that make week boundaries visible even when day labels become illegible. Pattern recognition builds over sessions: "the gold ones are Wednesdays" becomes ambient knowledge.
 
 ### 6.4 Stacking rule for overlapping events
 
@@ -521,7 +516,7 @@ Left sidebar. Groups tags by namespace:
 - Body: markdown textarea with live preview alongside.
 - Save button: writes file to `events/` with conventional filename using atomic write (§4.5.1). Shows save-state UI per §4.5.3.
 - Discard button: confirm modal ("You have unsaved changes — discard?"). Esc key behaves the same. On confirmed discard, any draft for this file is deleted (§4.5.2).
-- **Draft auto-save**: while modal is open, buffer is persisted to `.drafts/` every ~2s of idle typing (§4.5.2).
+- **Draft auto-save**: while modal is open, buffer is persisted to browser `localStorage` on every keystroke (debounced ~500ms) (§4.5.2).
 - **Draft restore prompt**: on modal open, if a newer draft exists for the target file, shows a "Restore unsaved draft from HH:MM?" prompt with Restore / Discard draft / View both options.
 - **Conflict handling**: save receiving 409 opens a conflict modal (§4.5.4) with View current / Overwrite / Cancel.
 - **beforeunload guard**: tab close / navigation warns if buffer is dirty.
@@ -562,6 +557,59 @@ Left sidebar. Groups tags by namespace:
 - Empty all button at the bottom with confirmation.
 - See §4.5.5.
 
+### 6.15 Hover-peek windows (local `.md` link previews)
+
+A "peek definition" pattern applied to the whole campaign bible. Hovering any link to a local `.md` file opens a small floating window showing that file's rendered content, slightly offset from the link. Hovering links inside that window opens further windows in a stack. Lets the GM rapidly chase context (NPC → faction → plot thread) without losing place on the timeline.
+
+**6.15.1 Trigger / open**
+
+- Applies only to links whose href resolves to a local `.md` file inside the repo. External links and non-markdown links behave as normal `<a>` tags.
+- Hovering the link for ~150ms (configurable, debounced) opens the peek window.
+- Window appears offset ~24px down-and-right from the link's bottom-left corner. Each successive window in a stack adds the same offset, so they cascade visually.
+- Window contents: rendered markdown (via the same `markdown-it` pipeline used for expanded cards). Read-only. Title bar shows the file's title (frontmatter `title` or first `#`) and relative path.
+- Loaded via `GET /api/file/:path` (see §7.1).
+- Broken link (file not found): the link itself shows a tooltip "File not found" instead of opening a window.
+
+**6.15.2 Stack semantics — unpinned windows form a linear stack**
+
+- Hovering a link inside an open window opens a child window further offset.
+- Hovering a link in window N (when N+1, N+2... are already open) **truncates** the stack: windows above N are closed, then the new child opens at N+1. This prevents the stack from forking or growing chaotically.
+- "Survival rule": the entire unpinned stack persists as long as the cursor is over **any window in the stack OR the source link of the bottom-most window**. Moving the cursor out anywhere else starts a 250ms grace timer.
+- 250ms grace period before unpinned windows collapse on mouseout. Re-entering any window or its source link cancels the timer. This makes diagonal mouse movements between cascaded windows tolerant.
+- Cap stack depth at ~5 visual offsets — beyond that, additional windows stack at the same offset (or a small "+N more" indicator) so they don't run off-screen.
+
+**6.15.3 Pinning**
+
+- **Click anywhere inside a window** pins it. Pinned windows leave the unpinned stack and become free-floating.
+- **Ctrl-click on a link** opens its target as a pinned window directly (skipping the unpinned stack).
+- Pinned windows have a small drag handle in their title bar (move freely), an explicit close (×) button, and an "Edit" button that opens the file in the editor modal (§6 editor).
+- Pinned windows persist regardless of mouse position. They're independent of the hover stack.
+- Multiple pins are allowed. They z-order normally (clicking brings to front).
+
+**6.15.4 Keyboard**
+
+- `Esc` — closes the top-most unpinned window. Pressing `Esc` again with no unpinned windows left closes nothing (pinned windows require their × button or are kept until explicitly closed).
+- A future enhancement could let `Esc` close the front-most pinned window if no unpinned ones exist. Out of scope for v1.
+
+**6.15.5 Viewport edge handling**
+
+- If the natural offset would push a window outside the viewport on the right, flip its anchor to open up-and-left from the link.
+- If it would clip on the bottom, reduce vertical offset and prefer growing upward.
+- Each window has a max-width (~480px) and max-height (~60vh) with internal scrolling.
+
+**6.15.6 Rendering inside peek windows**
+
+- Same markdown rendering as expanded cards.
+- Links inside peek windows are themselves peek-able (recursive — that's how the stack grows).
+- Images and embedded content render normally.
+- No event-card-style date chip or weekday header strip — these are arbitrary `.md` files (NPCs, factions, locations), not events.
+
+**6.15.7 Why these decisions**
+
+- *Click-anywhere pins, no dedicated pin button:* pinning is the most common upgrade path from "I'm chasing context" to "I want to keep this open." A dedicated button adds friction and visual clutter; clicking-to-pin matches the natural impulse to interact with the window. Ctrl-click on the link covers the "I know in advance I want to keep this" case.
+- *Read-only peeks:* peek windows are for navigation and reference. Editing happens in the dedicated editor modal (which has draft autosave, conflict detection, etc.). Mixing edit affordances into a tiny hover window invites half-finished edits and breaks the durability contract. The "Edit" button on pinned windows is the bridge.
+- *Truncating stack on mid-stack hover:* the alternative (forked tree of windows) is visually overwhelming and hard to dismiss. Linear stack matches IDE "go to definition" patterns most users already grok.
+
 ---
 
 ## 7. Tech stack
@@ -595,9 +643,7 @@ Left sidebar. Groups tags by namespace:
 | GET | `/api/sessions` | Read `sessions.json` |
 | POST | `/api/sessions` | Append a new session to `sessions.json` |
 | GET | `/api/link-index` | Return index of all `.md` files for link autocomplete: `{ path, title, type }[]` |
-| GET | `/api/drafts/:filename` | Fetch draft if one exists (for editor modal restore prompt) |
-| PUT | `/api/drafts/:filename` | Write/update a draft (called on idle debounce from editor) |
-| DELETE | `/api/drafts/:filename` | Clear a draft (on save success or confirmed discard) |
+| GET | `/api/file/:path` | Read any `.md` file in the repo by relative path (for hover-peek windows §6.15). Path-traversal protected. |
 | GET | `/api/trash` | List trashed events |
 | POST | `/api/trash/:filename/restore` | Restore a trashed event |
 | DELETE | `/api/trash/:filename` | Permanently delete a trashed event |
@@ -606,6 +652,13 @@ Left sidebar. Groups tags by namespace:
 | POST | `/api/git/commit` | Run `git add -A && git commit -m <message>` |
 
 All write endpoints use the `writeFileAtomic` helper (§4.5.1). All event GET responses include `Last-Modified` header; PUT/DELETE require `If-Unmodified-Since` for mtime conflict detection (§4.5.4).
+
+**`GET /api/file/:path` security contract:** `:path` is the request body or query param (encoded so it can contain slashes). The handler:
+1. Rejects any path containing `..` segments.
+2. Resolves the path against the repo root using `path.resolve()`, then verifies the resolved absolute path is still inside the repo root via prefix check. Reject otherwise (403).
+3. Rejects any path not ending in `.md` (404).
+4. Returns 404 if the file does not exist.
+5. Returns the raw file content with `Content-Type: text/markdown; charset=utf-8` and a `Last-Modified` header (the peek UI doesn't need it for conflict detection but it's free and useful for caching).
 
 ### 7.2 File watching (optional v2)
 
@@ -623,14 +676,14 @@ last-gasp/
 ├── tags.json                    # tag registry with colours
 ├── sessions.json                # session ledger
 ├── palette.json                 # theme + weekday colour palette (Nethys-inspired dark default)
+├── party.md                     # GM's notes on the PCs — for pasting into LLM prompts (not player-facing)
 │
-├── .gitignore                   # ignores events/.drafts/, events/.trash/, app/node_modules, etc.
+├── .gitignore                   # ignores events/.trash/, app/node_modules, etc.
 │
 ├── events/                      # one file per event
 │   ├── 4726-03-01-campaign-start.md
 │   ├── 4726-05-04-chess-puzzle.md
 │   ├── ...
-│   ├── .drafts/                 # (gitignored) in-progress editor buffers, auto-saved every ~2s
 │   └── .trash/                  # (gitignored) soft-deleted events, recoverable via Settings → Trash
 │
 ├── sessions/                    # long-form session recaps (optional, separate from `sessions.json`)
@@ -707,9 +760,13 @@ last-gasp/
     │   │   └── toolbar.ts       # Now / Advance / Session / Add
     │   ├── editor/
     │   │   ├── modal.ts         # event add/edit modal with save-state UI
-    │   │   ├── drafts.ts        # client-side draft auto-save (debounced)
+    │   │   ├── drafts.ts        # client-side draft auto-save to localStorage (debounced)
     │   │   ├── conflict.ts      # 409 conflict modal
     │   │   └── link-picker.ts   # [[ autocomplete
+    │   ├── peek/
+    │   │   ├── window.ts        # individual peek window: render markdown, header, drag/close (when pinned)
+    │   │   ├── stack.ts         # unpinned linear stack: open/truncate/grace-period bookkeeping
+    │   │   └── pin.ts           # pinning lifecycle: detach from stack, free-floating window registry
     │   └── styles/
     │       └── app.css
     └── server/
@@ -717,8 +774,7 @@ last-gasp/
         ├── fs-atomic.ts         # writeFileAtomic helper (write-temp → fsync → rename → fsync-dir)
         ├── mtime.ts             # Last-Modified / If-Unmodified-Since handling
         ├── trash.ts             # soft-delete endpoints
-        ├── drafts.ts            # draft storage endpoints
-        └── git.ts               # git status + commit endpoints (and optional autosnapshot loop)
+        └── git.ts               # git status + commit endpoints
 ```
 
 **Root-level IntelliJ run config:** `npm run dev` from `app/` directory. This is what the play button triggers.
@@ -747,8 +803,7 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
 - Create stub READMEs in each subfolder.
 - Create `.gitignore` at repo root with at minimum:
   ```
-  # editor scratch — contents ignored; server creates folders on demand
-  events/.drafts/
+  # soft-delete trash — contents ignored; server creates the folder on demand
   events/.trash/
   # node
   app/node_modules/
@@ -757,7 +812,7 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
   .idea/
   .vscode/
   ```
-- Server's startup code (Phase 4) is responsible for `mkdir -p events/.drafts events/.trash` if they don't exist. No need to track the empty directories in git.
+- Server's startup code (Phase 4) is responsible for `mkdir -p events/.trash` if it doesn't exist. No need to track the empty directory in git.
 
 **Done when:** `git status` looks clean, skeleton renders correctly in IntelliJ's file browser.
 
@@ -789,7 +844,7 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
   - `daysInYear(year): number`.
   - `toAbsoluteDays(date): number` (days since epoch 0-01-01).
   - `fromAbsoluteDays(days): GolarianDate`.
-  - `weekday(date): Weekday` (using 4726-05-04 = Wealday anchor).
+  - `weekday(date): Weekday` (using 4726-05-04 = Wednesday anchor).
   - `parseISOString(s): GolarianDate` (handles `YYYY-MM-DD` through `YYYY-MM-DDTHH:MM:SS`).
   - `toISOString(date): string`.
 - `src/calendar/format.ts` with display formatters (§5.6).
@@ -851,10 +906,11 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
 **Deliverables:**
 - Left sidebar lists all tags, grouped by namespace.
 - Checkbox filters hide non-matching events.
+- **Date range filter** (§6.7): From/To in-game date inputs with preset dropdown (All time / Campaign-start to now / This in-game month / This in-game week / Last 30 in-game days / Since last session start). Combines with tag filters via AND.
 - `src/panels/search.ts` with Ctrl+F overlay, fuzzy search across title/body/tags/date.
 - Click result → scroll and centre timeline on the event without altering filters.
 
-**Done when:** filtering hides events live, search finds and jumps correctly.
+**Done when:** filtering hides events live, date range filter correctly narrows events by `date` property, search finds and jumps correctly.
 
 ### Phase 8 — Event editor modal + durability UI
 
@@ -867,23 +923,40 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
 - Tag input with autocomplete.
 - Markdown textarea with live preview.
 - **Durability features (§4.5.2–§4.5.5):**
-  - Draft auto-save every ~2s of idle typing to `/api/drafts/:filename`.
-  - Draft restore prompt on modal open when a newer draft exists.
+  - Draft auto-save to browser `localStorage` on every keystroke, debounced ~500ms. Key: `draft:<filename>` (or `draft:new:<timestamp>` for new events). Value: serialised buffer (title, frontmatter, body).
+  - Draft restore prompt on modal open when a draft exists and is newer than the file's last known mtime.
   - Save-state UI (clean / dirty / saving / error / saved) per §4.5.3.
   - Error state preserves buffer and offers Retry; never silently discards content.
   - Conflict modal on 409: View current / Overwrite / Cancel (§4.5.4).
-  - `beforeunload` handler warns on tab close while dirty.
-  - `/api/drafts/:filename` and `/api/trash/*` endpoints from §7.1 are wired up here.
+  - `beforeunload` handler warns on tab close while dirty (belt-and-braces; localStorage already covers reload).
+  - `/api/trash/*` endpoints from §7.1 are wired up here.
 
 **Done when:** full CRUD achievable from the UI without touching files directly; killing the browser mid-edit and reopening prompts to restore the draft; deleting an event is recoverable via Settings → Trash.
 
-### Phase 9 — Smart link autocomplete
+### Phase 9 — Smart link autocomplete + hover-peek windows
 
-**Deliverables:**
+This phase has two parts. Part A is small and unblocks editing ergonomics; Part B is the bigger feature.
+
+**Part A — Link autocomplete**
+
 - `/api/link-index` endpoint scans `**/*.md`, extracts title from frontmatter or first `#`, returns typed list.
 - `src/editor/link-picker.ts` hooks `[[` in the textarea, shows dropdown, fuzzy-matches as you type, inserts relative `[Title](path.md)` on Enter.
 
-**Done when:** typing `[[fist` mid-session finds `fisty-mcpunchy.md` and inserts the right link.
+**Done when (Part A):** typing `[[fist` mid-session finds `fisty-mcpunchy.md` and inserts the right link.
+
+**Part B — Hover-peek windows (§6.15)**
+
+- `GET /api/file/:path` endpoint with the security contract from §7.1 (no `..`, must resolve inside repo root, `.md`-only, 404/403 on violation).
+- `src/peek/window.ts`: render-a-single-window component. Title bar with file title + relative path; rendered markdown body (reuse the markdown-it pipeline from card expansion). Pinned variant adds drag handle, × close, "Edit" button (opens editor modal at that file).
+- `src/peek/stack.ts`: maintain the linear unpinned stack. Open at depth N+1 on link hover; truncate to N when hovering a link in window N; 250ms grace timer; survival rule (cursor over any window in stack OR source link of bottom-most keeps stack alive).
+- `src/peek/pin.ts`: click-anywhere-in-window pins (removes from stack, registers as free-floating). Ctrl-click on link pins from start. Pinned-window registry (z-order, close).
+- Viewport edge handling: flip anchor when window would clip right; grow upward when it would clip bottom; max-width ~480px, max-height ~60vh with internal scroll.
+- Hover delegation: a single document-level handler matches `<a>` elements whose href resolves to a local `.md` (relative path with `.md` extension and no protocol). External and non-markdown links are left alone.
+- Broken link UX: link tooltip "File not found" instead of a window if `/api/file/:path` returns 404.
+- `Esc` closes the top-most unpinned window.
+- Cap stack depth at ~5 visual offsets; additional windows stack at the same offset.
+
+**Done when (Part B):** hovering any local `.md` link in the timeline (event card body, expanded view, or another peek window) opens a peek; cascading hover chain works; clicking pins; Ctrl-click pins from a link; pinned windows stay until closed; broken links show a tooltip; Escape closes top of stack; viewport-edge cases don't visually clip.
 
 ### Phase 10 — Advance Time + Start Session controls
 
@@ -897,15 +970,15 @@ Each phase has a definition of done. Phases can be paused mid-flight; nothing be
 ### Phase 11 — Polish pass + git integration
 
 **Deliverables:**
-- Finalise colour palette, typography, spacing.
-- Aesthetic polish (TBD — see Open Question 1 below).
-- Accessibility pass (keyboard navigation, focus states).
+- Tune palette values in `palette.json` against real data — weekday colour contrast, session band subtlety, text legibility.
+- Typography and spacing pass. Suggested: system sans-serif for UI, monospace for date chips, slightly warmer line-heights for the event body rendered markdown.
+- Accessibility pass (keyboard navigation, focus states, colour-blind-friendly weekday palette check — tweak reds/greens if needed).
 - Small-viewport behaviour check.
+- **Settings → Palette editor** (optional): a UI for hand-editing `palette.json` values with live preview. Not required — IntelliJ editing works — but nice-to-have.
 - **Commit changes toolbar action (§4.5.6, §6.13):** badge showing uncommitted file count, modal with `git status --short` preview and editable commit message, `/api/git/commit` endpoint.
 - **Settings → Trash UI (§4.5.5, §6.14):** list trashed events, Restore / Permanently delete / Empty all.
-- **Optional: autosnapshot branch (§4.5.7)** — opt-in flag in `state.json`. If enabled, a background timer commits changes to a dedicated `autosnapshots` branch every N minutes. Not on by default.
 
-**Done when:** looks good enough to spend hours staring at while GMing; committing session work takes one button press; trash recovery works; autosnapshot (if enabled) is producing commits without interfering with main branch work.
+**Done when:** looks good enough to spend hours staring at while GMing; committing session work takes one button press; trash recovery works.
 
 ### Phase 12 — Migration: Running Notes
 
@@ -938,7 +1011,7 @@ Source: `The Last Gasp of Civilisation` Google Doc (id `1bU6jgwIQEjMUmmZJ4wG0PUE
 - **Player Guide tab** — single file at `player-facing/player-guide.md`.
 - **Rituals and Events tab** — `player-facing/calendar.md` (festivals) + `rules/rituals.md` (mechanics) split.
 - **Campaign Arc: Twin Thorns Investigation tab** — `plots/twin-thorns-investigation.md`.
-- **Characters tab** — `player-facing/characters.md`.
+- **Characters tab** — `party.md` at repo root. GM's notes on the PCs (not player-facing) — primarily kept so Laurie can paste party composition into LLM prompts for reasoning about the campaign. Keep it at root rather than buried in a subfolder so it's easy to grab.
 
 **Migration mechanics:** the Google Drive MCP tool `read_file_content` returns ~150KB of text (no images). We pull sections via grep on cached content, hand-convert to markdown preserving structure, verify with Laurie, commit. Not a one-shot script — interactive review per batch.
 
@@ -963,18 +1036,18 @@ Source: `The Last Gasp of Civilisation` Google Doc (id `1bU6jgwIQEjMUmmZJ4wG0PUE
   - Simulated crash: kill process between temp-write and rename; verify old file intact.
   - Simulated crash: kill between rename and dir-fsync; verify new file is on disk.
   - 409 returned when `If-Unmodified-Since` doesn't match.
-  - Draft write then simulated kill → draft persists and is readable.
   - Soft-delete → restore round-trip.
+  - (Draft persistence is localStorage-backed and covered by the manual regression scenario below, not an automated test.)
 - **Frontmatter parsing:** unit tests for edge cases (missing fields, malformed tags, etc.).
-- **UI:** no automated tests for v1; manual regression pass before polishing. One manual regression scenario to script: "open editor, type for a minute, kill the browser tab, reopen → draft restore prompt appears."
+- **UI:** no automated tests for v1; manual regression pass before polishing. One manual regression scenario to script: "open editor, type for a minute, hard-refresh the tab, reopen → draft restore prompt appears with the typed content."
 - **Migration:** each migrated session reviewed by GM before commit.
 
 ---
 
 ## 12. Open questions / decisions deferred
 
-1. **Aesthetic north star.** Specific visual vibe (colour palette, typography, density) is unspecified. Proposal: defer to Phase 11 polish pass, do earlier phases with clean-utilitarian defaults (neutral greys, one accent colour, system font). GM to provide reference images or "this screenshot is the vibe" input before Phase 11.
-2. **Default Golarian-date display format.** Long-form ("Wealday, 4th of Desnus, 4726 AR") is locked in for expanded cards and floating headers. Compact format for chips/axis ticks is drafted but may want tuning once it's on screen.
+1. ~~Aesthetic north star.~~ **Settled.** Archives of Nethys dark theme — full palette in §4.6 `palette.json`. Weekday-derived header strip colours give events automatic visual rhythm. Phase 11 polish pass tunes specific values against real data but the palette is the starting point, not a TBD.
+2. **Default Golarian-date display format.** Long-form ("Wednesday, 4th of Desnus, 4726 AR") is locked in for expanded cards and floating headers. Compact format for chips/axis ticks is drafted but may want tuning once it's on screen.
 3. **File watcher (chokidar + SSE) for live-reload when editing in IntelliJ.** Nice-to-have for Phase 11.
 4. **Density collapse thresholds.** Iterate in Phase 13 with real data.
 5. **`sessions/*.md` long-form recaps.** Folder exists but their relationship to event files is flexible — a recap can link to its events; events don't need to know about recaps. Revisit after first session is migrated.
