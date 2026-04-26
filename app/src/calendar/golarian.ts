@@ -168,6 +168,18 @@ export function toAbsoluteSeconds(date: GolarianDate): number {
   return toAbsoluteDays(date) * 86400 + date.hour * 3600 + date.minute * 60 + date.second;
 }
 
+export function fromAbsoluteSeconds(totalSeconds: number): GolarianDate {
+  const days = Math.floor(totalSeconds / 86400);
+  const rem = totalSeconds % 86400;
+  const base = fromAbsoluteDays(days);
+  return {
+    ...base,
+    hour: Math.floor(rem / 3600),
+    minute: Math.floor((rem % 3600) / 60),
+    second: rem % 60,
+  };
+}
+
 /**
  * Whether the date string includes a time component (for all-day vs point event rendering).
  */

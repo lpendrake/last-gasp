@@ -20,10 +20,26 @@ import {
   type DraftBuffer, type DraftKey,
 } from './drafts.ts';
 import { showConflictModal } from './conflict.ts';
+import { attachLinkPicker } from './link-picker.ts';
 import { parseISOString } from '../calendar/golarian.ts';
 import { weekdayColor } from '../theme.ts';
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
+
+const COLOR_PRESETS = [
+  { label: 'Default (weekday)', value: '' },
+  { label: '■ Crimson',  value: '#a83030' },
+  { label: '■ Amber',    value: '#b87030' },
+  { label: '■ Gold',     value: '#c09820' },
+  { label: '■ Forest',   value: '#3d7a38' },
+  { label: '■ Teal',     value: '#287868' },
+  { label: '■ Blue',     value: '#2858a0' },
+  { label: '■ Indigo',   value: '#483898' },
+  { label: '■ Violet',   value: '#783888' },
+  { label: '■ Rose',     value: '#a03068' },
+  { label: '■ Slate',    value: '#505870' },
+  { label: 'Custom…',    value: '__custom__' },
+];
 
 type Mode =
   | { kind: 'create' }
@@ -41,17 +57,25 @@ const SAVED_BANNER_MS = 900;
 
 type SaveState = 'clean' | 'dirty' | 'saving' | 'error' | 'saved';
 
+export interface EditorOpts {
+  initialDate?: string;
+  initialTags?: string;
+  /** Called just before every save attempt; return an error string to block. */
+  extraValidate?: (buffer: DraftBuffer) => string | null;
+}
+
 /** Open the editor in create mode. */
-export function openCreateEditor(opts: { initialDate?: string } = {}): Promise<EditorResult> {
-  return runEditor({ kind: 'create' }, opts.initialDate);
+export function openCreateEditor(opts: EditorOpts = {}): Promise<EditorResult> {
+  return runEditor({ kind: 'create' }, opts);
 }
 
 /** Open the editor in edit mode for an existing event. */
-export function openEditEditor(filename: string): Promise<EditorResult> {
-  return runEditor({ kind: 'edit', filename });
+export function openEditEditor(filename: string, opts: EditorOpts = {}): Promise<EditorResult> {
+  return runEditor({ kind: 'edit', filename }, opts);
 }
 
-async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult> {
+async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResult> {
+  const { initialDate, initialTags, extraValidate } = opts;
   // Deferred-style resolver so the many handlers below can call `finish`
   // without being nested inside a Promise executor.
   let resolveResult!: (r: EditorResult) => void;
@@ -65,11 +89,12 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
     : { kind: 'new', stamp: newCreationStamp() };
 
   if (mode.kind === 'edit') {
+    // initialDate / initialTags not used in edit mode
     const full = await getEvent(mode.filename);
     baseMtime = full.lastModified;
     initialBuffer = bufferFromEvent(full);
   } else {
-    initialBuffer = emptyBuffer(initialDate);
+    initialBuffer = emptyBuffer(initialDate, initialTags);
   }
 
   const existingDraft = loadDraft(draftKey);
@@ -96,30 +121,48 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
   document.body.appendChild(overlay);
 
   const q = <T extends HTMLElement>(sel: string) => panel.querySelector(sel) as T;
-  const titleInput   = q<HTMLInputElement>('[name=title]');
-  const dateInput    = q<HTMLInputElement>('[name=date]');
-  const tagsInput    = q<HTMLInputElement>('[name=tags]');
-  const colorInput   = q<HTMLInputElement>('[name=color]');
-  const colorSwatch  = q<HTMLSpanElement>('.editor-color-swatch');
-  const statusSelect = q<HTMLSelectElement>('[name=status]');
-  const bodyInput    = q<HTMLTextAreaElement>('[name=body]');
-  const preview      = q<HTMLDivElement>('.editor-preview');
-  const saveBtn      = q<HTMLButtonElement>('.editor-save');
-  const discardBtn   = q<HTMLButtonElement>('.editor-discard');
-  const deleteBtn    = panel.querySelector('.editor-delete') as HTMLButtonElement | null;
-  const closeBtn     = q<HTMLButtonElement>('.editor-close');
-  const statusBanner = q<HTMLDivElement>('.editor-status');
-  const errorBanner  = q<HTMLDivElement>('.editor-error');
-  const errorMsgEl   = q<HTMLSpanElement>('.editor-error-message');
-  const retryBtn     = q<HTMLButtonElement>('.editor-retry');
+  const titleInput    = q<HTMLInputElement>('[name=title]');
+  const dateInput     = q<HTMLInputElement>('[name=date]');
+  const tagsInput     = q<HTMLInputElement>('[name=tags]');
+  const colorPreset   = q<HTMLSelectElement>('[name=color-preset]');
+  const colorCustom   = q<HTMLInputElement>('[name=color-custom]');
+  const colorSwatch   = q<HTMLSpanElement>('.editor-color-swatch');
+  const bodyInput     = q<HTMLTextAreaElement>('[name=body]');
+  const preview       = q<HTMLDivElement>('.editor-preview');
+  const saveBtn       = q<HTMLButtonElement>('.editor-save');
+  const discardBtn    = q<HTMLButtonElement>('.editor-discard');
+  const deleteBtn     = panel.querySelector('.editor-delete') as HTMLButtonElement | null;
+  const closeBtn      = q<HTMLButtonElement>('.editor-close');
+  const statusBanner  = q<HTMLDivElement>('.editor-status');
+  const errorBanner   = q<HTMLDivElement>('.editor-error');
+  const errorMsgEl    = q<HTMLSpanElement>('.editor-error-message');
+  const retryBtn      = q<HTMLButtonElement>('.editor-retry');
+
+  function getColor(): string {
+    return colorPreset.value === '__custom__' ? colorCustom.value.trim() : colorPreset.value;
+  }
+
+  function setColor(raw: string) {
+    const isPreset = COLOR_PRESETS.some(p => p.value === raw);
+    if (!raw || isPreset) {
+      colorPreset.value = raw;
+      colorCustom.hidden = true;
+    } else {
+      colorPreset.value = '__custom__';
+      colorCustom.value = raw;
+      colorCustom.hidden = false;
+    }
+  }
+
+  preview.dataset.baseDir = 'events';
+  const detachLinkPicker = attachLinkPicker(bodyInput);
 
   // ---- Apply initial buffer ----
-  titleInput.value   = initialBuffer.title;
-  dateInput.value    = initialBuffer.date;
-  tagsInput.value    = initialBuffer.tagsText;
-  colorInput.value   = initialBuffer.color;
-  statusSelect.value = initialBuffer.status;
-  bodyInput.value    = initialBuffer.body;
+  titleInput.value = initialBuffer.title;
+  dateInput.value  = initialBuffer.date;
+  tagsInput.value  = initialBuffer.tagsText;
+  setColor(initialBuffer.color);
+  bodyInput.value  = initialBuffer.body;
   updatePreview();
   updateColorSwatch();
 
@@ -134,8 +177,8 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
       title: titleInput.value,
       date: dateInput.value,
       tagsText: tagsInput.value,
-      color: colorInput.value,
-      status: statusSelect.value as DraftBuffer['status'],
+      color: getColor(),
+      status: '',
       body: bodyInput.value,
     };
   }
@@ -164,10 +207,16 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
 
   function updatePreview() {
     preview.innerHTML = md.render(bodyInput.value || '_(preview — start typing)_');
+    for (const img of preview.querySelectorAll<HTMLImageElement>('img[src]')) {
+      const src = img.getAttribute('src') ?? '';
+      if (!src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
+        img.setAttribute('src', `/api/file/events/${src}`);
+      }
+    }
   }
 
   function updateColorSwatch() {
-    const raw = colorInput.value.trim();
+    const raw = getColor();
     let resolved = raw;
     if (!raw && dateInput.value.trim()) {
       try { resolved = weekdayColor(dateInput.value.trim()); } catch { resolved = ''; }
@@ -187,18 +236,23 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
     writeDraftDebounced();
   }
 
-  for (const el of [titleInput, dateInput, tagsInput, colorInput, bodyInput]) {
+  for (const el of [titleInput, dateInput, tagsInput, bodyInput]) {
     el.addEventListener('input', onInput);
   }
-  statusSelect.addEventListener('change', onInput);
-  colorInput.addEventListener('input', updateColorSwatch);
+  colorPreset.addEventListener('change', () => {
+    colorCustom.hidden = colorPreset.value !== '__custom__';
+    if (colorPreset.value === '__custom__') colorCustom.focus();
+    onInput();
+    updateColorSwatch();
+  });
+  colorCustom.addEventListener('input', () => { onInput(); updateColorSwatch(); });
   dateInput.addEventListener('input', updateColorSwatch);
   bodyInput.addEventListener('input', updatePreview);
 
   // ---- Save flow ----
   async function attemptSave(overwriteConflict = false): Promise<void> {
     const buf = readBuffer();
-    const validationError = validateBuffer(buf);
+    const validationError = validateBuffer(buf) ?? extraValidate?.(buf) ?? null;
     if (validationError) {
       setState('error', validationError);
       return;
@@ -306,7 +360,7 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
 
   // ---- Keyboard ----
   const onKey = (e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 's' || e.key === 'Enter')) {
       e.preventDefault();
       if (!saveBtn.disabled) void attemptSave();
       return;
@@ -330,6 +384,7 @@ async function runEditor(mode: Mode, initialDate?: string): Promise<EditorResult
   return resultPromise;
 
   function finish(result: EditorResult) {
+    detachLinkPicker();
     window.removeEventListener('beforeunload', onBeforeUnload);
     window.removeEventListener('keydown', onKey);
     overlay.remove();
@@ -343,11 +398,11 @@ function newCreationStamp(): string {
   return new Date().toISOString().replace(/[:.]/g, '-');
 }
 
-function emptyBuffer(initialDate?: string): DraftBuffer {
+function emptyBuffer(initialDate?: string, initialTags?: string): DraftBuffer {
   return {
     title: '',
     date: initialDate ?? '',
-    tagsText: '',
+    tagsText: initialTags ?? '',
     color: '',
     status: '',
     body: '',
@@ -409,24 +464,18 @@ function editorHtml(mode: Mode): string {
         <label class="editor-label">Title
           <input type="text" name="title" class="editor-input" autocomplete="off">
         </label>
-        <div class="editor-row">
-          <label class="editor-label editor-label-flex">Date (Golarian ISO)
-            <input type="text" name="date" class="editor-input" placeholder="4726-05-04T09:30" autocomplete="off">
-          </label>
-          <label class="editor-label editor-label-flex">Status
-            <select name="status" class="editor-input">
-              <option value="">(auto)</option>
-              <option value="happened">happened</option>
-              <option value="planned">planned</option>
-            </select>
-          </label>
-        </div>
+        <label class="editor-label">Date (Golarian ISO)
+          <input type="text" name="date" class="editor-input" placeholder="4726-05-04T09:30" autocomplete="off">
+        </label>
         <label class="editor-label">Tags (comma-separated)
           <input type="text" name="tags" class="editor-input" placeholder="plot:beast, location:fort, session:2026-04-22" autocomplete="off">
         </label>
-        <label class="editor-label">Colour override (hex, optional)
+        <label class="editor-label">Colour
           <span class="editor-color-row">
-            <input type="text" name="color" class="editor-input editor-input-short" placeholder="#c43" autocomplete="off">
+            <select name="color-preset" class="editor-input editor-color-preset">
+              ${COLOR_PRESETS.map(p => `<option value="${escapeHtml(p.value)}">${escapeHtml(p.label)}</option>`).join('')}
+            </select>
+            <input type="text" name="color-custom" class="editor-input editor-color-custom" placeholder="#c43" autocomplete="off" hidden>
             <span class="editor-color-swatch"></span>
           </span>
         </label>

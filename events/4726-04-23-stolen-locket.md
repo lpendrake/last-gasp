@@ -1,9 +1,10 @@
 ---
-title: Stolen Locket & Blackwater Bog
-date: 4726-04-23
-tags: [session:2026-02-01, location:blackwater-bog, gm-notes]
+title: Stolen Locket
+date: 4726-04-23T00:00:00
+tags:
+  - plot:logging
+  - location:logging-camp
+  - session:2026-01-25
 ---
 
-Did the Stolen Locket mission by getting a precious trinket back from a scamp.
-
-Went to [Blackwater Bog-Loggers](../locations/blackwater-bog.md).
+The [party](../party.md) visits [Whispering Sawmills](../locations/whispering-sawmills.md) and completes the Stolen Locket mission by recovering a precious trinket from a scamp.

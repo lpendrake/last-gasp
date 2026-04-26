@@ -65,6 +65,7 @@ export async function openEventModal(event: EventListItem): Promise<EventModalAc
 
   const body = document.createElement('div');
   body.className = 'event-modal-body markdown-body';
+  body.dataset.baseDir = 'events';
   body.innerHTML = md.render(full.body);
   content.appendChild(body);
 

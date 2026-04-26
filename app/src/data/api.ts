@@ -34,7 +34,7 @@ export interface EventWithMtime extends Event {
 }
 
 export async function getEvent(filename: string): Promise<EventWithMtime> {
-  const res = await fetch(`/api/events/${encodeURIComponent(filename)}`);
+  const res = await fetch(`/api/events/${encodeURIComponent(filename)}`, { cache: 'no-store' });
   if (!res.ok) throw new ApiError(res.status, await res.text());
   const event = await res.json() as Event;
   const lastModified = res.headers.get('Last-Modified') ?? event.mtime;
@@ -100,8 +100,11 @@ export const appendSession = (s: Session) => jsonFetch<Session[]>('/api/sessions
 
 export const getLinkIndex = () => jsonFetch<LinkIndexEntry[]>('/api/link-index');
 
-export async function getFile(relPath: string): Promise<string> {
-  const res = await fetch(`/api/file/${relPath.split('/').map(encodeURIComponent).join('/')}`);
+export async function getFile(relPath: string, signal?: AbortSignal): Promise<string> {
+  const res = await fetch(
+    `/api/file/${relPath.split('/').map(encodeURIComponent).join('/')}`,
+    signal ? { signal } : undefined,
+  );
   if (!res.ok) throw new ApiError(res.status, await res.text());
   return res.text();
 }

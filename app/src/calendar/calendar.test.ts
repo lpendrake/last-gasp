@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isLeap, weekday, parseISOString, toISOString,
-  toAbsoluteDays, fromAbsoluteDays, toAbsoluteSeconds, validateDate,
+  toAbsoluteDays, fromAbsoluteDays, toAbsoluteSeconds, fromAbsoluteSeconds, validateDate,
 } from './golarian.ts';
 import { formatExpanded, formatCompact, formatAxisDay, formatFloatingDay } from './format.ts';
 
@@ -134,6 +134,34 @@ describe('toAbsoluteSeconds', () => {
     const dateOnly = toAbsoluteSeconds({ year: 4726, month: 5, day: 4, hour: 0, minute: 0, second: 0 });
     const withTime = toAbsoluteSeconds({ year: 4726, month: 5, day: 4, hour: 18, minute: 30, second: 0 });
     expect(withTime - dateOnly).toBe(18 * 3600 + 30 * 60);
+  });
+});
+
+describe('fromAbsoluteSeconds round-trip', () => {
+  it('round-trips an ISO string with time', () => {
+    const iso = '4726-05-04T18:30:00';
+    const parsed = parseISOString(iso);
+    const secs = toAbsoluteSeconds(parsed);
+    const restored = fromAbsoluteSeconds(secs);
+    expect(toISOString(restored)).toBe(iso);
+  });
+  it('round-trips midnight (toISOString omits time at midnight)', () => {
+    const parsed = parseISOString('4727-01-01T00:00:00');
+    const secs = toAbsoluteSeconds(parsed);
+    const restored = fromAbsoluteSeconds(secs);
+    expect(restored.year).toBe(4727);
+    expect(restored.month).toBe(1);
+    expect(restored.day).toBe(1);
+    expect(restored.hour).toBe(0);
+    expect(restored.minute).toBe(0);
+  });
+  it('+1 day advances correctly', () => {
+    const parsed = parseISOString('4726-05-04T18:30:00');
+    const secs = toAbsoluteSeconds(parsed) + 86400;
+    const next = fromAbsoluteSeconds(secs);
+    expect(next.day).toBe(5);
+    expect(next.hour).toBe(18);
+    expect(next.minute).toBe(30);
   });
 });
 

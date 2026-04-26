@@ -29,9 +29,9 @@ export function formatCompact(date: GolarianDate): string {
   return `${wd} ${date.day} ${monthName(date.month)} ${date.year}`;
 }
 
-/** "4 Desnus" — axis major tick */
+/** "Wed 4 Desnus" — axis major tick */
 export function formatAxisDay(date: GolarianDate): string {
-  return `${date.day} ${monthName(date.month)}`;
+  return `${weekday(date).slice(0, 3)} ${date.day} ${monthName(date.month)}`;
 }
 
 /** "09:00" — axis minor tick */
@@ -48,4 +48,14 @@ export function formatFloatingDay(date: GolarianDate): string {
 /** "Desnus 4726 AR" — floating header (month) */
 export function formatFloatingMonth(date: GolarianDate): string {
   return `${monthName(date.month)} ${date.year} AR`;
+}
+
+/** Now-marker label: ["4th of Desnus", "4726 AR"] + optional "15:00" */
+export function formatNowMarker(date: GolarianDate): [string, string, string | null] {
+  const dayMonth = `${ordinal(date.day)} of ${monthName(date.month)}`;
+  const year = `${date.year} AR`;
+  const time = (date.hour !== 0 || date.minute !== 0)
+    ? `${String(date.hour).padStart(2, '0')}:${String(date.minute).padStart(2, '0')}`
+    : null;
+  return [dayMonth, year, time];
 }

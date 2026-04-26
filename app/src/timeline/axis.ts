@@ -1,6 +1,6 @@
 import { type ViewState, type ViewportSize, xToSeconds, secondsToX, SECONDS_PER_DAY } from './zoom.ts';
-import { fromAbsoluteDays, toAbsoluteDays } from '../calendar/golarian.ts';
-import { formatAxisDay, formatFloatingMonth } from '../calendar/format.ts';
+import { fromAbsoluteDays, toAbsoluteDays, daysInMonth, monthName } from '../calendar/golarian.ts';
+import { formatAxisDay } from '../calendar/format.ts';
 
 /**
  * Render axis major tick marks and labels for the visible range.
@@ -52,12 +52,48 @@ export function renderAxis(
     container.appendChild(tick);
   }
 
-  // Floating month header on the left edge
-  const centerDate = fromAbsoluteDays(Math.floor(xToSeconds(0, view, size) / SECONDS_PER_DAY));
-  const floating = document.createElement('div');
-  floating.className = 'axis-floating-header';
-  floating.textContent = formatFloatingMonth({ ...centerDate, hour: 0, minute: 0, second: 0 });
-  container.appendChild(floating);
+  // Month bands + labels
+  const BAND_TOP = axisY - 2;
+  const BAND_HEIGHT = 64; // covers tick marks + labels + month label
+  const LABEL_MIN_BAND_PX = 60; // don't draw label if the visible slice is too narrow
+
+  const startDate = fromAbsoluteDays(Math.max(0, Math.floor(startSec / SECONDS_PER_DAY)));
+  let monthStartDay = toAbsoluteDays({ year: startDate.year, month: startDate.month, day: 1 });
+
+  while (true) {
+    const md = fromAbsoluteDays(monthStartDay);
+    const dm = daysInMonth(md.year, md.month);
+    const monthEndDay = monthStartDay + dm;
+
+    const bandStartX = secondsToX(monthStartDay * SECONDS_PER_DAY, view, size);
+    const bandEndX = secondsToX(monthEndDay * SECONDS_PER_DAY, view, size);
+
+    if (bandStartX > size.width) break;
+    if (bandEndX < 0) { monthStartDay = monthEndDay; continue; }
+
+    const clampedStart = Math.max(0, bandStartX);
+    const clampedEnd = Math.min(size.width, bandEndX);
+
+    const band = document.createElement('div');
+    band.className = `axis-month-band${md.month % 2 === 0 ? ' is-even' : ''}`;
+    band.style.left = `${clampedStart}px`;
+    band.style.width = `${clampedEnd - clampedStart}px`;
+    band.style.top = `${BAND_TOP}px`;
+    band.style.height = `${BAND_HEIGHT}px`;
+    container.insertBefore(band, container.firstChild); // behind ticks
+
+    if (clampedEnd - clampedStart >= LABEL_MIN_BAND_PX) {
+      const labelX = Math.max(8, bandStartX + 8);
+      const lbl = document.createElement('div');
+      lbl.className = 'axis-month-label';
+      lbl.style.left = `${labelX}px`;
+      lbl.style.top = `${axisY + 32}px`;
+      lbl.innerHTML = `<div class="axis-month-name">${monthName(md.month)}</div><div class="axis-month-year">${md.year} AR</div>`;
+      container.appendChild(lbl);
+    }
+
+    monthStartDay = monthEndDay;
+  }
 }
 
 /** Choose day-tick spacing that keeps labels readable at the current zoom level. */

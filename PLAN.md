@@ -1054,6 +1054,7 @@ Source: `The Last Gasp of Civilisation` Google Doc (id `1bU6jgwIQEjMUmmZJ4wG0PUE
 6. **Multi-event stacking UX.** Proposed: vertical stack with tie bracket. Validate with real overlapping data in Phase 12.
 7. **Color-picker UI for tag colours.** Simple hex input in v1; visual picker in later polish.
 8. **PF2e Team+ / Remaster content tags.** Separate from timeline concerns — may want a `#homebrew` or `#team+` marker in rules files. Out of scope for timeline app itself.
+9. **Obsidian-style live-preview editor.** Replace the plain `<textarea>` in the event editor with a CodeMirror 6 editor + a view plugin that hides markdown syntax markers (**, `#`, `[…](…)`, etc.) when the cursor is not adjacent to them — showing rendered formatting inline while still letting you edit raw markdown. Requires replacing the textarea entirely; not a small change. Candidate for a later polish phase once the editing workflow is otherwise settled.
 
 ---
 

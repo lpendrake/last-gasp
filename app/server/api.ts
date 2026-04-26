@@ -336,18 +336,25 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     sendJson(res, 200, entries);
   };
 
+  const IMAGE_MIME: Record<string, string> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+    gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+  };
+
   const getFile: RouteHandler = async (_req, res, params) => {
     const relPath = decodeURIComponent(params.path);
-    if (!relPath.endsWith('.md')) return sendError(res, 404, 'Only .md files are served');
+    const ext = relPath.split('.').pop()?.toLowerCase() ?? '';
+    const isMarkdown = ext === 'md';
+    const imageMime = IMAGE_MIME[ext];
+    if (!isMarkdown && !imageMime) return sendError(res, 404, 'Unsupported file type');
     const absolute = safeResolveInRepo(relPath);
     if (!absolute) return sendError(res, 403, 'Path escapes repo root');
     if (!(await fileExists(absolute))) return sendError(res, 404, 'File not found');
     const stat = await fs.stat(absolute);
-    const content = await fs.readFile(absolute, 'utf-8');
     res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Type', isMarkdown ? 'text/markdown; charset=utf-8' : imageMime!);
     res.setHeader('Last-Modified', stat.mtime.toUTCString());
-    res.end(content);
+    res.end(await fs.readFile(absolute, isMarkdown ? 'utf-8' : undefined));
   };
 
   const listTrash: RouteHandler = async (_req, res) => {
