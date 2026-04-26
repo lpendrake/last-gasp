@@ -6,9 +6,7 @@ import { randomBytes } from 'crypto';
  * Atomic file write: temp file → fsync → rename → fsync parent dir.
  *
  * A crash at any instant leaves the file in either the old-complete or
- * new-complete state. Never partial, never corrupt.
- *
- * Per §4.5.1 of PLAN.md.
+ * new-complete state. Never partial, never corrupt
  */
 export async function writeFileAtomic(path: string, content: string | Uint8Array): Promise<void> {
   const tempPath = `${path}.${randomBytes(6).toString('hex')}.tmp`;
