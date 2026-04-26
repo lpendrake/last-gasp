@@ -1087,15 +1087,15 @@ html, body {
 
 .editor-overlay {
   align-items: flex-start;
-  padding-top: 4vh;
+  padding: 1vh 1vw;
 }
 
 .editor-panel {
   background: var(--theme-surface, #242420);
   border: 1px solid var(--theme-border-strong, #5a4530);
-  border-radius: 4px;
-  width: min(1100px, 94vw);
-  max-height: 92vh;
+  border-radius: 2px;
+  width: 98vw;
+  height: 98vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1515,6 +1515,46 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ===== Format toolbar (floating above selection) ===== */
+
+.fmt-toolbar[hidden] { display: none; }
+
+.fmt-toolbar {
+  position: fixed;
+  z-index: 700;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+  pointer-events: all;
+}
+
+.fmt-toolbar-btn {
+  background: transparent;
+  border: none;
+  color: var(--theme-text-secondary, #a89a80);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 28px;
+  border-radius: 2px;
+}
+.fmt-toolbar-btn:hover {
+  background: var(--theme-panel-accent, #3a4d35);
+  color: var(--theme-text-primary, #d8d0b8);
+}
+.fmt-toolbar-btn[data-fmt="B"] { font-weight: bold; }
+.fmt-toolbar-btn[data-fmt="I"] { font-style: italic; }
+.fmt-toolbar-btn[data-fmt="U"] { text-decoration: underline; }
+.fmt-toolbar-btn[data-fmt="S"] { text-decoration: line-through; }
+
+/* ========================== */
 
 .link-picker-empty {
   padding: 10px 12px;

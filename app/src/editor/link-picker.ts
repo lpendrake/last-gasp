@@ -2,7 +2,6 @@ import Fuse from 'fuse.js';
 import { getLinkIndex } from '../data/api.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
 
-// Module-level cache: the link index changes rarely mid-session.
 let indexCache: LinkIndexEntry[] | null = null;
 let fuseCache: Fuse<LinkIndexEntry> | null = null;
 
@@ -19,25 +18,25 @@ async function ensureIndex(): Promise<{ index: LinkIndexEntry[]; fuse: Fuse<Link
   return { index: indexCache, fuse: fuseCache };
 }
 
-// Produces a relative href from `events/` to targetPath (repo-relative).
 function relHref(targetPath: string): string {
   const parts = targetPath.split('/');
   const targetDir = parts.slice(0, -1).join('/');
   const file = parts[parts.length - 1];
-  // Source dir is always "events" for the editor.
   if (targetDir === 'events') return file;
   if (!targetDir) return `../${file}`;
   return `../${targetPath}`;
 }
 
-// Match `[[query` at the end of text-before-cursor.
-const TRIGGER_RE = /\[\[([^\][]*)$/;
+// Fires when @ appears at start of text or after whitespace, followed by a non-space char or nothing.
+// "met @ the inn" won't trigger (space after @); "@foo" and "text @foo" will.
+const TRIGGER_RE = /(^|[ \t])@(\S[^\n]*|)$/;
 
 function getPickState(ta: HTMLTextAreaElement): { query: string; triggerStart: number } | null {
   const text = ta.value.slice(0, ta.selectionStart);
   const m = TRIGGER_RE.exec(text);
   if (!m) return null;
-  return { query: m[1], triggerStart: m.index };
+  const atPos = m.index + m[1].length; // position of '@' itself
+  return { query: m[2], triggerStart: atPos };
 }
 
 function esc(s: string): string {
@@ -47,15 +46,15 @@ function esc(s: string): string {
   );
 }
 
-/**
- * Attach a [[-triggered link autocomplete dropdown to a textarea.
- * Returns a cleanup function to remove all listeners and DOM nodes.
- */
-export function attachLinkPicker(textarea: HTMLTextAreaElement): () => void {
+export function attachLinkPicker(textarea: HTMLTextAreaElement): {
+  detach: () => void;
+  openForSelection: (displayText: string, selStart: number, selEnd: number) => void;
+} {
   let dropdown: HTMLDivElement | null = null;
   let results: LinkIndexEntry[] = [];
   let selected = 0;
   let active = false;
+  let pendingSelection: { displayText: string; selStart: number; selEnd: number } | null = null;
 
   function renderItems() {
     if (!dropdown) return;
@@ -102,16 +101,31 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): () => void {
   function hideDropdown() {
     if (dropdown) dropdown.hidden = true;
     active = false;
+    pendingSelection = null;
   }
 
   function pick(item: LinkIndexEntry) {
+    const href = relHref(item.path);
+
+    if (pendingSelection) {
+      const { displayText, selStart, selEnd } = pendingSelection;
+      pendingSelection = null;
+      const insertion = `[${displayText}](${href})`;
+      textarea.value = textarea.value.slice(0, selStart) + insertion + textarea.value.slice(selEnd);
+      const pos = selStart + insertion.length;
+      textarea.setSelectionRange(pos, pos);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      hideDropdown();
+      textarea.focus();
+      return;
+    }
+
     const state = getPickState(textarea);
     if (!state) { hideDropdown(); return; }
 
-    const href = relHref(item.path);
     const insertion = `[${item.title}](${href})`;
     const before = textarea.value.slice(0, state.triggerStart);
-    const after = textarea.value.slice(state.triggerStart + 2 + state.query.length);
+    const after = textarea.value.slice(state.triggerStart + 1 + state.query.length); // 1 = '@'
     textarea.value = before + insertion + after;
 
     const pos = state.triggerStart + insertion.length;
@@ -166,16 +180,36 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): () => void {
     setTimeout(hideDropdown, 150);
   }
 
+  async function openForSelection(displayText: string, selStart: number, selEnd: number) {
+    pendingSelection = { displayText, selStart, selEnd };
+    active = true;
+
+    try {
+      const { index, fuse } = await ensureIndex();
+      const items = displayText.trim()
+        ? fuse.search(displayText).map(r => r.item)
+        : index;
+      showDropdown(items.slice(0, 10));
+    } catch {
+      pendingSelection = null;
+      active = false;
+    }
+  }
+
   textarea.addEventListener('input', onInput);
   textarea.addEventListener('keydown', onKeyDown);
   textarea.addEventListener('blur', onBlur);
 
-  return () => {
-    textarea.removeEventListener('input', onInput);
-    textarea.removeEventListener('keydown', onKeyDown);
-    textarea.removeEventListener('blur', onBlur);
-    dropdown?.remove();
-    dropdown = null;
-    active = false;
+  return {
+    detach: () => {
+      textarea.removeEventListener('input', onInput);
+      textarea.removeEventListener('keydown', onKeyDown);
+      textarea.removeEventListener('blur', onBlur);
+      dropdown?.remove();
+      dropdown = null;
+      active = false;
+      pendingSelection = null;
+    },
+    openForSelection,
   };
 }

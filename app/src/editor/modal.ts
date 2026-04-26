@@ -21,10 +21,12 @@ import {
 } from './drafts.ts';
 import { showConflictModal } from './conflict.ts';
 import { attachLinkPicker } from './link-picker.ts';
+import { attachFormatToolbar } from './format-toolbar.ts';
 import { parseISOString } from '../calendar/golarian.ts';
 import { weekdayColor } from '../theme.ts';
 
-const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
+// html: true so <u> underline and other inline HTML render in preview (local single-user app)
+const md = new MarkdownIt({ html: true, linkify: true, breaks: false });
 
 const COLOR_PRESETS = [
   { label: 'Default (weekday)', value: '' },
@@ -155,7 +157,8 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
   }
 
   preview.dataset.baseDir = 'events';
-  const detachLinkPicker = attachLinkPicker(bodyInput);
+  const { detach: detachLinkPicker, openForSelection } = attachLinkPicker(bodyInput);
+  const detachFormatToolbar = attachFormatToolbar(bodyInput, openForSelection);
 
   // ---- Apply initial buffer ----
   titleInput.value = initialBuffer.title;
@@ -385,6 +388,7 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
 
   function finish(result: EditorResult) {
     detachLinkPicker();
+    detachFormatToolbar();
     window.removeEventListener('beforeunload', onBeforeUnload);
     window.removeEventListener('keydown', onKey);
     overlay.remove();
