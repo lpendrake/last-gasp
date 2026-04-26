@@ -1,0 +1,103 @@
+/* ===== Search overlay ===== */
+
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.search-panel {
+  width: min(640px, 92vw);
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.search-input {
+  padding: 14px 16px;
+  font-size: 17px;
+  background: var(--theme-surface, #242420);
+  color: var(--theme-text-primary, #d8d0b8);
+  border: none;
+  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  outline: none;
+  font-family: inherit;
+}
+
+.search-loading {
+  padding: 6px 16px;
+  font-size: 12px;
+  color: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-panel, #2d3d2a);
+}
+
+.search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.search-result {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 3px;
+}
+.search-result:last-child {
+  border-bottom: none;
+}
+.search-result:hover,
+.search-result.is-active {
+  background: var(--theme-panel-accent, #3a4d35);
+}
+
+.search-result-title {
+  color: var(--theme-text-primary, #d8d0b8);
+  font-size: 15px;
+  font-weight: 500;
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.search-result-date {
+  color: var(--theme-text-muted, #7a6f58);
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.search-result-snippet {
+  color: var(--theme-text-secondary, #a89a80);
+  font-size: 13px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-hint {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-panel, #2d3d2a);
+  text-align: right;
+  letter-spacing: 0.04em;
+}

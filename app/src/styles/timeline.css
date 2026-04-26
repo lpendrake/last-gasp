@@ -1,0 +1,301 @@
+/* ===== Timeline container ===== */
+
+.timeline-container {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.timeline-session-layer,
+.timeline-axis-layer,
+.timeline-cards-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.timeline-cards-layer .event-card {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ===== Session bands ===== */
+
+.session-band-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--band-color, rgba(255,255,255,0.02));
+  opacity: 0.5;
+  pointer-events: none;
+}
+.session-band-bg.is-overlap {
+  background: rgba(180, 80, 40, 0.12);
+  opacity: 1;
+}
+
+.session-strip {
+  position: absolute;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.85;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.session-strip.is-overlap {
+  outline: 1px solid var(--theme-danger, #c06040);
+  opacity: 1;
+}
+
+.session-strip-label {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-primary, #d8d0b8);
+  white-space: nowrap;
+  padding: 0 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Axis ===== */
+
+.axis-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--theme-border-strong, #5a4530);
+}
+
+.axis-tick {
+  position: absolute;
+  pointer-events: none;
+}
+
+.axis-tick-mark {
+  width: 1px;
+  height: 8px;
+  background: var(--theme-border-strong, #5a4530);
+  margin-top: -4px;
+}
+
+.axis-tick-label {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--theme-text-secondary, #a89a80);
+  font-family: ui-monospace, 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+.axis-month-band {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+}
+.axis-month-band.is-even {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.axis-month-label {
+  position: absolute;
+  pointer-events: none;
+  line-height: 1.2;
+}
+
+.axis-month-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--theme-text-secondary, #a89a80);
+  white-space: nowrap;
+}
+
+.axis-month-year {
+  font-size: 13px;
+  color: var(--theme-text-muted, #7a6f58);
+  white-space: nowrap;
+}
+
+/* ===== Now marker ===== */
+
+.now-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--theme-accent-warm, #b87840);
+  transform: translateX(-1px);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.now-marker-labels {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  pointer-events: auto;
+  cursor: context-menu;
+}
+
+.now-marker-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px 0;
+  white-space: nowrap;
+}
+
+.now-marker-year {
+  font-size: 14px;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 0 6px 2px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.now-marker-time {
+  font-size: 14px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* ===== Shift-click: set-now preview ===== */
+
+.shift-now-preview {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--theme-accent-warm, #b87840) 0px,
+    var(--theme-accent-warm, #b87840) 5px,
+    transparent 5px,
+    transparent 9px
+  );
+  transform: translateX(-1px);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.shift-now-labels {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shift-now-hint {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-background, #1a1a1a);
+  padding: 1px 6px 2px;
+  white-space: nowrap;
+}
+
+.shift-now-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px 0;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.shift-now-year {
+  font-size: 14px;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 0 6px 2px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.shift-now-time {
+  font-size: 14px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px;
+  margin-top: 3px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* ===== Quick-add event indicator ===== */
+
+.quick-add {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 50;
+}
+
+.quick-add-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--theme-accent, #6a9a4a);
+  color: #fff;
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  opacity: 0.9;
+}
+
+.quick-add-label {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background, #1a1a1a);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+/* ===== Ctrl+drag reschedule ===== */
+
+.event-card.is-ctrl-dragging {
+  opacity: 0.8;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--theme-accent-gold, #c9a860);
+  z-index: 50;
+  cursor: ew-resize !important;
+  transition: none;
+}
+
+.ctrl-drag-label {
+  position: absolute;
+  transform: translateX(-50%);
+  background: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-background, #1a1a1a);
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 51;
+}
