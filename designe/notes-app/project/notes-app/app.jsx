@@ -17,9 +17,12 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 
 const FOLDER_ORDER = ['npcs', 'locations', 'factions', 'plots', 'rules', 'sessions', 'player-facing', 'misc'];
 
-function titleFromBody(body, fallback) {
-  const m = /^#\s+(.+)$/m.exec(body);
-  return m ? m[1].trim() : fallback;
+// REJECTED: titleFromBody was used to show the # heading as tab/sidebar title instead of
+// the filename. Laurie explicitly rejected this — files can have multiple headings and the
+// filename is always the right label. Always use the filename (without .md) as the display title.
+// Do NOT re-implement heading extraction for tab or sidebar labels.
+function titleFromBody(_body, fallback) {
+  return fallback;
 }
 
 function App() {

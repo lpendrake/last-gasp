@@ -298,17 +298,6 @@ export function NotesApp() {
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
 
   function titleForTab(tab: OpenTab): string {
-    // 1. Extract from loaded file content
-    const file = openFiles[tabKey(tab)];
-    if (file?.content) {
-      const m = /^#\s+(.+)$/m.exec(file.content);
-      if (m) return m[1].trim();
-    }
-    // 2. Title from folder index (populated from server on load)
-    const entries = folderFiles[tab.folder];
-    const entry = entries?.find(e => e.path === tab.path);
-    if (entry?.title) return entry.title;
-    // 3. Fallback: filename without extension
     return tab.path.split('/').pop()?.replace(/\.md$/, '') ?? tab.path;
   }
 
