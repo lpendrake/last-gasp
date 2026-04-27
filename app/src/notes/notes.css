@@ -313,8 +313,9 @@
   min-height: 28px;
   flex-shrink: 0;
 }
+.breadcrumb-segment { color: var(--theme-text-muted, #7a6f58); }
+.breadcrumb-segment.is-leaf { color: var(--theme-text-secondary, #a89a80); }
 .breadcrumb-sep { color: var(--theme-border-strong, #5a4530); }
-.breadcrumb-leaf { color: var(--theme-text-secondary, #a89a80); }
 .breadcrumb-status { margin-left: auto; font-size: 12px; letter-spacing: 0.05em; }
 .breadcrumb-status.is-clean  { color: var(--theme-text-muted, #7a6f58); }
 .breadcrumb-status.is-dirty  { color: var(--theme-accent-warm, #b87840); }

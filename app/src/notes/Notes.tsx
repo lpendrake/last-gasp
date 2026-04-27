@@ -298,6 +298,17 @@ export function NotesApp() {
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
 
   function titleForTab(tab: OpenTab): string {
+    // 1. Extract from loaded file content
+    const file = openFiles[tabKey(tab)];
+    if (file?.content) {
+      const m = /^#\s+(.+)$/m.exec(file.content);
+      if (m) return m[1].trim();
+    }
+    // 2. Title from folder index (populated from server on load)
+    const entries = folderFiles[tab.folder];
+    const entry = entries?.find(e => e.path === tab.path);
+    if (entry?.title) return entry.title;
+    // 3. Fallback: filename without extension
     return tab.path.split('/').pop()?.replace(/\.md$/, '') ?? tab.path;
   }
 
@@ -505,17 +516,17 @@ export function NotesApp() {
             const pathParts = activeTab.path.split('/');
             return (
               <div className="breadcrumbs">
-                <span>vault</span>
+                <span className="breadcrumb-segment">vault</span>
                 <span className="breadcrumb-sep">/</span>
-                <span>{activeTab.folder}</span>
+                <span className="breadcrumb-segment">{activeTab.folder}</span>
                 {pathParts.slice(0, -1).map((part, i) => (
                   <React.Fragment key={i}>
                     <span className="breadcrumb-sep">/</span>
-                    <span>{part}</span>
+                    <span className="breadcrumb-segment">{part}</span>
                   </React.Fragment>
                 ))}
                 <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-leaf">{pathParts[pathParts.length - 1]}</span>
+                <span className="breadcrumb-segment is-leaf">{pathParts[pathParts.length - 1]}</span>
                 <span className={`breadcrumb-status is-${status}`}>{statusText[status]}</span>
               </div>
             );
@@ -588,15 +599,19 @@ export function NotesApp() {
           <button onClick={() => pushToast('Search — coming soon')}>Search</button>
         </div>
         <div className="toolbar-main" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {folders.slice(0, 3).map(f => (
+          {([
+            { folder: 'npcs',      label: 'NPC' },
+            { folder: 'locations', label: 'Location' },
+            { folder: 'factions',  label: 'Faction' },
+          ] as const).map(({ folder: f, label }) => (
             <button
               key={f}
               className="is-kind"
               style={{ '--kind-color': folderColor(f) } as React.CSSProperties}
               onClick={() => { setQuickAddSeed(''); setQuickAddFolder(f); setQuickAddOpen(true); }}
-              title={`New note in ${f}/`}
+              title={`New ${label}`}
             >
-              <span className="kind-pip" style={{ background: folderColor(f) }} />+ {f}
+              <span className="kind-pip" />+ {label}
             </button>
           ))}
           <button
