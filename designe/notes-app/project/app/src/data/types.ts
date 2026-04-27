@@ -52,17 +52,6 @@ export interface Palette {
   };
 }
 
-// ---- Notes ----
-
-export type NoteFolder = 'npcs' | 'locations' | 'factions' | 'plots' | 'rules' | 'sessions' | 'player-facing' | 'misc';
-
-export interface NoteEntry {
-  /** Path relative to the top-level folder, e.g. "stormhaven/the-spire.md" */
-  path: string;
-  title: string;
-  mtime: string;
-}
-
 export interface LinkIndexEntry {
   path: string;            // relative path from repo root
   title: string;

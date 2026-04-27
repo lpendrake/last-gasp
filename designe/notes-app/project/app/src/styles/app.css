@@ -1,6 +1,5 @@
 @import './base.css';
 @import './toolbar.css';
-@import '../notes/notes.css';
 @import './filters.css';
 @import './timeline.css';
 @import './event-card.css';

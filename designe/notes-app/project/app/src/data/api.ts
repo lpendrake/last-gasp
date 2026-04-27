@@ -1,6 +1,6 @@
 import type {
   Event, EventListItem, EventFrontmatter, State, TagsRegistry,
-  Session, Palette, LinkIndexEntry, NoteEntry,
+  Session, Palette, LinkIndexEntry,
 } from './types.ts';
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
@@ -107,56 +107,4 @@ export async function getFile(relPath: string, signal?: AbortSignal): Promise<st
   );
   if (!res.ok) throw new ApiError(res.status, await res.text());
   return res.text();
-}
-
-// ---- Notes CRUD ----
-
-export async function listNoteFolders(): Promise<{ name: string }[]> {
-  return jsonFetch<{ name: string }[]>('/api/notes');
-}
-
-export async function createNoteFolder(name: string): Promise<void> {
-  const res = await fetch(`/api/notes/${encodeURIComponent(name)}`, { method: 'POST' });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-}
-
-function noteUrl(folder: string, path: string) {
-  return `/api/notes/${encodeURIComponent(folder)}/${path.split('/').map(encodeURIComponent).join('/')}`;
-}
-
-export async function listNotes(folder: string): Promise<NoteEntry[]> {
-  return jsonFetch<NoteEntry[]>(`/api/notes/${encodeURIComponent(folder)}`);
-}
-
-export async function getNote(folder: string, path: string): Promise<{ content: string; mtime: string }> {
-  const res = await fetch(noteUrl(folder, path), { cache: 'no-store' });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  const content = await res.text();
-  const mtime = res.headers.get('Last-Modified') ?? '';
-  return { content, mtime };
-}
-
-export async function createNote(folder: string, path: string, content: string): Promise<string> {
-  const res = await fetch(noteUrl(folder, path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    body: content,
-  });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  return res.headers.get('Last-Modified') ?? '';
-}
-
-export async function putNote(
-  folder: string, path: string, content: string, ifUnmodifiedSince?: string,
-): Promise<string> {
-  const headers: Record<string, string> = { 'Content-Type': 'text/plain; charset=utf-8' };
-  if (ifUnmodifiedSince) headers['If-Unmodified-Since'] = ifUnmodifiedSince;
-  const res = await fetch(noteUrl(folder, path), { method: 'PUT', headers, body: content });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
-  return res.headers.get('Last-Modified') ?? '';
-}
-
-export async function deleteNote(folder: string, path: string): Promise<void> {
-  const res = await fetch(noteUrl(folder, path), { method: 'DELETE' });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
 }

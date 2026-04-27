@@ -75,6 +75,15 @@ async function readBody(req: Connect.IncomingMessage): Promise<any> {
   });
 }
 
+async function readTextBody(req: Connect.IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+    req.on('error', reject);
+  });
+}
+
 async function fileExists(p: string): Promise<boolean> {
   try {
     await fs.access(p);
@@ -111,6 +120,9 @@ function mtimeMatch(headerValue: string, stat: { mtime: Date }): boolean {
   return Math.floor(clientMs / 1000) === Math.floor(serverMs / 1000);
 }
 
+/** Directories in the repo root that are never shown in the notes sidebar */
+const NOTES_EXCLUDED = new Set(['events', 'app', 'designe', 'node_modules', '.notes-trash', 'maps']);
+
 const SCAN_DIRS = ['events', 'npcs', 'factions', 'locations', 'plots', 'sessions', 'rules', 'player-facing', 'misc'];
 const typeByDir: Record<string, LinkIndexEntry['type']> = {
   events: 'event',
@@ -138,6 +150,27 @@ async function extractTitle(filepath: string): Promise<string> {
     if (m) return m[1].trim();
   }
   return basename(filepath, '.md');
+}
+
+async function scanMdFiles(
+  dir: string, relBase: string,
+): Promise<{ path: string; title: string; mtime: string }[]> {
+  const out: { path: string; title: string; mtime: string }[] = [];
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      if (e.name.startsWith('.')) continue;
+      const rel = relBase ? `${relBase}/${e.name}` : e.name;
+      const full = join(dir, e.name);
+      if (e.isDirectory()) {
+        out.push(...await scanMdFiles(full, rel));
+      } else if (e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md') {
+        const stat = await fs.stat(full);
+        out.push({ path: rel, title: await extractTitle(full), mtime: stat.mtime.toUTCString() });
+      }
+    }
+  } catch { /* dir not accessible */ }
+  return out;
 }
 
 /**
@@ -429,6 +462,117 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     }
   };
 
+  // ---- Notes ----
+  const NOTES_TRASH = join(REPO_ROOT, '.notes-trash');
+
+  function validNoteFolder(folder: string): boolean {
+    return !folder.includes('/') && !folder.includes('\\')
+      && !folder.startsWith('.') && !NOTES_EXCLUDED.has(folder);
+  }
+
+  function safeNoteResolve(folder: string, notePath: string): string | null {
+    if (!validNoteFolder(folder)) return null;
+    return safeResolveInRepo(`${folder}/${notePath}`);
+  }
+
+  const listNoteFolders: RouteHandler = async (_req, res) => {
+    const folders: { name: string }[] = [];
+    try {
+      const dirEntries = await fs.readdir(REPO_ROOT, { withFileTypes: true });
+      for (const e of dirEntries) {
+        if (!e.isDirectory()) continue;
+        if (e.name.startsWith('.')) continue;
+        if (NOTES_EXCLUDED.has(e.name)) continue;
+        folders.push({ name: e.name });
+      }
+    } catch { return sendJson(res, 200, []); }
+    folders.sort((a, b) => a.name.localeCompare(b.name));
+    sendJson(res, 200, folders);
+  };
+
+  const createNoteFolder: RouteHandler = async (_req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder name');
+    const absolute = safeResolveInRepo(folder);
+    if (!absolute) return sendError(res, 403, 'Path escapes repo root');
+    await fs.mkdir(absolute, { recursive: true });
+    sendJson(res, 201, { ok: true });
+  };
+
+  const listNoteFiles: RouteHandler = async (_req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder');
+    const folderPath = join(REPO_ROOT, folder);
+    if (!(await fileExists(folderPath))) return sendJson(res, 200, []);
+    sendJson(res, 200, await scanMdFiles(folderPath, ''));
+  };
+
+  const getNoteFile: RouteHandler = async (_req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const notePath = decodeURIComponent(params.path);
+    if (!notePath.endsWith('.md')) return sendError(res, 400, 'Not a markdown file');
+    const absolute = safeNoteResolve(folder, notePath);
+    if (!absolute) return sendError(res, 403, 'Path escapes repo root');
+    if (!(await fileExists(absolute))) return sendError(res, 404, 'Note not found');
+    const stat = await fs.stat(absolute);
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Last-Modified', stat.mtime.toUTCString());
+    res.end(await fs.readFile(absolute, 'utf-8'));
+  };
+
+  const createNoteFile: RouteHandler = async (req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const notePath = decodeURIComponent(params.path);
+    if (!notePath.endsWith('.md')) return sendError(res, 400, 'Not a markdown file');
+    const absolute = safeNoteResolve(folder, notePath);
+    if (!absolute) return sendError(res, 403, 'Path escapes repo root');
+    if (await fileExists(absolute)) return sendError(res, 409, 'Note already exists');
+    await fs.mkdir(dirname(absolute), { recursive: true });
+    const content = await readTextBody(req);
+    await writeFileAtomic(absolute, content);
+    const stat = await fs.stat(absolute);
+    res.statusCode = 201;
+    res.setHeader('Last-Modified', stat.mtime.toUTCString());
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ ok: true }));
+  };
+
+  const updateNoteFile: RouteHandler = async (req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const notePath = decodeURIComponent(params.path);
+    if (!notePath.endsWith('.md')) return sendError(res, 400, 'Not a markdown file');
+    const absolute = safeNoteResolve(folder, notePath);
+    if (!absolute) return sendError(res, 403, 'Path escapes repo root');
+    if (await fileExists(absolute)) {
+      const stat = await fs.stat(absolute);
+      const ius = req.headers['if-unmodified-since'];
+      if (ius && !mtimeMatch(ius as string, stat)) return sendError(res, 409, 'File modified since last read');
+    } else {
+      await fs.mkdir(dirname(absolute), { recursive: true });
+    }
+    const content = await readTextBody(req);
+    await writeFileAtomic(absolute, content);
+    const newStat = await fs.stat(absolute);
+    res.statusCode = 200;
+    res.setHeader('Last-Modified', newStat.mtime.toUTCString());
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ ok: true }));
+  };
+
+  const deleteNoteFile: RouteHandler = async (_req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const notePath = decodeURIComponent(params.path);
+    const absolute = safeNoteResolve(folder, notePath);
+    if (!absolute) return sendError(res, 403, 'Path escapes repo root');
+    if (!(await fileExists(absolute))) return sendError(res, 404, 'Note not found');
+    await fs.mkdir(NOTES_TRASH, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const trashName = `${timestamp}-${folder}-${notePath.replace(/\//g, '_')}`;
+    await fs.rename(absolute, join(NOTES_TRASH, trashName));
+    sendJson(res, 200, { ok: true });
+  };
+
   const ROUTES: Route[] = [
     defineRoute('GET',    '/api/events',                    listEvents),
     defineRoute('POST',   '/api/events',                    createEvent),
@@ -451,6 +595,13 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     defineRoute('DELETE', '/api/trash',                     emptyTrash),
     defineRoute('GET',    '/api/git/status',                gitStatus),
     defineRoute('POST',   '/api/git/commit',                gitCommit),
+    defineRoute('GET',    '/api/notes',                     listNoteFolders),
+    defineRoute('POST',   '/api/notes/:folder',             createNoteFolder),
+    defineRoute('GET',    '/api/notes/:folder',             listNoteFiles),
+    defineRoute('GET',    '/api/notes/:folder/:path*',      getNoteFile),
+    defineRoute('POST',   '/api/notes/:folder/:path*',      createNoteFile),
+    defineRoute('PUT',    '/api/notes/:folder/:path*',      updateNoteFile),
+    defineRoute('DELETE', '/api/notes/:folder/:path*',      deleteNoteFile),
   ];
 
   return async function handler(req, res, next) {

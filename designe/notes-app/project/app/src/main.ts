@@ -1,6 +1,3 @@
-import { createRoot } from 'react-dom/client';
-import { createElement } from 'react';
-import { NotesApp } from './notes/Notes.tsx';
 import { loadPalette } from './theme.ts';
 import { listEvents, getState, putState, getTags, getSessions, getEvent, deleteEvent, appendSession, updateEvent, ApiError } from './data/api.ts';
 import { parseISOString, toAbsoluteSeconds, fromAbsoluteSeconds, toISOString } from './calendar/golarian.ts';
@@ -34,75 +31,36 @@ interface AppState {
   filter: FilterState;
 }
 
-let notesReactRoot: ReturnType<typeof createRoot> | null = null;
-
 async function main() {
-  const appEl = document.getElementById('app')!;
-  appEl.innerHTML = `
-    <div id="timeline-shell" style="display:contents">
-      <div class="timeline-container" id="timeline">
-        <div class="timeline-session-layer" id="session-layer"></div>
-        <div class="timeline-axis-layer" id="axis-layer"></div>
-        <div class="timeline-cards-layer" id="cards-layer"></div>
-      </div>
-      <div class="filter-panel" id="filter-panel">
-        <div class="filter-bar" id="filter-bar"></div>
-      </div>
-      <footer class="toolbar">
-        <div class="toolbar-left">
-          <button id="btn-filters">Filters</button>
-          <span class="filter-count" id="filter-count"></span>
-        </div>
-        <div class="toolbar-main">
-          <div class="toolbar-main-left">
-            <button id="btn-search" title="Search (Ctrl+F)">Search</button>
-            <button id="btn-session">Session</button>
-          </div>
-          <button id="btn-new-event" class="is-primary" title="New event (N)">+ Event</button>
-          <div class="toolbar-main-right">
-            <button id="btn-now">Now</button>
-            <button id="btn-advance-time">Advance Time</button>
-          </div>
-        </div>
-        <div class="toolbar-right" style="display:flex;gap:8px;align-items:center;justify-content:flex-end">
-          <div class="view-switcher">
-            <button class="is-active" id="btn-view-timeline">Timeline</button>
-            <button id="btn-view-notes">Notes</button>
-          </div>
-        </div>
-      </footer>
-    </div>
-    <div id="notes-shell" style="display:none;flex:1 1 auto;flex-direction:column;min-height:0"></div>
-  `;
-
-  // ---- View switching ----
-  const timelineShell = document.getElementById('timeline-shell') as HTMLDivElement;
-  const notesShell = document.getElementById('notes-shell') as HTMLDivElement;
   const root = document.getElementById('app')!;
-
-  function showNotes() {
-    // Set app to flex-column so notes-shell fills it
-    root.style.display = 'flex';
-    root.style.flexDirection = 'column';
-    timelineShell.style.display = 'none';
-    notesShell.style.display = 'flex';
-    notesShell.style.flexDirection = 'column';
-    notesShell.style.flex = '1 1 auto';
-    notesShell.style.minHeight = '0';
-    if (!notesReactRoot) {
-      notesReactRoot = createRoot(notesShell);
-    }
-    notesReactRoot.render(createElement(NotesApp));
-  }
-
-  function showTimeline() {
-    notesShell.style.display = 'none';
-    timelineShell.style.display = 'contents';
-    // notesReactRoot stays alive so state is preserved between switches
-  }
-
-  document.getElementById('btn-view-notes')!.addEventListener('click', showNotes);
-  window.addEventListener('notes:exit', showTimeline);
+  root.innerHTML = `
+    <div class="timeline-container" id="timeline">
+      <div class="timeline-session-layer" id="session-layer"></div>
+      <div class="timeline-axis-layer" id="axis-layer"></div>
+      <div class="timeline-cards-layer" id="cards-layer"></div>
+    </div>
+    <div class="filter-panel" id="filter-panel">
+      <div class="filter-bar" id="filter-bar"></div>
+    </div>
+    <footer class="toolbar">
+      <div class="toolbar-left">
+        <button id="btn-filters">Filters</button>
+        <span class="filter-count" id="filter-count"></span>
+      </div>
+      <div class="toolbar-main">
+        <div class="toolbar-main-left">
+          <button id="btn-search" title="Search (Ctrl+F)">Search</button>
+          <button id="btn-session">Session</button>
+        </div>
+        <button id="btn-new-event" class="is-primary" title="New event (N)">+ Event</button>
+        <div class="toolbar-main-right">
+          <button id="btn-now">Now</button>
+          <button id="btn-advance-time">Advance Time</button>
+        </div>
+      </div>
+      <div class="toolbar-right"></div>
+    </footer>
+  `;
 
   const [palette, events, state, tags] = await Promise.all([
     loadPalette(),
