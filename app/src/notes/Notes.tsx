@@ -1,16 +1,21 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listNoteFolders, createNoteFolder, listNotes,
   getNote, createNote, putNote, deleteNote, getLinkIndex,
+  renameNote, renameNoteFolder, deleteNoteFolder,
 } from '../data/api.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { LiveEditor } from './LiveEditor.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
+import { NoteContextMenu, type ContextMenuTarget } from './NoteContextMenu.tsx';
 import {
-  buildTree, folderColor, tabKey, slugify,
+  buildTree, folderColor, tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
   type ConfirmState, type TreeNode,
 } from './types.ts';
+
+const DRAG_MIME = 'application/x-last-gasp-note';
+interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
 
 type RenderMode = 'live' | 'source' | 'split';
 type SaveStatus = 'dirty' | 'saving' | 'saved' | 'clean';
@@ -23,14 +28,36 @@ export function NotesApp() {
   const [linkIndex, setLinkIndex] = useState<LinkIndexEntry[]>([]);
 
   // ---- Tabs ----
-  const [tabs, setTabs] = useState<OpenTab[]>([]);
-  const [activeTab, setActiveTab] = useState<OpenTab | null>(null);
+  const [tabs, setTabs] = useState<OpenTab[]>(() => {
+    const stored: OpenTab[] = (() => {
+      try { return JSON.parse(localStorage.getItem('last-gasp:notes:tabs') ?? '[]'); } catch { return []; }
+    })();
+    const m = /^\/notes\/([^/]+)\/(.+)$/.exec(location.pathname);
+    if (m) {
+      const ext = m[2].split('.').pop()?.toLowerCase() ?? '';
+      const tab: OpenTab = { folder: m[1], path: m[2], fileKind: ASSET_EXTS.has(ext) ? 'asset' : 'note' };
+      if (!stored.some(t => t.folder === tab.folder && t.path === tab.path)) return [...stored, tab];
+    }
+    return stored;
+  });
+  const [activeTab, setActiveTab] = useState<OpenTab | null>(() => {
+    const m = /^\/notes\/([^/]+)\/(.+)$/.exec(location.pathname);
+    if (m) {
+      const ext = m[2].split('.').pop()?.toLowerCase() ?? '';
+      return { folder: m[1], path: m[2], fileKind: ASSET_EXTS.has(ext) ? 'asset' : 'note' };
+    }
+    try { return JSON.parse(localStorage.getItem('last-gasp:notes:active-tab') ?? 'null'); } catch { return null; }
+  });
 
   // ---- Sidebar ----
   const [openFolderPaths, setOpenFolderPaths] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
-  const [creatingIn, setCreatingIn] = useState<string | null>(null);
+  const [creatingIn, setCreatingIn] = useState<{ folder: string; subdir?: string } | null>(null);
+  const [creatingDirIn, setCreatingDirIn] = useState<{ folder: string; subdir?: string } | null>(null);
   const [newFolderMode, setNewFolderMode] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuTarget | null>(null);
+  const [renamingKey, setRenamingKey] = useState<string | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
 
   // ---- UI ----
   const [renderMode, setRenderMode] = useState<RenderMode>('live');
@@ -40,14 +67,41 @@ export function NotesApp() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [savingState, setSavingState] = useState<Record<string, SaveStatus>>({});
+  const [savedAt, setSavedAt] = useState<Record<string, string>>({});
+
+  const activeTabRef = useRef<OpenTab | null>(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   // ---- Bootstrap ----
   useEffect(() => {
+    // Load content for any tab that was active when we last left
+    if (activeTab && activeTab.fileKind !== 'asset') {
+      const key = tabKey(activeTab);
+      setOpenFiles(prev => {
+        if (prev[key]?.content !== undefined) return prev;
+        void getNote(activeTab.folder, activeTab.path).then(({ content, mtime }) => {
+          setOpenFiles(p => ({ ...p, [key]: { content, mtime, dirty: false, loading: false } }));
+        }).catch(() => {
+          setOpenFiles(p => ({ ...p, [key]: { content: '', mtime: '', dirty: false, loading: false } }));
+        });
+        return { ...prev, [key]: { content: null, mtime: '', dirty: false, loading: true } };
+      });
+    }
     Promise.all([
       listNoteFolders().then(fs => setFolders(fs.map(f => f.name))),
       getLinkIndex().then(setLinkIndex),
     ]).catch(err => pushToast(`Failed to load: ${String(err)}`));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Persist tabs to localStorage ----
+  useEffect(() => {
+    localStorage.setItem('last-gasp:notes:tabs', JSON.stringify(tabs));
+  }, [tabs]);
+  useEffect(() => {
+    localStorage.setItem('last-gasp:notes:active-tab', JSON.stringify(activeTab));
+    if (!location.pathname.startsWith('/notes')) return;
+    history.replaceState(null, '', activeTab ? `/notes/${activeTab.folder}/${activeTab.path}` : '/notes');
+  }, [activeTab]);
 
   // ---- Auto-save ----
   useEffect(() => {
@@ -55,7 +109,7 @@ export function NotesApp() {
       .filter(([, v]) => v === 'dirty')
       .map(([k]) => k);
     if (dirtyKeys.length === 0) return;
-    const id = setTimeout(async () => {
+    const id = setTimeout(async () => { // 2s debounce: save 2s after last change
       for (const key of dirtyKeys) {
         const slashIdx = key.indexOf('/');
         const folder = key.slice(0, slashIdx);
@@ -67,6 +121,7 @@ export function NotesApp() {
           const newMtime = await putNote(folder, path, file.content, file.mtime || undefined);
           setOpenFiles(prev => ({ ...prev, [key]: { ...prev[key], mtime: newMtime, dirty: false } }));
           setSavingState(prev => ({ ...prev, [key]: 'saved' }));
+          setSavedAt(prev => ({ ...prev, [key]: new Date().toLocaleTimeString() }));
           setTimeout(() => {
             setSavingState(prev => prev[key] === 'saved' ? { ...prev, [key]: 'clean' } : prev);
           }, 1100);
@@ -84,13 +139,19 @@ export function NotesApp() {
           setSavingState(prev => ({ ...prev, [key]: 'dirty' }));
         }
       }
-    }, 500);
+    }, 2000);
     return () => clearTimeout(id);
   }, [savingState, openFiles]);
 
   // ---- Global hotkeys ----
   useEffect(() => {
     function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        const at = activeTabRef.current;
+        if (at) setSavingState(prev => ({ ...prev, [tabKey(at)]: 'dirty' }));
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setQuickAddSeed(''); setQuickAddFolder(undefined); setQuickAddOpen(true);
@@ -145,10 +206,11 @@ export function NotesApp() {
   }
 
   // ---- File operations ----
-  async function openFile(folder: string, path: string) {
+  async function openFile(folder: string, path: string, fileKind?: 'note' | 'asset') {
     const key = `${folder}/${path}`;
-    setTabs(prev => prev.some(t => t.folder === folder && t.path === path) ? prev : [...prev, { folder, path }]);
-    setActiveTab({ folder, path });
+    setTabs(prev => prev.some(t => t.folder === folder && t.path === path) ? prev : [...prev, { folder, path, fileKind }]);
+    setActiveTab({ folder, path, fileKind });
+    if (fileKind === 'asset') return;
     setOpenFiles(prev => {
       if (prev[key] && (prev[key].content !== null || prev[key].loading)) return prev;
       void getNote(folder, path).then(({ content, mtime }) => {
@@ -219,42 +281,72 @@ export function NotesApp() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function commitNewFileInFolder(folderPath: string, name: string) {
+  async function commitNewFileInFolder(ctx: { folder: string; subdir?: string }, name: string) {
     setCreatingIn(null);
     const trimmed = name.trim();
     if (!trimmed) return;
     const slug = slugify(trimmed);
-    const filename = slug.endsWith('.md') ? slug : `${slug}.md`;
+    const base = slug.endsWith('.md') ? slug : `${slug}.md`;
+    const filePath = ctx.subdir ? `${ctx.subdir}/${base}` : base;
     try {
       const content = `# ${trimmed}\n\n`;
-      await createNote(folderPath, filename, content);
+      await createNote(ctx.folder, filePath, content);
       setFolderFiles(prev => ({
         ...prev,
-        [folderPath]: [...(prev[folderPath] ?? []), { path: filename, title: trimmed, mtime: '' }],
+        [ctx.folder]: [...(prev[ctx.folder] ?? []), { path: filePath, title: trimmed, mtime: '' }],
       }));
-      await openFile(folderPath, filename);
+      await openFile(ctx.folder, filePath);
     } catch (err) {
       pushToast(`Failed to create: ${String(err)}`);
     }
   }
 
+  async function commitNewDirInFolder(ctx: { folder: string; subdir?: string }, dirName: string) {
+    setCreatingDirIn(null);
+    const trimmed = dirName.trim();
+    if (!trimmed) return;
+    const slug = slugify(trimmed);
+    const subdir = ctx.subdir ? `${ctx.subdir}/${slug}` : slug;
+    setCreatingIn({ folder: ctx.folder, subdir });
+    setOpenFolderPaths(prev => {
+      const next = new Set(prev);
+      next.add(ctx.folder);
+      if (ctx.subdir) next.add(`${ctx.folder}/${ctx.subdir}`);
+      next.add(`${ctx.folder}/${subdir}`);
+      return next;
+    });
+  }
+
   async function handleDeleteFile(folder: string, path: string) {
+    const isActualDir = folderFiles[folder]?.some(e => e.path.startsWith(path + '/'));
+    const count = isActualDir
+      ? (folderFiles[folder]?.filter(e => e.path.startsWith(path + '/')).length ?? 0)
+      : 0;
+    const msg = isActualDir && count > 0
+      ? `"${path}" and ${count} file${count !== 1 ? 's' : ''} inside it will be moved to the trash.`
+      : `"${path}" will be moved to the trash.`;
     setConfirm({
-      title: 'Delete note?',
-      message: `"${path}" will be moved to the trash.`,
+      title: isActualDir ? 'Delete folder?' : 'Delete note?',
+      message: msg,
       confirmLabel: 'Delete', danger: true,
       onConfirm: async () => {
         try {
           await deleteNote(folder, path);
-          setFolderFiles(prev => ({
-            ...prev,
-            [folder]: (prev[folder] ?? []).filter(e => e.path !== path),
-          }));
+          setFolderFiles(prev => {
+            const entries = prev[folder] ?? [];
+            const filtered = isActualDir
+              ? entries.filter(e => e.path !== path && !e.path.startsWith(path + '/'))
+              : entries.filter(e => e.path !== path);
+            return { ...prev, [folder]: filtered };
+          });
           setTabs(prev => {
-            const newTabs = prev.filter(t => !(t.folder === folder && t.path === path));
+            const newTabs = isActualDir
+              ? prev.filter(t => !(t.folder === folder && (t.path === path || t.path.startsWith(path + '/'))))
+              : prev.filter(t => !(t.folder === folder && t.path === path));
             setActiveTab(at => {
-              if (at?.folder === folder && at.path === path) return newTabs[newTabs.length - 1] ?? null;
-              return at;
+              if (!at) return at;
+              const removed = at.folder === folder && (at.path === path || (isActualDir && at.path.startsWith(path + '/')));
+              return removed ? (newTabs[newTabs.length - 1] ?? null) : at;
             });
             return newTabs;
           });
@@ -264,6 +356,230 @@ export function NotesApp() {
         }
       },
     });
+  }
+
+  function migrateKey(oldFolder: string, oldPath: string, newFolder: string, newPath: string) {
+    const oldKey = `${oldFolder}/${oldPath}`;
+    const newKey = `${newFolder}/${newPath}`;
+    setOpenFiles(prev => {
+      if (!prev[oldKey]) return prev;
+      const { [oldKey]: entry, ...rest } = prev;
+      return { ...rest, [newKey]: entry };
+    });
+    setSavingState(prev => {
+      if (!prev[oldKey]) return prev;
+      const { [oldKey]: s, ...rest } = prev;
+      return { ...rest, [newKey]: s };
+    });
+    setSavedAt(prev => {
+      if (!prev[oldKey]) return prev;
+      const { [oldKey]: t, ...rest } = prev;
+      return { ...rest, [newKey]: t };
+    });
+    setTabs(prev => prev.map(t =>
+      t.folder === oldFolder && t.path === oldPath
+        ? { ...t, folder: newFolder, path: newPath }
+        : t,
+    ));
+    setActiveTab(at =>
+      at?.folder === oldFolder && at.path === oldPath
+        ? { ...at, folder: newFolder, path: newPath }
+        : at,
+    );
+  }
+
+  function migrateDirKeys(oldFolder: string, oldDirPath: string, newFolder: string, newDirPath: string) {
+    const oldPrefix = `${oldFolder}/${oldDirPath}/`;
+    const newPrefix = `${newFolder}/${newDirPath}/`;
+    setOpenFiles(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (k.startsWith(oldPrefix)) {
+          next[newPrefix + k.slice(oldPrefix.length)] = next[k];
+          delete next[k];
+        }
+      }
+      return next;
+    });
+    setSavingState(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (k.startsWith(oldPrefix)) {
+          next[newPrefix + k.slice(oldPrefix.length)] = next[k];
+          delete next[k];
+        }
+      }
+      return next;
+    });
+    setSavedAt(prev => {
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (k.startsWith(oldPrefix)) {
+          next[newPrefix + k.slice(oldPrefix.length)] = next[k];
+          delete next[k];
+        }
+      }
+      return next;
+    });
+    setTabs(prev => prev.map(t =>
+      t.folder === oldFolder && t.path.startsWith(oldDirPath + '/')
+        ? { ...t, folder: newFolder, path: newDirPath + '/' + t.path.slice(oldDirPath.length + 1) }
+        : t,
+    ));
+    setActiveTab(at => {
+      if (!at) return at;
+      if (at.folder === oldFolder && at.path.startsWith(oldDirPath + '/')) {
+        return { ...at, folder: newFolder, path: newDirPath + '/' + at.path.slice(oldDirPath.length + 1) };
+      }
+      return at;
+    });
+    setOpenFolderPaths(prev => {
+      const next = new Set<string>();
+      const oldFolderPath = `${oldFolder}/${oldDirPath}`;
+      const newFolderPath = `${newFolder}/${newDirPath}`;
+      for (const p of prev) {
+        if (p === oldFolderPath) next.add(newFolderPath);
+        else if (p.startsWith(oldFolderPath + '/')) next.add(newFolderPath + p.slice(oldFolderPath.length));
+        else next.add(p);
+      }
+      return next;
+    });
+  }
+
+  async function handleRenameFolder(oldName: string, newName: string) {
+    setRenamingKey(null);
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+    const slug = slugify(trimmed);
+    if (slug === oldName) return;
+    if (folders.includes(slug)) { pushToast(`Folder "${slug}" already exists`); return; }
+    try {
+      await renameNoteFolder(oldName, slug);
+      setFolders(prev => prev.map(f => f === oldName ? slug : f).sort());
+      setFolderFiles(prev => {
+        const { [oldName]: files, ...rest } = prev;
+        return { ...rest, [slug]: files };
+      });
+      function remapKeys<T>(obj: Record<string, T>): Record<string, T> {
+        const next: Record<string, T> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          next[k.startsWith(oldName + '/') ? slug + k.slice(oldName.length) : k] = v;
+        }
+        return next;
+      }
+      setOpenFiles(prev => remapKeys(prev));
+      setSavingState(prev => remapKeys(prev));
+      setSavedAt(prev => remapKeys(prev));
+      setTabs(prev => prev.map(t => t.folder === oldName ? { ...t, folder: slug } : t));
+      setActiveTab(at => at?.folder === oldName ? { ...at, folder: slug } : at);
+      setOpenFolderPaths(prev => {
+        const next = new Set<string>();
+        for (const p of prev) {
+          if (p === oldName) next.add(slug);
+          else if (p.startsWith(oldName + '/')) next.add(slug + p.slice(oldName.length));
+          else next.add(p);
+        }
+        return next;
+      });
+      pushToast(`Renamed folder to "${slug}"`);
+    } catch (err) {
+      pushToast(`Rename failed: ${String(err)}`);
+    }
+  }
+
+  async function handleRename(folder: string, path: string, newName: string) {
+    setRenamingKey(null);
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const isDir = !path.endsWith('.md') && !ASSET_EXTS.has(path.split('.').pop()?.toLowerCase() ?? '');
+    const slug = slugify(trimmed);
+    const newBaseName = isDir ? slug : (slug.endsWith('.md') ? slug : `${slug}.md`);
+    const parentDir = path.includes('/') ? path.split('/').slice(0, -1).join('/') : '';
+    const newPath = parentDir ? `${parentDir}/${newBaseName}` : newBaseName;
+    if (newPath === path) return;
+    const key = `${folder}/${path}`;
+    if (savingState[key] === 'saving') {
+      pushToast('Save in progress — try again in a moment');
+      return;
+    }
+    try {
+      await renameNote(folder, path, newPath);
+      setFolderFiles(prev => {
+        const entries = prev[folder] ?? [];
+        if (isDir) {
+          const oldPrefix = path + '/';
+          const newPrefix = newPath + '/';
+          return { ...prev, [folder]: entries.map(e => e.path.startsWith(oldPrefix) ? { ...e, path: newPrefix + e.path.slice(oldPrefix.length) } : e) };
+        }
+        return { ...prev, [folder]: entries.map(e => e.path === path ? { ...e, path: newPath } : e) };
+      });
+      if (isDir) migrateDirKeys(folder, path, folder, newPath);
+      else migrateKey(folder, path, folder, newPath);
+      pushToast(`Renamed to ${newPath}`);
+    } catch (err) {
+      pushToast(`Rename failed: ${String(err)}`);
+    }
+  }
+
+  async function handleDeleteFolder(folder: string) {
+    const entries = folderFiles[folder] ?? [];
+    const count = entries.filter(e => e.kind !== 'asset').length;
+    setConfirm({
+      title: `Delete folder "${folder}"?`,
+      message: `"${folder}" and its ${count} note${count !== 1 ? 's' : ''} will be moved to the trash.`,
+      confirmLabel: 'Delete', danger: true,
+      onConfirm: async () => {
+        try {
+          await deleteNoteFolder(folder);
+          setFolders(prev => prev.filter(f => f !== folder));
+          setFolderFiles(prev => { const next = { ...prev }; delete next[folder]; return next; });
+          setTabs(prev => {
+            const newTabs = prev.filter(t => t.folder !== folder);
+            setActiveTab(at => at?.folder === folder ? (newTabs[newTabs.length - 1] ?? null) : at);
+            return newTabs;
+          });
+          pushToast(`Deleted folder "${folder}"`);
+        } catch (err) {
+          pushToast(`Delete failed: ${String(err)}`);
+        }
+      },
+    });
+  }
+
+  async function handleMove(srcFolder: string, srcPath: string, destFolder: string, destSubdir?: string) {
+    const basename = srcPath.split('/').pop() ?? srcPath;
+    const newPath = destSubdir ? `${destSubdir}/${basename}` : basename;
+    if (srcFolder === destFolder && srcPath === newPath) return;
+    const isDir = !srcPath.endsWith('.md') && !ASSET_EXTS.has(srcPath.split('.').pop()?.toLowerCase() ?? '');
+    if (isDir && `${destFolder}/${destSubdir ?? ''}`.startsWith(`${srcFolder}/${srcPath}`)) {
+      pushToast("Can't move a folder into itself");
+      return;
+    }
+    const srcKey = `${srcFolder}/${srcPath}`;
+    if (savingState[srcKey] === 'saving') { pushToast('Save in progress — try again'); return; }
+    try {
+      await renameNote(srcFolder, srcPath, newPath, destFolder !== srcFolder ? destFolder : undefined);
+      const srcEntry = (folderFiles[srcFolder] ?? []).find(e => e.path === srcPath);
+      setFolderFiles(prev => {
+        const removedSrc = (prev[srcFolder] ?? []).filter(e =>
+          isDir ? e.path !== srcPath && !e.path.startsWith(srcPath + '/') : e.path !== srcPath,
+        );
+        if (isDir) {
+          const movedEntries = (prev[srcFolder] ?? []).filter(e => e.path.startsWith(srcPath + '/'))
+            .map(e => ({ ...e, path: newPath + e.path.slice(srcPath.length) }));
+          const destEntries = [...(prev[destFolder] ?? []), ...movedEntries];
+          return { ...prev, [srcFolder]: removedSrc, [destFolder]: destEntries };
+        }
+        const newEntry = srcEntry ? { ...srcEntry, path: newPath } : null;
+        const destEntries = [...(prev[destFolder] ?? []), ...(newEntry ? [newEntry] : [])];
+        return { ...prev, [srcFolder]: removedSrc, [destFolder]: destEntries };
+      });
+      if (isDir) migrateDirKeys(srcFolder, srcPath, destFolder, newPath);
+      else migrateKey(srcFolder, srcPath, destFolder, newPath);
+      pushToast(`Moved to ${destFolder}/${newPath}`);
+    } catch (err) {
+      pushToast(`Move failed: ${String(err)}`);
+    }
   }
 
   function handleOpenLink(href: string) {
@@ -305,43 +621,99 @@ export function NotesApp() {
   function renderTreeNode(node: TreeNode, topFolder: string, depth: number): React.ReactNode {
     const indent = depth * 12;
     if (node.kind === 'file') {
+      const isAsset = node.fileKind === 'asset';
       const isActive = activeTab?.folder === topFolder && activeTab.path === node.path;
       const file = openFiles[`${topFolder}/${node.path}`];
+      const isRenaming = renamingKey === `${topFolder}/${node.path}`;
+      const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'file', displayName: node.name.replace(/\.md$/, '') };
       return (
         <button
           key={node.path}
-          className={`file-row${isActive ? ' is-active' : ''}`}
+          className={`file-row${isAsset ? ' is-asset' : ''}${isActive ? ' is-active' : ''}`}
           style={{ '--kind-color': folderColor(topFolder), paddingLeft: 8 + indent } as React.CSSProperties}
-          onClick={() => openFile(topFolder, node.path)}
-          onContextMenu={(e) => { e.preventDefault(); handleDeleteFile(topFolder, node.path); }}
+          draggable
+          onClick={() => openFile(topFolder, node.path, isAsset ? 'asset' : undefined)}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'file', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
+          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', dragPayload.displayName); e.dataTransfer.effectAllowed = 'move'; }}
+          onDragEnd={() => setDragTarget(null)}
         >
-          <span className="file-dot" />
-          <span className="file-name">{node.name.replace(/\.md$/, '')}</span>
-          {file?.dirty && <span className="file-dirty">●</span>}
+          <span className={`file-dot${isAsset ? ' is-asset' : ''}`} />
+          {isRenaming ? (
+            <input
+              className="new-file-input"
+              autoFocus
+              defaultValue={node.name.replace(/\.md$/, '')}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
+              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
+            />
+          ) : (
+            <span className="file-name">{isAsset ? node.name : node.name.replace(/\.md$/, '')}</span>
+          )}
+          {file?.dirty && !isRenaming && <span className="file-dirty">●</span>}
         </button>
       );
     }
     const dirKey = `${topFolder}/${node.path}`;
     const isOpen = openFolderPaths.has(dirKey);
+    const isDragOver = dragTarget === dirKey;
+    const isRenaming = renamingKey === dirKey;
+    const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'dir', displayName: node.name };
     return (
       <div key={node.path} className="sidebar-folder">
         <button
-          className={`folder-row${isOpen ? ' is-open' : ''}`}
+          className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
           style={{ paddingLeft: 4 + indent } as React.CSSProperties}
-          onClick={() => {
-            setOpenFolderPaths(prev => {
-              const next = new Set(prev);
-              if (next.has(dirKey)) next.delete(dirKey); else next.add(dirKey);
-              return next;
-            });
-          }}
+          draggable
+          onClick={() => { setOpenFolderPaths(prev => { const next = new Set(prev); if (next.has(dirKey)) next.delete(dirKey); else next.add(dirKey); return next; }); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'dir', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
+          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', node.name); e.dataTransfer.effectAllowed = 'move'; }}
+          onDragEnd={() => setDragTarget(null)}
+          onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(dirKey); }}
+          onDragLeave={() => setDragTarget(prev => prev === dirKey ? null : prev)}
+          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); handleMove(p.folder, p.path, topFolder, node.path); }}
         >
           <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-          <span className="folder-name">{node.name}/</span>
+          {isRenaming ? (
+            <input
+              className="new-file-input"
+              autoFocus
+              defaultValue={node.name}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
+              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
+            />
+          ) : (
+            <span className="folder-name">{node.name}/</span>
+          )}
         </button>
         {isOpen && (
           <div className="folder-children">
             {node.children.map(child => renderTreeNode(child, topFolder, depth + 1))}
+            {creatingDirIn?.folder === topFolder && creatingDirIn.subdir === node.path && (
+              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
+                <span className="folder-caret">▸</span>
+                <input
+                  className="new-file-input"
+                  autoFocus
+                  placeholder="folder-name"
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingDirIn(null); }}
+                  onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
+                />
+              </div>
+            )}
+            {creatingIn?.folder === topFolder && creatingIn.subdir === node.path && (
+              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
+                <span className="file-dot" style={{ '--kind-color': folderColor(topFolder) } as React.CSSProperties} />
+                <input
+                  className="new-file-input"
+                  autoFocus
+                  placeholder="new-note-title"
+                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingIn(null); }}
+                  onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -400,25 +772,47 @@ export function NotesApp() {
               const entries = folderFiles[folder];
               const count = entries?.length ?? '…';
               const tree = folderTrees[folder] ?? [];
+              const isDragOver = dragTarget === folder;
+              const topDragPayload: NoteDragPayload = { folder, path: '', kind: 'topfolder', displayName: folder };
               return (
                 <div key={folder} className="sidebar-folder">
                   <button
-                    className={`folder-row${isOpen ? ' is-open' : ''}`}
+                    className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
                     style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
+                    draggable
                     onClick={() => toggleFolder(folder, folder)}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'topfolder', folder, x: e.clientX, y: e.clientY }); }}
+                    onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(topDragPayload)); e.dataTransfer.setData('text/plain', folder); e.dataTransfer.effectAllowed = 'move'; }}
+                    onDragEnd={() => setDragTarget(null)}
+                    onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(folder); }}
+                    onDragLeave={() => setDragTarget(prev => prev === folder ? null : prev)}
+                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); if (p.kind !== 'topfolder') handleMove(p.folder, p.path, folder); }}
                   >
                     <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-                    <span className="folder-name">{folder}/</span>
-                    <span className="folder-count">{count}</span>
+                    {renamingKey === folder ? (
+                      <input
+                        className="new-file-input"
+                        autoFocus
+                        defaultValue={folder}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
+                        onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRenameFolder(folder, e.target.value); }}
+                      />
+                    ) : (
+                      <>
+                        <span className="folder-name">{folder}/</span>
+                        <span className="folder-count">{count}</span>
+                      </>
+                    )}
                     <span
                       className="folder-add"
                       title={`New in ${folder}/`}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!isOpen) {
-                          toggleFolder(folder, folder).then(() => setCreatingIn(folder));
+                          toggleFolder(folder, folder).then(() => setCreatingIn({ folder }));
                         } else {
-                          setCreatingIn(folder);
+                          setCreatingIn({ folder });
                         }
                       }}
                     >+</span>
@@ -432,18 +826,34 @@ export function NotesApp() {
                       ) : (
                         tree.map(node => renderTreeNode(node, folder, 0))
                       )}
-                      {creatingIn === folder && (
+                      {creatingDirIn?.folder === folder && !creatingDirIn.subdir && (
+                        <div className="new-file-row">
+                          <span className="folder-caret">▸</span>
+                          <input
+                            className="new-file-input"
+                            autoFocus
+                            placeholder="folder-name"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value);
+                              if (e.key === 'Escape') setCreatingDirIn(null);
+                            }}
+                            onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
+                          />
+                        </div>
+                      )}
+                      {creatingIn?.folder === folder && (!creatingIn.subdir || !tree.some(n => n.kind === 'dir' && n.path === creatingIn.subdir)) && (
                         <div className="new-file-row">
                           <span className="file-dot" style={{ '--kind-color': folderColor(folder) } as React.CSSProperties} />
+                          {creatingIn.subdir && <span style={{ color: 'var(--theme-text-muted)', fontSize: 12 }}>{creatingIn.subdir}/</span>}
                           <input
                             className="new-file-input"
                             autoFocus
                             placeholder="new-note-title"
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNewFileInFolder(folder, e.currentTarget.value);
+                              if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value);
                               if (e.key === 'Escape') setCreatingIn(null);
                             }}
-                            onBlur={(e) => commitNewFileInFolder(folder, e.target.value)}
+                            onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
                           />
                         </div>
                       )}
@@ -499,23 +909,27 @@ export function NotesApp() {
           {activeTab && (() => {
             const key = tabKey(activeTab);
             const status: SaveStatus = savingState[key] ?? 'clean';
+            const at = savedAt[key];
             const statusText: Record<SaveStatus, string> = {
-              clean: 'saved', dirty: 'unsaved', saving: 'saving…', saved: 'saved ✓',
+              clean: at ? `saved ${at}` : 'saved',
+              dirty: 'unsaved',
+              saving: 'saving…',
+              saved: at ? `saved ${at}` : 'saved ✓',
             };
             const pathParts = activeTab.path.split('/');
             return (
               <div className="breadcrumbs">
-                <span>vault</span>
+                <span className="breadcrumb-segment">vault</span>
                 <span className="breadcrumb-sep">/</span>
-                <span>{activeTab.folder}</span>
+                <span className="breadcrumb-segment">{activeTab.folder}</span>
                 {pathParts.slice(0, -1).map((part, i) => (
                   <React.Fragment key={i}>
                     <span className="breadcrumb-sep">/</span>
-                    <span>{part}</span>
+                    <span className="breadcrumb-segment">{part}</span>
                   </React.Fragment>
                 ))}
                 <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-leaf">{pathParts[pathParts.length - 1]}</span>
+                <span className="breadcrumb-segment is-leaf">{pathParts[pathParts.length - 1]}</span>
                 <span className={`breadcrumb-status is-${status}`}>{statusText[status]}</span>
               </div>
             );
@@ -528,6 +942,13 @@ export function NotesApp() {
               <div className="empty-pane-hint">
                 Pick a note from the sidebar, or press <kbd>Ctrl+K</kbd> to create one.
               </div>
+            </div>
+          ) : activeTab.fileKind === 'asset' ? (
+            <div className="image-pane">
+              <img
+                src={`/api/notes/${encodeURIComponent(activeTab.folder)}/${activeTab.path}`}
+                alt={activeTab.path.split('/').pop()}
+              />
             </div>
           ) : !activeFile || activeFile.loading || activeFile.content === null ? (
             <div className="loading-pane">loading…</div>
@@ -559,6 +980,7 @@ export function NotesApp() {
                   onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
                   currentFolder={activeTab.folder}
                   linkIndex={linkIndex}
+                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
                   onOpenLink={handleOpenLink}
                   onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
                 />
@@ -573,6 +995,7 @@ export function NotesApp() {
                   onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
                   currentFolder={activeTab.folder}
                   linkIndex={linkIndex}
+                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
                   onOpenLink={handleOpenLink}
                   onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
                 />
@@ -588,15 +1011,19 @@ export function NotesApp() {
           <button onClick={() => pushToast('Search — coming soon')}>Search</button>
         </div>
         <div className="toolbar-main" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {folders.slice(0, 3).map(f => (
+          {([
+            { folder: 'npcs',      label: 'NPC' },
+            { folder: 'locations', label: 'Location' },
+            { folder: 'factions',  label: 'Faction' },
+          ] as const).map(({ folder: f, label }) => (
             <button
               key={f}
               className="is-kind"
               style={{ '--kind-color': folderColor(f) } as React.CSSProperties}
               onClick={() => { setQuickAddSeed(''); setQuickAddFolder(f); setQuickAddOpen(true); }}
-              title={`New note in ${f}/`}
+              title={`New ${label}`}
             >
-              <span className="kind-pip" style={{ background: folderColor(f) }} />+ {f}
+              <span className="kind-pip" />+ {label}
             </button>
           ))}
           <button
@@ -646,6 +1073,34 @@ export function NotesApp() {
             </div>
           </div>
         </div>
+      )}
+
+      {contextMenu && (
+        <NoteContextMenu
+          target={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onNewFile={(folder, subdir) => {
+            setContextMenu(null);
+            setCreatingIn({ folder, subdir });
+            if (subdir) setOpenFolderPaths(prev => new Set([...prev, folder, `${folder}/${subdir}`]));
+            else if (!openFolderPaths.has(folder)) toggleFolder(folder, folder);
+          }}
+          onNewFolder={(folder, subdir) => {
+            setContextMenu(null);
+            setCreatingDirIn({ folder, subdir });
+            if (subdir) setOpenFolderPaths(prev => new Set([...prev, folder, `${folder}/${subdir}`]));
+            else if (!openFolderPaths.has(folder)) toggleFolder(folder, folder);
+          }}
+          onRename={(folder, path) => {
+            setContextMenu(null);
+            setRenamingKey(path === '' ? folder : `${folder}/${path}`);
+          }}
+          onDelete={(folder, path, kind) => {
+            setContextMenu(null);
+            if (kind === 'topfolder') handleDeleteFolder(folder);
+            else handleDeleteFile(folder, path!);
+          }}
+        />
       )}
     </>
   );

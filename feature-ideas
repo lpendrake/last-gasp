@@ -1,0 +1,31 @@
+# list of feature ideas
+
+Move each one out of here once you've implemented it
+
+Ideas:
+- PCs button on the timeline
+  - top right or footer?
+  - shows a list of all the active PCs (means PCs need yml front matter to enable/disable them and a way to toggle that)
+  - the list shows the file name for that PC as a link, so we the GM can hover it to get the quick-view like links when viewing an event
+  - this lets them quickly view players
+  - clicking the link opens the PCs note in an editor (on the timeline or in notes mode?)
+- Mentioned in...
+  - I want to create metadata about each note and event that "links" files together.
+  - inserting a link into an event automatically creates a reciprocal link in both files. Like "mentioned in" feature I guess... Yeah, that's what this is.
+  - eventually we could create a mindmap view where these links are visualised.
+- Mind map view
+  - I keep having the idea... not sure what to do with it. But I like it. No idea how to make it practically useful.
+  - Ask Thomas.
+- Different way of linking files
+  - relative links work great until something moves or is renamed. Rename isn't too bad but move is a bitch.
+  - what if every file had yml from matter, and the first bit of it is a UUID for that file. Links are just [link text]@(UUID) under the hood, we wire it up to look like a regular markdown link but it means we never need to do the whole rename or move logic thing since all we do is look up which file has that UUID in it, and that can literally just be a recursive grep or something. Or we index everything on startup, rename and move.
+- Campaigns
+  - create a campaigns folder
+  - create a folder for my campaign in it.
+  - put all my notes and events in there.
+  - create a second campaign
+  - swap between campaigns at will, loading only relevant notes and events
+- The current file should be visible in the sidebar.
+- filter should, by default expand folders to show files that match the filter.
+- links should work in notes the same way as in the event editor
+  - IE mouseover should show the file in question as a quick-view.

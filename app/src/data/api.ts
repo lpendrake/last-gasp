@@ -160,3 +160,40 @@ export async function deleteNote(folder: string, path: string): Promise<void> {
   const res = await fetch(noteUrl(folder, path), { method: 'DELETE' });
   if (!res.ok) throw new ApiError(res.status, await res.text());
 }
+
+export async function renameNoteFolder(folder: string, newName: string): Promise<void> {
+  const res = await fetch(`/api/notes/${encodeURIComponent(folder)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newName }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+}
+
+export async function renameNote(
+  folder: string, path: string, newPath: string, newFolder?: string,
+): Promise<void> {
+  const body: Record<string, string> = { newPath };
+  if (newFolder && newFolder !== folder) body.newFolder = newFolder;
+  const res = await fetch(noteUrl(folder, path), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+}
+
+export async function deleteNoteFolder(folder: string): Promise<void> {
+  const res = await fetch(`/api/notes/${encodeURIComponent(folder)}`, { method: 'DELETE' });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+}
+
+export async function uploadNoteAsset(
+  folder: string, filename: string, data: ArrayBuffer, mimeType: string,
+): Promise<string> {
+  const url = `/api/notes/${encodeURIComponent(folder)}/assets/${encodeURIComponent(filename)}`;
+  const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: data });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  const json = await res.json() as { path: string };
+  return json.path;
+}

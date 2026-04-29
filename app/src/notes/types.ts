@@ -6,7 +6,10 @@ export interface OpenTab {
   folder: string;
   /** Path within the folder, e.g. "stormhaven/the-spire.md" */
   path: string;
+  fileKind?: 'note' | 'asset';
 }
+
+export const ASSET_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
 
 export interface FileState {
   content: string | null; // null while loading
@@ -33,6 +36,7 @@ export type TreeFile = {
   name: string;
   path: string; // relative to top-level folder
   title: string;
+  fileKind: 'note' | 'asset';
 };
 
 export type TreeDir = {
@@ -61,7 +65,7 @@ export function buildTree(entries: NoteEntry[]): TreeNode[] {
       }
       current = dir.children;
     }
-    current.push({ kind: 'file', name: parts[parts.length - 1], path: entry.path, title: entry.title });
+    current.push({ kind: 'file', name: parts[parts.length - 1], path: entry.path, title: entry.title, fileKind: entry.kind ?? 'note' });
   }
   return root;
 }
