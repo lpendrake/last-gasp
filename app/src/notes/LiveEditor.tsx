@@ -3,6 +3,7 @@ import React, {
 } from 'react';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { folderColor } from './types.ts';
+import { uploadNoteAsset } from '../data/api.ts';
 
 // ---- HTML helpers ----
 
@@ -36,6 +37,19 @@ function renderInline(
   let i = 0;
   while (i < text.length) {
     const rest = text.slice(i);
+
+    // Image: ![alt](url)
+    const img = rest.match(/^!\[([^\]\n]*)\]\(([^)\n]+)\)/);
+    if (img) {
+      const src = img[2];
+      const displaySrc = src.startsWith('assets/')
+        ? `/api/notes/${encodeURIComponent(currentFolder)}/${src}`
+        : src;
+      out += `<span class="ml-marker is-hideable">${escHtml(img[0])}</span>`
+        + `<img class="ml-image" src="${escHtml(displaySrc)}" alt="${escHtml(img[1])}" loading="lazy" />`;
+      i += img[0].length;
+      continue;
+    }
 
     // Link: [text](url)
     let m: RegExpMatchArray | null = rest.match(/^\[([^\]\n]+)\]\(([^)\n]+)\)/);
@@ -253,17 +267,22 @@ function restoreCaret(root: HTMLElement, saved: CaretPos | null) {
 
 // ---- LiveEditor component ----
 
+const DRAG_MIME = 'application/x-last-gasp-note';
+interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
+const IMAGE_EXTS = /\.(png|jpe?g|gif|webp|svg)$/i;
+
 interface LiveEditorProps {
   value: string;
   onChange: (v: string) => void;
   currentFolder: string;
   linkIndex: LinkIndexEntry[];
+  currentFolderAssets?: { path: string; title: string }[];
   onOpenLink?: (href: string) => void;
   onTriggerQuickAdd?: (sel: string) => void;
 }
 
 export function LiveEditor({
-  value, onChange, currentFolder, linkIndex, onOpenLink, onTriggerQuickAdd,
+  value, onChange, currentFolder, linkIndex, currentFolderAssets, onOpenLink, onTriggerQuickAdd,
 }: LiveEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef(value);
@@ -365,6 +384,8 @@ export function LiveEditor({
   const handleSelectionChange = useCallback(() => {
     const root = rootRef.current;
     if (!root || document.activeElement !== root) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return; // don't re-render during drag-select
     refreshActive(getCaretLineIndex(root));
     maybeShowLinkPicker();
   }, [refreshActive, maybeShowLinkPicker]);
@@ -399,6 +420,96 @@ export function LiveEditor({
     maybeShowLinkPicker();
   }, [ctx, onChange, rebuild, maybeShowLinkPicker]);
 
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const imageItem = Array.from(e.clipboardData.items).find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const blob = imageItem.getAsFile();
+    if (!blob) return;
+    const ext = imageItem.type === 'image/jpeg' ? 'jpg' : (imageItem.type.split('/')[1] ?? 'png');
+    const filename = `pasted-${Date.now()}.${ext}`;
+    const root = rootRef.current;
+    const caret = root ? saveCaret(root) : null;
+    try {
+      const relativePath = await uploadNoteAsset(currentFolder, filename, await blob.arrayBuffer(), imageItem.type);
+      if (!root) return;
+      const lines = readAllText(root).split('\n');
+      const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
+      const offset = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
+      const imageMarkdown = `![](${relativePath})`;
+      lines[lineIdx] = (lines[lineIdx] ?? '').slice(0, offset) + imageMarkdown + (lines[lineIdx] ?? '').slice(offset);
+      const newText = lines.join('\n');
+      valueRef.current = newText;
+      onChange(newText);
+      rebuild(newText, lineIdx);
+      requestAnimationFrame(() => {
+        restoreCaret(root, { lineIndex: lineIdx, offset: offset + imageMarkdown.length });
+      });
+    } catch (err) {
+      console.error('Image paste failed', err);
+    }
+  }, [currentFolder, onChange, rebuild]);
+
+  function caretAtPoint(x: number, y: number): { node: Node; offset: number } | null {
+    if ('caretRangeFromPoint' in document) {
+      const range = (document as any).caretRangeFromPoint(x, y) as Range | null;
+      if (!range) return null;
+      return { node: range.startContainer, offset: range.startOffset };
+    }
+    if ('caretPositionFromPoint' in document) {
+      const pos = (document as any).caretPositionFromPoint(x, y);
+      if (!pos) return null;
+      return { node: pos.offsetNode, offset: pos.offset };
+    }
+    return null;
+  }
+
+  function nodeOffsetToCaretPos(root: HTMLElement, node: Node, offset: number): { lineIndex: number; offset: number } | null {
+    const lines = Array.from(root.querySelectorAll<HTMLElement>(':scope > .ml-line'));
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i].contains(node) && lines[i] !== node) continue;
+      let charOffset = 0;
+      const walker = document.createTreeWalker(lines[i], NodeFilter.SHOW_TEXT);
+      let n: Node | null;
+      while ((n = walker.nextNode())) {
+        if (n === node) { charOffset += offset; return { lineIndex: i, offset: charOffset }; }
+        charOffset += n.textContent?.length ?? 0;
+      }
+      return { lineIndex: i, offset: charOffset };
+    }
+    return null;
+  }
+
+  function handleDropNote(clientX: number, clientY: number, payload: NoteDragPayload) {
+    const root = rootRef.current;
+    if (!root) return;
+    const at = caretAtPoint(clientX, clientY);
+    const caret = at ? nodeOffsetToCaretPos(root, at.node, at.offset) : null;
+    let insertion: string;
+    if (payload.kind === 'file') {
+      const srcFolder = payload.folder;
+      const href = srcFolder === currentFolder
+        ? payload.path
+        : `../${srcFolder}/${payload.path}`;
+      insertion = `[${payload.displayName}](${href})`;
+    } else {
+      insertion = payload.kind === 'topfolder' ? payload.folder : `${payload.folder}/${payload.path}`;
+    }
+    const text = readAllText(root);
+    const lines = text.split('\n');
+    const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
+    const charOff = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
+    const line = lines[lineIdx] ?? '';
+    lines[lineIdx] = line.slice(0, charOff) + insertion + line.slice(charOff);
+    const newText = lines.join('\n');
+    valueRef.current = newText;
+    onChange(newText);
+    rebuild(newText, lineIdx);
+    requestAnimationFrame(() => {
+      restoreCaret(root, { lineIndex: lineIdx, offset: charOff + insertion.length });
+    });
+  }
+
   function pickLink(entry: LinkIndexEntry) {
     if (!linkPicker) return;
     const root = rootRef.current;
@@ -411,7 +522,8 @@ export function LiveEditor({
     const href = entryFolder === currentFolder
       ? entry.path.split('/').slice(1).join('/')
       : `../${entry.path}`;
-    const insertion = `[${entry.title}](${href})`;
+    const isImage = IMAGE_EXTS.test(entry.path);
+    const insertion = isImage ? `![${entry.title}](${href})` : `[${entry.title}](${href})`;
     const before = cur.slice(0, linkPicker.triggerStart);
     const after = cur.slice(linkPicker.caretOffset);
     lines[linkPicker.lineIndex] = before + insertion + after;
@@ -479,12 +591,16 @@ export function LiveEditor({
 
   const filteredLinks = useMemo(() => {
     if (!linkPicker) return [];
+    const assetEntries: LinkIndexEntry[] = (currentFolderAssets ?? []).map(a => ({
+      path: a.path, title: a.title, type: 'other' as const,
+    }));
+    const allEntries = [...assetEntries, ...linkIndex];
     const q = linkPicker.query.toLowerCase().trim();
-    if (!q) return linkIndex.slice(0, 8);
-    return linkIndex
+    if (!q) return allEntries.slice(0, 8);
+    return allEntries
       .filter(e => e.title.toLowerCase().includes(q) || e.path.toLowerCase().includes(q))
       .slice(0, 8);
-  }, [linkPicker, linkIndex]);
+  }, [linkPicker, linkIndex, currentFolderAssets]);
 
   return (
     <div style={{ position: 'relative', flex: '1 1 auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -497,6 +613,9 @@ export function LiveEditor({
         onInput={handleInput}
         onKeyDown={onKeyDown}
         onClick={onClick}
+        onPaste={handlePaste}
+        onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); e.dataTransfer.dropEffect = 'link'; } }}
+        onDrop={(e) => { const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; e.preventDefault(); const payload: NoteDragPayload = JSON.parse(raw); handleDropNote(e.clientX, e.clientY, payload); }}
       />
       {linkPicker && (
         <LinkPickerDropdown

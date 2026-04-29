@@ -61,6 +61,7 @@ export interface NoteEntry {
   path: string;
   title: string;
   mtime: string;
+  kind?: 'note' | 'asset';
 }
 
 export interface LinkIndexEntry {

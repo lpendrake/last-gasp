@@ -84,6 +84,15 @@ async function readTextBody(req: Connect.IncomingMessage): Promise<string> {
   });
 }
 
+async function readBinaryBody(req: Connect.IncomingMessage): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 async function fileExists(p: string): Promise<boolean> {
   try {
     await fs.access(p);
@@ -152,10 +161,98 @@ async function extractTitle(filepath: string): Promise<string> {
   return basename(filepath, '.md');
 }
 
+const ASSET_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+
+/** Regex matching all markdown links: `[text](href)` and `![alt](href)` */
+const LINK_RE = /\]\(([^)]+)\)/g;
+
+/**
+ * After a rename/move, scans all notes in the repo and rewrites any markdown links
+ * that pointed at the old path to point at the new path. Returns the number of
+ * files whose content was changed.
+ */
+async function updateNotesLinks(
+  repoRoot: string,
+  oldFolder: string, oldPath: string,
+  newFolder: string, newPath: string,
+  isDir: boolean,
+): Promise<number> {
+  const oldKey = oldPath === '' ? oldFolder : `${oldFolder}/${oldPath}`;
+  const newKey = newPath === '' ? newFolder : `${newFolder}/${newPath}`;
+
+  // Collect all top-level dirs that are note folders
+  let topDirs: string[] = [];
+  try {
+    const entries = await fs.readdir(repoRoot, { withFileTypes: true });
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      if (e.name.startsWith('.')) continue;
+      if (NOTES_EXCLUDED.has(e.name)) continue;
+      topDirs.push(e.name);
+    }
+  } catch { return 0; }
+
+  // Collect all .md files across all folders
+  const allFiles: string[] = []; // repo-root relative paths
+  for (const dir of topDirs) {
+    const entries = await scanMdFiles(join(repoRoot, dir), dir);
+    for (const e of entries) {
+      if (e.kind === 'note') allFiles.push(e.path);
+    }
+  }
+
+  let changed = 0;
+  for (const repoRelPath of allFiles) {
+    const absFilePath = join(repoRoot, repoRelPath);
+    const srcTopFolder = repoRelPath.split('/')[0];
+    let content: string;
+    try { content = await fs.readFile(absFilePath, 'utf-8'); } catch { continue; }
+
+    let modified = false;
+    const newContent = content.replace(LINK_RE, (_match, href: string) => {
+      // Skip absolute URLs
+      if (href.startsWith('/') || href.includes('://') || href.startsWith('mailto:')) return _match;
+
+      // Compute absolute key for this href
+      let absKey: string;
+      if (href.startsWith('../')) {
+        absKey = href.slice(3); // strip "../"
+      } else {
+        absKey = `${srcTopFolder}/${href}`;
+      }
+
+      // Check if absKey matches the renamed path
+      const exactMatch = absKey === oldKey;
+      const prefixMatch = isDir && (absKey === oldKey || absKey.startsWith(oldKey + '/'));
+      if (!exactMatch && !prefixMatch) return _match;
+
+      // Compute new absolute key
+      const newAbsKey = prefixMatch && absKey !== oldKey
+        ? newKey + absKey.slice(oldKey.length)
+        : newKey;
+
+      // Compute new href relative to the scanning file's top folder
+      const destTopFolder = newAbsKey.split('/')[0];
+      const newHref = destTopFolder === srcTopFolder
+        ? newAbsKey.split('/').slice(1).join('/')
+        : `../${newAbsKey}`;
+
+      modified = true;
+      return `](${newHref})`;
+    });
+
+    if (modified) {
+      await writeFileAtomic(absFilePath, newContent);
+      changed++;
+    }
+  }
+  return changed;
+}
+
 async function scanMdFiles(
   dir: string, relBase: string,
-): Promise<{ path: string; title: string; mtime: string }[]> {
-  const out: { path: string; title: string; mtime: string }[] = [];
+): Promise<{ path: string; title: string; mtime: string; kind: 'note' | 'asset' }[]> {
+  const out: { path: string; title: string; mtime: string; kind: 'note' | 'asset' }[] = [];
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
     for (const e of entries) {
@@ -166,7 +263,10 @@ async function scanMdFiles(
         out.push(...await scanMdFiles(full, rel));
       } else if (e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md') {
         const stat = await fs.stat(full);
-        out.push({ path: rel, title: await extractTitle(full), mtime: stat.mtime.toUTCString() });
+        out.push({ path: rel, title: await extractTitle(full), mtime: stat.mtime.toUTCString(), kind: 'note' });
+      } else if (e.isFile() && ASSET_EXTS.has(e.name.split('.').pop()?.toLowerCase() ?? '')) {
+        const stat = await fs.stat(full);
+        out.push({ path: rel, title: e.name, mtime: stat.mtime.toUTCString(), kind: 'asset' });
       }
     }
   } catch { /* dir not accessible */ }
@@ -510,15 +610,17 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
   const getNoteFile: RouteHandler = async (_req, res, params) => {
     const folder = decodeURIComponent(params.folder);
     const notePath = decodeURIComponent(params.path);
-    if (!notePath.endsWith('.md')) return sendError(res, 400, 'Not a markdown file');
+    const ext = notePath.split('.').pop()?.toLowerCase() ?? '';
+    const imageMime = IMAGE_MIME[ext];
+    if (!notePath.endsWith('.md') && !imageMime) return sendError(res, 400, 'Unsupported file type');
     const absolute = safeNoteResolve(folder, notePath);
     if (!absolute) return sendError(res, 403, 'Path escapes repo root');
     if (!(await fileExists(absolute))) return sendError(res, 404, 'Note not found');
     const stat = await fs.stat(absolute);
     res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Type', notePath.endsWith('.md') ? 'text/plain; charset=utf-8' : imageMime!);
     res.setHeader('Last-Modified', stat.mtime.toUTCString());
-    res.end(await fs.readFile(absolute, 'utf-8'));
+    res.end(await fs.readFile(absolute, notePath.endsWith('.md') ? 'utf-8' : undefined));
   };
 
   const createNoteFile: RouteHandler = async (req, res, params) => {
@@ -558,6 +660,88 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     res.setHeader('Last-Modified', newStat.mtime.toUTCString());
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ ok: true }));
+  };
+
+  const uploadNoteAsset: RouteHandler = async (req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const filename = decodeURIComponent(params.filename);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder name');
+    if (filename.includes('/') || filename.includes('\\') || filename.startsWith('.')) return sendError(res, 400, 'Invalid filename');
+    const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+    if (!IMAGE_MIME[ext]) return sendError(res, 400, 'Unsupported image type');
+    const assetsDir = join(REPO_ROOT, folder, 'assets');
+    await fs.mkdir(assetsDir, { recursive: true });
+    const absolute = join(assetsDir, filename);
+    const data = await readBinaryBody(req);
+    await fs.writeFile(absolute, data);
+    sendJson(res, 201, { path: `assets/${filename}` });
+  };
+
+  const patchNoteFolder: RouteHandler = async (req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder name');
+    const folderAbs = safeResolveInRepo(folder);
+    if (!folderAbs) return sendError(res, 403, 'Path escapes repo root');
+    if (!(await fileExists(folderAbs))) return sendError(res, 404, 'Folder not found');
+    const stat = await fs.stat(folderAbs);
+    if (!stat.isDirectory()) return sendError(res, 400, 'Not a directory');
+
+    const body = await readBody(req);
+    if (!body || typeof body.newName !== 'string') return sendError(res, 400, 'Missing newName');
+    const newName: string = body.newName;
+    if (!validNoteFolder(newName)) return sendError(res, 400, 'Invalid new name');
+    if (newName === folder) return sendJson(res, 200, { ok: true, updatedLinks: 0 });
+
+    const destAbs = safeResolveInRepo(newName);
+    if (!destAbs) return sendError(res, 403, 'Destination path escapes repo root');
+    if (await fileExists(destAbs)) return sendError(res, 409, 'Destination already exists');
+
+    await fs.rename(folderAbs, destAbs);
+    const updatedLinks = await updateNotesLinks(REPO_ROOT, folder, '', newName, '', true);
+    sendJson(res, 200, { ok: true, updatedLinks });
+  };
+
+  const patchNoteFile: RouteHandler = async (req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    const notePath = decodeURIComponent(params.path);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder name');
+    const sourceAbs = safeNoteResolve(folder, notePath);
+    if (!sourceAbs) return sendError(res, 403, 'Path escapes repo root');
+    if (!(await fileExists(sourceAbs))) return sendError(res, 404, 'Not found');
+
+    const body = await readBody(req);
+    if (!body || typeof body.newPath !== 'string') return sendError(res, 400, 'Missing newPath');
+    const newFolder: string = (typeof body.newFolder === 'string') ? body.newFolder : folder;
+    const newPath: string = body.newPath;
+    if (!validNoteFolder(newFolder)) return sendError(res, 400, 'Invalid destination folder');
+
+    const destAbs = safeNoteResolve(newFolder, newPath);
+    if (!destAbs) return sendError(res, 403, 'Destination path escapes repo root');
+    if (destAbs === sourceAbs) return sendJson(res, 200, { ok: true, updatedLinks: 0 });
+    if (await fileExists(destAbs)) return sendError(res, 409, 'Destination already exists');
+
+    const stat = await fs.stat(sourceAbs);
+    const isDir = stat.isDirectory();
+    await fs.mkdir(dirname(destAbs), { recursive: true });
+    await fs.rename(sourceAbs, destAbs);
+
+    const updatedLinks = await updateNotesLinks(REPO_ROOT, folder, notePath, newFolder, newPath, isDir);
+    sendJson(res, 200, { ok: true, updatedLinks });
+  };
+
+  const deleteNoteFolder: RouteHandler = async (_req, res, params) => {
+    const folder = decodeURIComponent(params.folder);
+    if (!validNoteFolder(folder)) return sendError(res, 400, 'Invalid folder name');
+    const folderAbs = safeResolveInRepo(folder);
+    if (!folderAbs) return sendError(res, 403, 'Path escapes repo root');
+    if (!(await fileExists(folderAbs))) return sendError(res, 404, 'Folder not found');
+    const stat = await fs.stat(folderAbs);
+    if (!stat.isDirectory()) return sendError(res, 400, 'Not a directory');
+    await fs.mkdir(NOTES_TRASH, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const trashName = `${timestamp}-folder-${folder}`;
+    await fs.rename(folderAbs, join(NOTES_TRASH, trashName));
+    sendJson(res, 200, { ok: true });
   };
 
   const deleteNoteFile: RouteHandler = async (_req, res, params) => {
@@ -600,7 +784,11 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     defineRoute('GET',    '/api/notes/:folder',             listNoteFiles),
     defineRoute('GET',    '/api/notes/:folder/:path*',      getNoteFile),
     defineRoute('POST',   '/api/notes/:folder/:path*',      createNoteFile),
+    defineRoute('PUT',    '/api/notes/:folder/assets/:filename', uploadNoteAsset),
     defineRoute('PUT',    '/api/notes/:folder/:path*',      updateNoteFile),
+    defineRoute('PATCH',  '/api/notes/:folder',              patchNoteFolder),
+    defineRoute('PATCH',  '/api/notes/:folder/:path*',      patchNoteFile),
+    defineRoute('DELETE', '/api/notes/:folder',             deleteNoteFolder),
     defineRoute('DELETE', '/api/notes/:folder/:path*',      deleteNoteFile),
   ];
 

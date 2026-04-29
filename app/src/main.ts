@@ -93,16 +93,30 @@ async function main() {
       notesReactRoot = createRoot(notesShell);
     }
     notesReactRoot.render(createElement(NotesApp));
+    document.getElementById('btn-view-timeline')!.classList.remove('is-active');
+    document.getElementById('btn-view-notes')!.classList.add('is-active');
   }
 
   function showTimeline() {
     notesShell.style.display = 'none';
     timelineShell.style.display = 'contents';
     // notesReactRoot stays alive so state is preserved between switches
+    document.getElementById('btn-view-timeline')!.classList.add('is-active');
+    document.getElementById('btn-view-notes')!.classList.remove('is-active');
   }
 
-  document.getElementById('btn-view-notes')!.addEventListener('click', showNotes);
-  window.addEventListener('notes:exit', showTimeline);
+  document.getElementById('btn-view-notes')!.addEventListener('click', () => {
+    history.pushState(null, '', '/notes');
+    showNotes();
+  });
+  window.addEventListener('notes:exit', () => {
+    history.pushState(null, '', '/timeline');
+    showTimeline();
+  });
+  window.addEventListener('popstate', () => {
+    if (location.pathname.startsWith('/notes')) showNotes();
+    else showTimeline();
+  });
 
   const [palette, events, state, tags] = await Promise.all([
     loadPalette(),
@@ -740,6 +754,8 @@ async function main() {
   initPeek();
   renderSidebar();
   renderTimeline();
+
+  if (location.pathname.startsWith('/notes')) showNotes();
 }
 
 main().catch(err => {
