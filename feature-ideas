@@ -19,3 +19,13 @@ Ideas:
 - Different way of linking files
   - relative links work great until something moves or is renamed. Rename isn't too bad but move is a bitch.
   - what if every file had yml from matter, and the first bit of it is a UUID for that file. Links are just [link text]@(UUID) under the hood, we wire it up to look like a regular markdown link but it means we never need to do the whole rename or move logic thing since all we do is look up which file has that UUID in it, and that can literally just be a recursive grep or something. Or we index everything on startup, rename and move.
+- Campaigns
+  - create a campaigns folder
+  - create a folder for my campaign in it.
+  - put all my notes and events in there.
+  - create a second campaign
+  - swap between campaigns at will, loading only relevant notes and events
+- The current file should be visible in the sidebar.
+- filter should, by default expand folders to show files that match the filter.
+- links should work in notes the same way as in the event editor
+  - IE mouseover should show the file in question as a quick-view.
