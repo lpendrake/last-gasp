@@ -1,3 +1,7 @@
+// NOTE FOR AGENTS: this file is the legacy monolith. New code goes in
+// app/server/{http,domain,data}/* per the layer rules in
+// app/server/AGENTS.md. Run the `add-api-route` skill before extending
+// this file. The Phase 2 refactor will dissolve api.ts entirely.
 import type { Connect, ViteDevServer, Plugin } from 'vite';
 import { promises as fs } from 'fs';
 import { join, resolve, relative, basename, sep, dirname } from 'path';

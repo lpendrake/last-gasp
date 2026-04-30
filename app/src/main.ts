@@ -1,3 +1,9 @@
+// NOTE FOR AGENTS: this is the legacy entry point. The Phase 4 refactor
+// extracts DOM scaffolding into bootstrap/mount.ts, view switching into
+// bootstrap/view-switcher.ts, hotkeys into bootstrap/shortcuts.ts, and
+// the timeline controller into timeline/app.ts. See app/src/AGENTS.md
+// and app/src/timeline/AGENTS.md. New timeline code follows the target
+// structure rather than extending this file.
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import { NotesApp } from './notes/Notes.tsx';
