@@ -19,7 +19,9 @@ import { sendJson, sendError } from './http/responses.ts';
 import { readBody, readTextBody, readBinaryBody } from './http/body.ts';
 import { defineRoute, dispatch, type RouteHandler, type Route } from './http/router.ts';
 import { makeFsEventStore } from './data/fs/events.fs.ts';
+import { makeFsStateStore } from './data/fs/state.fs.ts';
 import { eventRoutes } from './http/events.routes.ts';
+import { stateRoutes } from './http/state.routes.ts';
 import type { LinkIndexEntry } from '../src/data/types.ts';
 
 export type ApiHandler = (req: Connect.IncomingMessage, res: any, next?: (err?: any) => void) => Promise<void> | void;
@@ -191,42 +193,9 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
   }
 
   const events = makeFsEventStore(REPO_ROOT);
+  const state = makeFsStateStore(REPO_ROOT);
   const eventRouteList = eventRoutes({ events });
-
-  function makeJsonFileHandler(filename: string) {
-    const filepath = join(REPO_ROOT, filename);
-    const get: RouteHandler = async (_req, res) => {
-      if (!(await fileExists(filepath))) return sendError(res, 404, `${filename} not found`);
-      const content = await fs.readFile(filepath, 'utf-8');
-      res.statusCode = 200;
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(content);
-    };
-    const put: RouteHandler = async (req, res) => {
-      const body = await readBody(req);
-      await writeFileAtomic(filepath, JSON.stringify(body, null, 2) + '\n');
-      sendJson(res, 200, { ok: true });
-    };
-    return { get, put };
-  }
-
-  const stateHandlers = makeJsonFileHandler('state.json');
-  const tagsHandlers = makeJsonFileHandler('tags.json');
-  const paletteHandlers = makeJsonFileHandler('palette.json');
-  const sessionsHandlers = makeJsonFileHandler('sessions.json');
-
-  const appendSession: RouteHandler = async (req, res) => {
-    const filepath = join(REPO_ROOT, 'sessions.json');
-    const newSession = await readBody(req);
-    let current: any[] = [];
-    if (await fileExists(filepath)) {
-      const content = await fs.readFile(filepath, 'utf-8');
-      current = JSON.parse(content);
-    }
-    current.push(newSession);
-    await writeFileAtomic(filepath, JSON.stringify(current, null, 2) + '\n');
-    sendJson(res, 200, current);
-  };
+  const stateRouteList = stateRoutes({ state });
 
   const getLinkIndex: RouteHandler = async (_req, res) => {
     const entries: LinkIndexEntry[] = [];
@@ -537,14 +506,7 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
 
   const ROUTES: Route[] = [
     ...eventRouteList,
-    defineRoute('GET',    '/api/state',                     stateHandlers.get),
-    defineRoute('PUT',    '/api/state',                     stateHandlers.put),
-    defineRoute('GET',    '/api/tags',                      tagsHandlers.get),
-    defineRoute('PUT',    '/api/tags',                      tagsHandlers.put),
-    defineRoute('GET',    '/api/palette',                   paletteHandlers.get),
-    defineRoute('PUT',    '/api/palette',                   paletteHandlers.put),
-    defineRoute('GET',    '/api/sessions',                  sessionsHandlers.get),
-    defineRoute('POST',   '/api/sessions',                  appendSession),
+    ...stateRouteList,
     defineRoute('GET',    '/api/link-index',                getLinkIndex),
     defineRoute('GET',    '/api/file/:path*',               getFile),
     defineRoute('GET',    '/api/trash',                     listTrash),

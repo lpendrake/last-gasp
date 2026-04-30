@@ -26,3 +26,12 @@ export interface EventStore {
   /** Move the event into trash under `trashName`. */
   softDelete(filename: string, trashName: string): Promise<void>;
 }
+
+export type StateName = 'state' | 'tags' | 'palette' | 'sessions';
+
+export interface StateStore {
+  /** Read the named JSON blob. Returns the raw UTF-8 bytes, or null. */
+  read(name: StateName): Promise<string | null>;
+  /** Write the named JSON blob atomically. */
+  write(name: StateName, content: string): Promise<void>;
+}
