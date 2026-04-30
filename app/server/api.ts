@@ -4,29 +4,20 @@
 // or modifying endpoints.
 import type { Connect, ViteDevServer, Plugin } from 'vite';
 import { promises as fs } from 'fs';
-import { join, resolve, basename, dirname } from 'path';
+import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execFile } from 'child_process';
-import matter from 'gray-matter';
-import yaml from 'js-yaml';
 import { writeFileAtomic } from './data/fs/atomic.ts';
 import {
-  NOTES_EXCLUDED, ASSET_EXTS, IMAGE_MIME, SCAN_DIRS,
+  ASSET_EXTS, IMAGE_MIME, SCAN_DIRS,
   safeResolveInRepo as safeResolveInRepoUtil,
   validNoteFolder as validNoteFolderUtil,
   safeNoteResolve as safeNoteResolveUtil,
 } from './data/fs/paths.ts';
-import type {
-  Event, EventListItem, EventFrontmatter, LinkIndexEntry,
-} from '../src/data/types.ts';
-
-// Custom YAML engine for gray-matter that does NOT parse ISO-style strings as Date objects.
-// Golarian years like 4726 aren't meaningful as JS Dates, and we want date strings preserved.
-const yamlEngine = {
-  parse: (str: string) => yaml.load(str, { schema: yaml.JSON_SCHEMA }) as object,
-  stringify: (obj: object) => yaml.dump(obj, { schema: yaml.JSON_SCHEMA, lineWidth: -1 }),
-};
-const MATTER_OPTIONS = { engines: { yaml: yamlEngine } };
+import {
+  serialiseEvent, parseEventFile, eventFromParsed, eventListItemFromParsed, extractTitle,
+} from './domain/yaml.ts';
+import type { LinkIndexEntry } from '../src/data/types.ts';
 
 export type ApiHandler = (req: Connect.IncomingMessage, res: any, next?: (err?: any) => void) => Promise<void> | void;
 
@@ -112,26 +103,6 @@ async function fileExists(p: string): Promise<boolean> {
   }
 }
 
-function serialiseEvent(fm: EventFrontmatter, body: string): string {
-  return matter.stringify(body, fm as any, MATTER_OPTIONS);
-}
-
-function parseEventFile(content: string): { fm: EventFrontmatter; body: string } {
-  const parsed = matter(content, MATTER_OPTIONS);
-  const fm = parsed.data as EventFrontmatter;
-  return { fm, body: parsed.content };
-}
-
-function eventFromParsed(filename: string, content: string, mtime: Date): Event {
-  const { fm, body } = parseEventFile(content);
-  return { ...fm, filename, body, mtime: mtime.toUTCString() };
-}
-
-function eventListItemFromParsed(filename: string, content: string, mtime: Date): EventListItem {
-  const { fm } = parseEventFile(content);
-  return { ...fm, filename, mtime: mtime.toUTCString() };
-}
-
 /** Compare mtimes at second resolution (HTTP date precision). */
 function mtimeMatch(headerValue: string, stat: { mtime: Date }): boolean {
   const clientMs = new Date(headerValue).getTime();
@@ -150,22 +121,6 @@ const typeByDir: Record<string, LinkIndexEntry['type']> = {
   'player-facing': 'player-facing',
   misc: 'misc',
 };
-
-async function extractTitle(filepath: string): Promise<string> {
-  const content = await fs.readFile(filepath, 'utf-8');
-  try {
-    const parsed = matter(content, MATTER_OPTIONS);
-    if (parsed.data && typeof (parsed.data as any).title === 'string') {
-      return (parsed.data as any).title;
-    }
-    const m = parsed.content.match(/^#\s+(.+)$/m);
-    if (m) return m[1].trim();
-  } catch {
-    const m = content.match(/^#\s+(.+)$/m);
-    if (m) return m[1].trim();
-  }
-  return basename(filepath, '.md');
-}
 
 /** Regex matching all markdown links: `[text](href)` and `![alt](href)` */
 const LINK_RE = /\]\(([^)]+)\)/g;
