@@ -6,8 +6,8 @@ description: Use this skill whenever you need to add a new HTTP endpoint to the 
 # Add an API Route
 
 Adding an endpoint touches four layers in a fixed order. Follow them.
-Skipping a layer ("I'll just call `fs` from the handler this once") is
-how the cloud-migration seam disappears.
+Skipping a layer ("I'll just call `fs` from the handler this once")
+breaks the abstraction that lets adapters be swapped.
 
 ## Order of operations
 
@@ -20,19 +20,19 @@ how the cloud-migration seam disappears.
 
 ## Before you start: file existence
 
-The Phase 2 refactor is in flight. At any point, the target files
-(`server/http/<entity>.routes.ts`, `server/domain/<entity>.ts`,
-`server/data/fs/<entity>.fs.ts`, `server/data/ports.ts`,
-`server/data/fs/index.ts`, `server/index.ts`) may or may not exist
-yet. **Create them if missing; extend them if present.**
+Any of the target files (`server/http/<entity>.routes.ts`,
+`server/domain/<entity>.ts`, `server/data/fs/<entity>.fs.ts`,
+`server/data/ports.ts`, `server/data/fs/index.ts`, `server/index.ts`)
+may or may not exist yet. **Create them if missing; extend them if
+present.**
 
 You may grep for existing symbols (e.g. `EventStore`,
-`makeFsEventStore`) to match the style of code that's already
-migrated. You may **not** read `app/server/api.ts` to crib from the
-legacy implementation — it conflates layers and will mislead you. The
-target shape lives in this skill and the AGENTS.md files; the
-behaviour you need to reproduce comes from the user's request, not
-from `api.ts`.
+`makeFsEventStore`) to match the style of code that's already in
+place. The target shape lives in this skill and the AGENTS.md files;
+the behaviour you need to reproduce comes from the user's request.
+If you find a file that conflates layers, do not crib from it —
+follow the layer rules in `app/server/AGENTS.md` regardless of what
+the surrounding code currently does.
 
 ## 1. Port: declare the operation
 

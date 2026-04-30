@@ -5,16 +5,13 @@ React, no `fetch`.
 
 ## What lives here
 
-Eventually:
-
-- `events.ts` — filtering, sorting, conflict detection that both
-  timeline cards and notes' "mentioned in" lists need.
+- `events.ts` — filtering, sorting, conflict detection used by both
+  timeline cards and notes' "mentioned in" lists.
 - `sessions.ts` — session ordering, current-session detection.
-- `links.ts` — link parsing, kind detection (currently inline in
-  `LiveEditor.tsx` / `Notes.tsx`).
+- `links.ts` — link parsing, kind detection.
 
-This folder is empty in Phase 1 and starts being populated in Phase 3,
-when shared logic is hoisted out of the view slices.
+Hoist a function here only when a second view slice needs it; until
+then, leave it where it lives.
 
 ## Allowed imports
 

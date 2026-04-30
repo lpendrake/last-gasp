@@ -1,41 +1,33 @@
 # `src/data/` — Client Data Layer
 
-The seam where the cloud migration happens on the client. Mirrors
+The seam between the UI and whatever serves data. Mirrors
 `server/data/` in spirit: ports define what the UI needs; adapters
-implement them.
+implement them. Domain code never imports an adapter directly.
 
-## Current state vs target state
-
-**Today:** `api.ts` is a single 199-line module exporting `listEvents`,
-`getEvent`, `putEvent`, etc. as functions that call `fetch`.
-
-**Target (Phase 3):**
+## Layout
 
 ```
 data/
   ports.ts          # interfaces: EventStore, NoteStore, StateStore, …
-  http/             # current adapter
+  http/             # adapter that fetches /api/*
     client.ts       # fetch wrapper + ApiError
     events.http.ts
     notes.http.ts
     state.http.ts
     sessions.http.ts
     links.http.ts
+  <other-adapter>/  # one folder per additional backend
   types.ts          # shared DTOs (EventListItem, NoteEntry, …)
 ```
-
-A future cloud build of the app might keep the same ports but use a
-different adapter (e.g. direct calls to a cloud SDK). Domain code never
-imports an adapter directly.
 
 ## Layer rules
 
 - `ports.ts` — types only. No runtime code, no fetch.
 - `http/*` — implements ports using `fetch`. Imports `ports.ts`,
   `types.ts`, `client.ts` only.
-- View slices receive a port object (the http adapter today) via deps.
-  They never import an adapter directly — that's the composition
-  root's job in `main.ts` / `bootstrap/`.
+- View slices receive a port object via deps. They never import an
+  adapter directly — that's the composition root's job in
+  `bootstrap/`.
 
 ## Sanctioned utilities
 

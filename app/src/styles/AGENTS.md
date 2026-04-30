@@ -3,12 +3,7 @@
 Global CSS, one file per slice plus a tokens file. No CSS-in-JS, no
 CSS modules, no preprocessors.
 
-## Current state vs target state
-
-**Today:** flat list of per-slice CSS files. `notes.css` is 749 lines
-with section comments — splittable.
-
-**Target (Phase 5):**
+## Layout
 
 ```
 styles/
@@ -45,8 +40,8 @@ styles/
 - `notes/index.css` controls the order within the notes split. If
   cascade matters, document it in the index file with comments above
   each `@import`.
-- `main.ts` imports the top-level files; React components don't
-  import CSS directly.
+- The composition root in `bootstrap/` imports the top-level files;
+  React components don't import CSS directly.
 
 ## Add a style
 

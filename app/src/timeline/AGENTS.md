@@ -3,13 +3,7 @@
 The horizontally-scrollable timeline of events, sessions, and the
 current-time marker. Vanilla TypeScript + DOM. No React.
 
-## Current state vs target state
-
-**Today:** rendering and interactions are a mix of files at the top of
-the folder (`card.ts`, `axis.ts`, `zoom.ts`, `session-band.ts`,
-`event-modal.ts`) plus 600+ lines of wiring in `src/main.ts`.
-
-**Target (Phase 4):**
+## Layout
 
 ```
 timeline/
@@ -19,15 +13,15 @@ timeline/
     cards.ts              # render event cards (layout + DOM)
     session-bands.ts      # render session bands behind cards
   interactions/
-    zoom.ts               # mouse-wheel zoom (existing zoom.ts moves here)
+    zoom.ts               # mouse-wheel zoom; xToSeconds, secondsToX, zoomAbout
     pan.ts                # drag-pan
     reschedule.ts         # ctrl+shift drag to reschedule
     quick-add-zones.ts    # double-click empty area for new event
-  event-modal.ts          # detail/edit modal — small, can stay flat
+  event-modal.ts          # detail/edit modal
 ```
 
-`main.ts` calls `createTimelineApp(host, deps)` which returns
-`{ update, destroy }`.
+The composition root (`bootstrap/`) calls `createTimelineApp(host, deps)`
+which returns `{ update, destroy }`.
 
 ## Layer rules
 

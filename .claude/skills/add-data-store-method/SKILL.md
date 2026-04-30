@@ -66,9 +66,9 @@ different shapes.
 - Adapter methods are atomic from the caller's perspective. Use
   `writeFileAtomic` to make this true on the fs adapter.
 
-## Future-proofing for cloud
+## Future-proofing for other backends
 
-Anything you put on the port must be implementable in a cloud world
+Anything you put on the port must be implementable in any backend
 without contortion. A red flag: a method that takes a path or a stream
 or a glob. A green flag: a method that takes an id and returns a
 plain object.

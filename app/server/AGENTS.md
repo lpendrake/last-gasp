@@ -3,13 +3,7 @@
 Vite middleware that serves `/api/*` and reads/writes the markdown files in
 the repo root (`events/`, `npcs/`, `locations/`, etc.).
 
-## Current state vs target state
-
-**Today:** everything is in one 838-line `api.ts`. HTTP routing, business
-logic, filesystem IO, YAML parsing, git commands, and link rewriting are
-all interleaved.
-
-**Target:** three layers, one direction of dependency.
+## Three layers, one direction of dependency
 
 ```
 http/        — request parsing, response shaping, route dispatch
@@ -18,14 +12,12 @@ http/        — request parsing, response shaping, route dispatch
 domain/      — pure business logic, no IO
   │
   ▼
-data/ports.ts ◀── data/fs/    (today)
-              ◀── data/cloud/ (later, not yet)
+data/ports.ts ◀── data/fs/                 (current adapter)
+              ◀── data/<other-adapter>/    (additional adapters)
 ```
 
-The migration happens in Phase 2 of the refactor (see
-`/root/.claude/plans/the-app-folder-is-mellow-flame.md`). Until that
-lands, treat `api.ts` as the temporary home for all three layers, but
-**add new code in the target shape** rather than extending `api.ts`.
+The composition root in `index.ts` is the only place adapters meet
+handlers.
 
 ## Layer rules
 
@@ -79,8 +71,6 @@ See `.claude/skills/add-api-route/SKILL.md`. The short version:
 - Don't import `fs` or `path` from `http/` or `domain/`.
 - Don't add a new write path that isn't `atomic.writeFileAtomic`.
 - Don't validate paths inline; route everything through `paths.ts`.
-- Don't extend `api.ts`. New code follows the target structure even
-  before the existing code is migrated.
 
 ## See also
 

@@ -3,13 +3,7 @@
 The chrome around the timeline: filter sidebar, search overlay,
 bottom toolbar. Vanilla TypeScript + DOM.
 
-## Current state vs target state
-
-**Today:** `filters.ts` (421 lines) bundles filter types, matching
-logic, sidebar rendering, and `localStorage` persistence.
-`toolbar.ts` and `search.ts` are smaller but cohesive.
-
-**Target (Phase 6):**
+## Layout
 
 ```
 panels/
@@ -20,7 +14,7 @@ panels/
     persistence.ts      # loadPinnedFilters, savePinnedFilters
     filters.test.ts     # logic tests, no DOM
   search.ts
-  toolbar.ts            # may grow into a folder if it crosses 300 lines
+  toolbar.ts            # split into a folder if it crosses 300 lines
 ```
 
 ## Layer rules

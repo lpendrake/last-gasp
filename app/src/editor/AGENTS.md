@@ -3,12 +3,7 @@
 The modal for creating and editing event frontmatter + markdown bodies.
 Vanilla TypeScript + DOM.
 
-## Current state vs target state
-
-**Today:** `modal.ts` (534 lines) bundles DOM construction, field
-wiring, draft persistence, conflict resolution, and save flow.
-
-**Target (Phase 6):**
+## Layout
 
 ```
 editor/

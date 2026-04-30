@@ -7,8 +7,9 @@ Each subfolder has its own `AGENTS.md` with the local rules.
 
 A timeline + notes app for tracking a tabletop campaign. Vite dev server,
 TypeScript, vanilla DOM for the timeline, React for notes. Persistence is
-markdown files on disk today; the layout is designed so it can become cloud
-storage tomorrow without rewriting business logic.
+markdown files on disk via the filesystem adapter; the layered design lets
+alternative adapters (e.g. a remote backend) plug in without rewriting
+domain or view code.
 
 ## The one rule that matters
 
@@ -24,10 +25,10 @@ view / http  ──▶  domain  ──▶  data ports  ◀──  data adapters
 - **data ports** are interfaces (`server/data/ports.ts`,
   `src/data/ports.ts`). The view and domain layers depend on these, not on
   any concrete implementation.
-- **data adapters** implement the ports. Today: filesystem on the server,
-  HTTP fetch on the client. Tomorrow: cloud on the server, IndexedDB on
-  the client. Adding a new adapter must not require changing domain or
-  view code.
+- **data adapters** implement the ports. The current adapter is the
+  filesystem on the server and HTTP fetch on the client. Adding a new
+  adapter (e.g. a different backend) must not require changing domain
+  or view code.
 
 If you find yourself importing `fs` from an HTTP handler or `fetch` from a
 domain module, stop. That import is the bug.
@@ -40,9 +41,8 @@ domain module, stop. That import is the bug.
 - **React** — `src/notes/` only. Hooks for state, components for JSX,
   services for non-React logic.
 
-These coexist deliberately. A future refactor will unify on React; until
-then, do not introduce React into vanilla slices and do not introduce
-direct DOM manipulation into the React slice.
+These coexist deliberately. Do not introduce React into vanilla slices
+and do not introduce direct DOM manipulation into the React slice.
 
 ## Where to add things
 

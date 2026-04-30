@@ -3,16 +3,11 @@
 The folder/file browser, tabbed editor, and live markdown editor for
 notes (NPCs, locations, factions, plots, etc.). React, not vanilla DOM.
 
-## Current state vs target state
-
-**Today:** `Notes.tsx` (1107 lines) and `LiveEditor.tsx` (697 lines)
-do almost everything. `notes.css` is 749 lines.
-
-**Target (Phase 5):**
+## Layout
 
 ```
 notes/
-  Notes.tsx                   # orchestrator (~400 lines)
+  Notes.tsx                   # slice orchestrator
   types.ts
   hooks/
     useSaveSync.ts            # autosave + mtime conflict
@@ -27,7 +22,7 @@ notes/
     QuickAdd.tsx
     NoteContextMenu.tsx
   editor/
-    LiveEditor.tsx            # ~250 lines after extraction
+    LiveEditor.tsx
     LinkPickerDropdown.tsx
     markdown/
       inline.ts               # escHtml, renderInline

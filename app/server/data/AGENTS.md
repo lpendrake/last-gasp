@@ -1,7 +1,7 @@
 # `server/data/` — Persistence Ports + Adapters
 
-The seam where the cloud migration happens. Domain code depends on the
-interfaces in `ports.ts`; adapters implement them.
+The seam between domain logic and the storage backend. Domain code
+depends on the interfaces in `ports.ts`; adapters implement them.
 
 ## Layout
 
@@ -9,7 +9,7 @@ interfaces in `ports.ts`; adapters implement them.
 data/
   ports.ts          # interfaces: EventStore, NoteStore, StateStore,
                     #             TrashStore, GitPort
-  fs/               # filesystem adapter (today)
+  fs/               # filesystem adapter
     index.ts        # makeFsStores({ root }) — constructs all adapters
     events.fs.ts
     notes.fs.ts
@@ -17,7 +17,7 @@ data/
     trash.fs.ts
     atomic.ts       # writeFileAtomic — the only sanctioned write path
     paths.ts        # safeResolveInRepo, validNoteFolder, safeNoteResolve
-  cloud/            # future, not yet present
+  <other-adapter>/  # one folder per additional backend
 ```
 
 ## The port-vs-adapter rule
@@ -29,8 +29,8 @@ strings.
 
 An **adapter** is how a particular backend satisfies the port. The fs
 adapter knows about `events/` directories, `.md` extensions, frontmatter
-serialisation, and atomic writes. A future cloud adapter would know
-about HTTP requests to a remote API, auth tokens, and retry policy.
+serialisation, and atomic writes. A different backend (e.g. a remote
+API) would know about HTTP requests, auth tokens, and retry policy.
 
 If a method on a port mentions a file path, the abstraction has leaked.
 
@@ -56,8 +56,9 @@ See `.claude/skills/add-data-store-method/SKILL.md`. The decision rule:
 > If yes → it belongs in `domain/`, not on the port.
 > If no → it goes on the port and every adapter must implement it.
 
-Every change to `ports.ts` is a change to the cloud-migration contract.
-Treat it as a small API design exercise, not a one-line addition.
+Every change to `ports.ts` is a change to the contract every adapter
+must satisfy. Treat it as a small API design exercise, not a one-line
+addition.
 
 ## Sanctioned utilities
 
@@ -77,9 +78,8 @@ Treat it as a small API design exercise, not a one-line addition.
 
 ## Don't
 
-- Don't put business logic in an adapter. If both the fs and a future
-  cloud adapter would need to do the same thing, that thing belongs in
-  `domain/`.
+- Don't put business logic in an adapter. If two adapters would need
+  to do the same thing, that thing belongs in `domain/`.
 - Don't bypass `atomic.ts` for "small writes". Concurrency bugs from
   partial writes are the worst kind to debug.
 - Don't add a method to `ports.ts` for a one-off endpoint. Compose

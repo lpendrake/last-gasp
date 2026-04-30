@@ -39,10 +39,6 @@ src/timeline/
   event-modal.ts
 ```
 
-Note: until Phase 4 lands, much of this still lives in `src/main.ts`.
-Add new code in the target shape and link from `main.ts` rather than
-extending the wiring blob.
-
 ## Module shape
 
 Every timeline module exports a factory:
@@ -75,7 +71,7 @@ runs on view-switch (timeline → notes).
    references.
 3. `update(state)` re-renders idempotently from `state`. Reuse DOM
    nodes; don't `innerHTML = ''` on every frame.
-4. `app.ts` (or `main.ts` until Phase 4) wires it in.
+4. `app.ts` wires it in.
 5. Tests: layout math goes in a sibling `.test.ts` (no DOM); see
    `session-band.test.ts`.
 
@@ -97,7 +93,8 @@ runs on view-switch (timeline → notes).
 ## Style
 
 CSS goes in `src/styles/timeline.css` (or a new file imported by
-`main.ts`). Class names are slice-prefixed: `.timeline-…`.
+the composition root in `bootstrap/`). Class names are slice-prefixed:
+`.timeline-…`.
 
 ## Verification
 

@@ -51,11 +51,6 @@ notes/
     file-ops.ts
 ```
 
-Until Phase 5 lands, much of this is still inside `Notes.tsx` and
-`LiveEditor.tsx`. New code goes in the target shape; if you're
-extending an area that's already been split, follow the existing
-split.
-
 ## Hook conventions
 
 - Filename `useThing.ts`, exports `useThing(...)`.
@@ -101,9 +96,9 @@ split.
 
 ## Style
 
-CSS goes in `src/styles/notes/<section>.css` (or `notes.css` until
-Phase 5 lands). Don't introduce CSS-in-JS, CSS modules, or inline
-style objects beyond one-off transient UI states.
+CSS goes in `src/styles/notes/<section>.css`. Don't introduce
+CSS-in-JS, CSS modules, or inline style objects beyond one-off
+transient UI states.
 
 ## Verification
 

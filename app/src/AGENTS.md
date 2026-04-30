@@ -8,7 +8,7 @@ The browser-side code. Two paradigms coexist; the layer rule from
 ```
 src/
   main.ts            # thin entry: mount shell, dispatch to view
-  bootstrap/         # mount, view-switcher, global hotkeys (Phase 4)
+  bootstrap/         # mount, view-switcher, global hotkeys
   data/              # client data layer
     ports.ts         # interfaces the UI depends on
     http/            # current adapter: fetch /api/*
@@ -16,7 +16,7 @@ src/
   domain/            # pure logic shared between timeline and notes
   calendar/          # leaf utility: Golarian ↔ UTC, formatting
   timeline/          # vanilla DOM — timeline view
-    app.ts           # controller (Phase 4)
+    app.ts           # controller
     render/          # axis, cards, session-bands
     interactions/    # zoom, pan, reschedule, quick-add
     event-modal.ts
