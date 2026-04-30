@@ -20,8 +20,10 @@ import { readBody, readTextBody, readBinaryBody } from './http/body.ts';
 import { defineRoute, dispatch, type RouteHandler, type Route } from './http/router.ts';
 import { makeFsEventStore } from './data/fs/events.fs.ts';
 import { makeFsStateStore } from './data/fs/state.fs.ts';
+import { makeFsEventTrashStore } from './data/fs/trash.fs.ts';
 import { eventRoutes } from './http/events.routes.ts';
 import { stateRoutes } from './http/state.routes.ts';
+import { trashRoutes } from './http/trash.routes.ts';
 import type { LinkIndexEntry } from '../src/data/types.ts';
 
 export type ApiHandler = (req: Connect.IncomingMessage, res: any, next?: (err?: any) => void) => Promise<void> | void;
@@ -174,13 +176,6 @@ async function scanMdFiles(
  */
 export function createApi(opts: CreateApiOpts): ApiHandler {
   const REPO_ROOT = resolve(opts.repoRoot);
-  const EVENTS_DIR = join(REPO_ROOT, 'events');
-  const TRASH_DIR = join(EVENTS_DIR, '.trash');
-
-  async function ensureTrashDir() {
-    await fs.mkdir(TRASH_DIR, { recursive: true });
-  }
-
   const safeResolveInRepo = (relPath: string) => safeResolveInRepoUtil(REPO_ROOT, relPath);
 
   function execGit(args: string[]): Promise<string> {
@@ -194,8 +189,10 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
 
   const events = makeFsEventStore(REPO_ROOT);
   const state = makeFsStateStore(REPO_ROOT);
+  const trash = makeFsEventTrashStore(REPO_ROOT);
   const eventRouteList = eventRoutes({ events });
   const stateRouteList = stateRoutes({ state });
+  const trashRouteList = trashRoutes({ events, trash });
 
   const getLinkIndex: RouteHandler = async (_req, res) => {
     const entries: LinkIndexEntry[] = [];
@@ -241,54 +238,6 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     res.setHeader('Content-Type', isMarkdown ? 'text/markdown; charset=utf-8' : imageMime!);
     res.setHeader('Last-Modified', stat.mtime.toUTCString());
     res.end(await fs.readFile(absolute, isMarkdown ? 'utf-8' : undefined));
-  };
-
-  const listTrash: RouteHandler = async (_req, res) => {
-    await ensureTrashDir();
-    const files = await fs.readdir(TRASH_DIR);
-    const entries = [];
-    for (const f of files) {
-      if (!f.endsWith('.md')) continue;
-      const full = join(TRASH_DIR, f);
-      const stat = await fs.stat(full);
-      entries.push({
-        filename: f,
-        trashedAt: stat.mtime.toUTCString(),
-        size: stat.size,
-      });
-    }
-    sendJson(res, 200, entries);
-  };
-
-  const restoreTrash: RouteHandler = async (_req, res, params) => {
-    const filename = decodeURIComponent(params.filename);
-    const trashPath = join(TRASH_DIR, filename);
-    if (!(await fileExists(trashPath))) return sendError(res, 404, 'Trash entry not found');
-    const origMatch = filename.match(/^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d+Z?-(.+)$/);
-    const original = origMatch ? origMatch[1] : filename;
-    const restorePath = join(EVENTS_DIR, original);
-    if (await fileExists(restorePath)) {
-      return sendError(res, 409, `An event already exists at ${original}`);
-    }
-    await fs.rename(trashPath, restorePath);
-    sendJson(res, 200, { restored: original });
-  };
-
-  const deleteTrashEntry: RouteHandler = async (_req, res, params) => {
-    const filename = decodeURIComponent(params.filename);
-    const trashPath = join(TRASH_DIR, filename);
-    if (!(await fileExists(trashPath))) return sendError(res, 404, 'Trash entry not found');
-    await fs.unlink(trashPath);
-    sendJson(res, 200, { ok: true });
-  };
-
-  const emptyTrash: RouteHandler = async (_req, res) => {
-    await ensureTrashDir();
-    const files = await fs.readdir(TRASH_DIR);
-    for (const f of files) {
-      if (f.endsWith('.md')) await fs.unlink(join(TRASH_DIR, f));
-    }
-    sendJson(res, 200, { ok: true });
   };
 
   const gitStatus: RouteHandler = async (_req, res) => {
@@ -509,10 +458,7 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     ...stateRouteList,
     defineRoute('GET',    '/api/link-index',                getLinkIndex),
     defineRoute('GET',    '/api/file/:path*',               getFile),
-    defineRoute('GET',    '/api/trash',                     listTrash),
-    defineRoute('POST',   '/api/trash/:filename/restore',   restoreTrash),
-    defineRoute('DELETE', '/api/trash/:filename',           deleteTrashEntry),
-    defineRoute('DELETE', '/api/trash',                     emptyTrash),
+    ...trashRouteList,
     defineRoute('GET',    '/api/git/status',                gitStatus),
     defineRoute('POST',   '/api/git/commit',                gitCommit),
     defineRoute('GET',    '/api/notes',                     listNoteFolders),

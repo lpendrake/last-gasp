@@ -35,3 +35,22 @@ export interface StateStore {
   /** Write the named JSON blob atomically. */
   write(name: StateName, content: string): Promise<void>;
 }
+
+export interface TrashEntry {
+  filename: string;
+  trashedAt: Date;
+  size: number;
+}
+
+export interface EventTrashStore {
+  /** List trashed events with mtime + size metadata. */
+  list(): Promise<TrashEntry[]>;
+  /** Whether the named trash entry exists. */
+  exists(filename: string): Promise<boolean>;
+  /** Move a trash entry back to the events directory under `restoreAs`. */
+  restore(filename: string, restoreAs: string): Promise<void>;
+  /** Permanently delete one trash entry. No-op if missing. */
+  remove(filename: string): Promise<void>;
+  /** Permanently delete every `.md` entry in trash. */
+  empty(): Promise<void>;
+}
