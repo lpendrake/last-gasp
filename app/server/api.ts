@@ -4,12 +4,18 @@
 // or modifying endpoints.
 import type { Connect, ViteDevServer, Plugin } from 'vite';
 import { promises as fs } from 'fs';
-import { join, resolve, relative, basename, sep, dirname } from 'path';
+import { join, resolve, basename, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execFile } from 'child_process';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
-import { writeFileAtomic } from './fs-atomic.ts';
+import { writeFileAtomic } from './data/fs/atomic.ts';
+import {
+  NOTES_EXCLUDED, ASSET_EXTS, IMAGE_MIME, SCAN_DIRS,
+  safeResolveInRepo as safeResolveInRepoUtil,
+  validNoteFolder as validNoteFolderUtil,
+  safeNoteResolve as safeNoteResolveUtil,
+} from './data/fs/paths.ts';
 import type {
   Event, EventListItem, EventFrontmatter, LinkIndexEntry,
 } from '../src/data/types.ts';
@@ -133,10 +139,6 @@ function mtimeMatch(headerValue: string, stat: { mtime: Date }): boolean {
   return Math.floor(clientMs / 1000) === Math.floor(serverMs / 1000);
 }
 
-/** Directories in the repo root that are never shown in the notes sidebar */
-const NOTES_EXCLUDED = new Set(['events', 'app', 'designe', 'node_modules', '.notes-trash', 'maps']);
-
-const SCAN_DIRS = ['events', 'npcs', 'factions', 'locations', 'plots', 'sessions', 'rules', 'player-facing', 'misc'];
 const typeByDir: Record<string, LinkIndexEntry['type']> = {
   events: 'event',
   npcs: 'npc',
@@ -164,8 +166,6 @@ async function extractTitle(filepath: string): Promise<string> {
   }
   return basename(filepath, '.md');
 }
-
-const ASSET_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
 
 /** Regex matching all markdown links: `[text](href)` and `![alt](href)` */
 const LINK_RE = /\]\(([^)]+)\)/g;
@@ -290,13 +290,7 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     await fs.mkdir(TRASH_DIR, { recursive: true });
   }
 
-  function safeResolveInRepo(relPath: string): string | null {
-    if (relPath.includes('..')) return null;
-    const absolute = resolve(REPO_ROOT, relPath);
-    const relCheck = relative(REPO_ROOT, absolute);
-    if (relCheck.startsWith('..') || relCheck.startsWith(sep + '..')) return null;
-    return absolute;
-  }
+  const safeResolveInRepo = (relPath: string) => safeResolveInRepoUtil(REPO_ROOT, relPath);
 
   function execGit(args: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -473,11 +467,6 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     sendJson(res, 200, entries);
   };
 
-  const IMAGE_MIME: Record<string, string> = {
-    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
-  };
-
   const getFile: RouteHandler = async (_req, res, params) => {
     const relPath = decodeURIComponent(params.path);
     const ext = relPath.split('.').pop()?.toLowerCase() ?? '';
@@ -569,15 +558,9 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
   // ---- Notes ----
   const NOTES_TRASH = join(REPO_ROOT, '.notes-trash');
 
-  function validNoteFolder(folder: string): boolean {
-    return !folder.includes('/') && !folder.includes('\\')
-      && !folder.startsWith('.') && !NOTES_EXCLUDED.has(folder);
-  }
-
-  function safeNoteResolve(folder: string, notePath: string): string | null {
-    if (!validNoteFolder(folder)) return null;
-    return safeResolveInRepo(`${folder}/${notePath}`);
-  }
+  const validNoteFolder = validNoteFolderUtil;
+  const safeNoteResolve = (folder: string, notePath: string) =>
+    safeNoteResolveUtil(REPO_ROOT, folder, notePath);
 
   const listNoteFolders: RouteHandler = async (_req, res) => {
     const folders: { name: string }[] = [];
