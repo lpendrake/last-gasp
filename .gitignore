@@ -9,5 +9,6 @@ app/dist/
 .idea/
 .vscode/
 
-# Claude Code
-.claude/
+# Claude Code — ignore local session/project state, but ship skills with the repo
+.claude/*
+!.claude/skills/

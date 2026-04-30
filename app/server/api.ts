@@ -1,3 +1,7 @@
+// NOTE FOR AGENTS: do not extend this file. New server code goes in
+// app/server/{http,domain,data}/* per the layer rules in
+// app/server/AGENTS.md. Run the `add-api-route` skill before adding
+// or modifying endpoints.
 import type { Connect, ViteDevServer, Plugin } from 'vite';
 import { promises as fs } from 'fs';
 import { join, resolve, relative, basename, sep, dirname } from 'path';
