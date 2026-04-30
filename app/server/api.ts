@@ -17,81 +17,15 @@ import {
 import {
   serialiseEvent, parseEventFile, eventFromParsed, eventListItemFromParsed, extractTitle,
 } from './domain/yaml.ts';
+import { sendJson, sendError } from './http/responses.ts';
+import { readBody, readTextBody, readBinaryBody } from './http/body.ts';
+import { defineRoute, dispatch, type RouteHandler, type Route } from './http/router.ts';
 import type { LinkIndexEntry } from '../src/data/types.ts';
 
 export type ApiHandler = (req: Connect.IncomingMessage, res: any, next?: (err?: any) => void) => Promise<void> | void;
 
 export interface CreateApiOpts {
   repoRoot: string;
-}
-
-type RouteHandler = (req: Connect.IncomingMessage, res: any, params: Record<string, string>) => Promise<void>;
-
-interface Route {
-  method: string;
-  pattern: RegExp;
-  paramNames: string[];
-  handler: RouteHandler;
-}
-
-function defineRoute(method: string, path: string, handler: RouteHandler): Route {
-  const paramNames: string[] = [];
-  const regexStr = path.replace(/:([a-zA-Z_]+)(\*)?/g, (_m, name, star) => {
-    paramNames.push(name);
-    return star ? '(.+)' : '([^/]+)';
-  });
-  return {
-    method,
-    pattern: new RegExp(`^${regexStr}$`),
-    paramNames,
-    handler,
-  };
-}
-
-function sendJson(res: any, status: number, body: unknown, headers: Record<string, string> = {}) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-  res.end(JSON.stringify(body));
-}
-
-function sendError(res: any, status: number, message: string) {
-  sendJson(res, status, { error: message });
-}
-
-async function readBody(req: Connect.IncomingMessage): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => chunks.push(c));
-    req.on('end', () => {
-      const text = Buffer.concat(chunks).toString('utf-8');
-      if (!text) return resolve(null);
-      try {
-        resolve(JSON.parse(text));
-      } catch (err) {
-        reject(err);
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
-async function readTextBody(req: Connect.IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
-    req.on('error', reject);
-  });
-}
-
-async function readBinaryBody(req: Connect.IncomingMessage): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (c: Buffer) => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
-  });
 }
 
 async function fileExists(p: string): Promise<boolean> {
@@ -740,22 +674,7 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
       if (next) return next();
       return sendError(res, 404, 'Not found');
     }
-
-    for (const r of ROUTES) {
-      if (r.method !== req.method) continue;
-      const match = url.match(r.pattern);
-      if (!match) continue;
-      const params: Record<string, string> = {};
-      r.paramNames.forEach((name, i) => { params[name] = match[i + 1]; });
-      try {
-        await r.handler(req, res, params);
-      } catch (err: any) {
-        console.error('[api] handler error', r.method, url, err);
-        if (!res.headersSent) sendError(res, 500, err.message ?? String(err));
-      }
-      return;
-    }
-    sendError(res, 404, `No route for ${req.method} ${url}`);
+    await dispatch(ROUTES, req, res);
   };
 }
 
