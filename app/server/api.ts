@@ -14,12 +14,12 @@ import {
   validNoteFolder as validNoteFolderUtil,
   safeNoteResolve as safeNoteResolveUtil,
 } from './data/fs/paths.ts';
-import {
-  serialiseEvent, parseEventFile, eventFromParsed, eventListItemFromParsed, extractTitle,
-} from './domain/yaml.ts';
+import { extractTitle } from './domain/yaml.ts';
 import { sendJson, sendError } from './http/responses.ts';
 import { readBody, readTextBody, readBinaryBody } from './http/body.ts';
 import { defineRoute, dispatch, type RouteHandler, type Route } from './http/router.ts';
+import { makeFsEventStore } from './data/fs/events.fs.ts';
+import { eventRoutes } from './http/events.routes.ts';
 import type { LinkIndexEntry } from '../src/data/types.ts';
 
 export type ApiHandler = (req: Connect.IncomingMessage, res: any, next?: (err?: any) => void) => Promise<void> | void;
@@ -190,106 +190,8 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
     });
   }
 
-  const listEvents: RouteHandler = async (_req, res) => {
-    if (!(await fileExists(EVENTS_DIR))) {
-      return sendJson(res, 200, []);
-    }
-    await ensureTrashDir();
-    const files = await fs.readdir(EVENTS_DIR);
-    const events: EventListItem[] = [];
-    for (const filename of files) {
-      if (!filename.endsWith('.md') || filename === 'README.md') continue;
-      const filepath = join(EVENTS_DIR, filename);
-      const stat = await fs.stat(filepath);
-      if (!stat.isFile()) continue;
-      const content = await fs.readFile(filepath, 'utf-8');
-      events.push(eventListItemFromParsed(filename, content, stat.mtime));
-    }
-    sendJson(res, 200, events);
-  };
-
-  const getEvent: RouteHandler = async (_req, res, params) => {
-    const filename = decodeURIComponent(params.filename);
-    if (!filename.endsWith('.md') || filename.includes('/') || filename.includes('\\')) {
-      return sendError(res, 400, 'Invalid filename');
-    }
-    const filepath = join(EVENTS_DIR, filename);
-    if (!(await fileExists(filepath))) return sendError(res, 404, 'Event not found');
-    const stat = await fs.stat(filepath);
-    const content = await fs.readFile(filepath, 'utf-8');
-    sendJson(res, 200, eventFromParsed(filename, content, stat.mtime), {
-      'Last-Modified': stat.mtime.toUTCString(),
-    });
-  };
-
-  const createEvent: RouteHandler = async (req, res) => {
-    const body = await readBody(req);
-    if (!body || !body.filename || !body.frontmatter) {
-      return sendError(res, 400, 'Missing filename or frontmatter');
-    }
-    const filename: string = body.filename;
-    if (!filename.endsWith('.md') || filename.includes('/') || filename.includes('\\')) {
-      return sendError(res, 400, 'Invalid filename');
-    }
-    await fs.mkdir(EVENTS_DIR, { recursive: true });
-    const filepath = join(EVENTS_DIR, filename);
-    if (await fileExists(filepath)) {
-      return sendError(res, 409, 'Event already exists');
-    }
-    const content = serialiseEvent(body.frontmatter, body.body ?? '');
-    await writeFileAtomic(filepath, content);
-    const stat = await fs.stat(filepath);
-    sendJson(res, 201, eventFromParsed(filename, content, stat.mtime), {
-      'Last-Modified': stat.mtime.toUTCString(),
-    });
-  };
-
-  const updateEvent: RouteHandler = async (req, res, params) => {
-    const filename = decodeURIComponent(params.filename);
-    if (!filename.endsWith('.md') || filename.includes('/') || filename.includes('\\')) {
-      return sendError(res, 400, 'Invalid filename');
-    }
-    const filepath = join(EVENTS_DIR, filename);
-    if (!(await fileExists(filepath))) return sendError(res, 404, 'Event not found');
-
-    const stat = await fs.stat(filepath);
-    const ifUnmodifiedSince = req.headers['if-unmodified-since'];
-    if (ifUnmodifiedSince && !mtimeMatch(ifUnmodifiedSince as string, stat)) {
-      return sendError(res, 409, 'File modified since last read');
-    }
-
-    const body = await readBody(req);
-    if (!body || !body.frontmatter) return sendError(res, 400, 'Missing frontmatter');
-
-    const content = serialiseEvent(body.frontmatter, body.body ?? '');
-    await writeFileAtomic(filepath, content);
-    const newStat = await fs.stat(filepath);
-    sendJson(res, 200, eventFromParsed(filename, content, newStat.mtime), {
-      'Last-Modified': newStat.mtime.toUTCString(),
-    });
-  };
-
-  const deleteEvent: RouteHandler = async (req, res, params) => {
-    const filename = decodeURIComponent(params.filename);
-    if (!filename.endsWith('.md') || filename.includes('/') || filename.includes('\\')) {
-      return sendError(res, 400, 'Invalid filename');
-    }
-    const filepath = join(EVENTS_DIR, filename);
-    if (!(await fileExists(filepath))) return sendError(res, 404, 'Event not found');
-
-    const stat = await fs.stat(filepath);
-    const ifUnmodifiedSince = req.headers['if-unmodified-since'];
-    if (ifUnmodifiedSince && !mtimeMatch(ifUnmodifiedSince as string, stat)) {
-      return sendError(res, 409, 'File modified since last read');
-    }
-
-    await ensureTrashDir();
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const trashName = `${timestamp}-${filename}`;
-    const trashPath = join(TRASH_DIR, trashName);
-    await fs.rename(filepath, trashPath);
-    sendJson(res, 200, { trashedAs: trashName });
-  };
+  const events = makeFsEventStore(REPO_ROOT);
+  const eventRouteList = eventRoutes({ events });
 
   function makeJsonFileHandler(filename: string) {
     const filepath = join(REPO_ROOT, filename);
@@ -634,11 +536,7 @@ export function createApi(opts: CreateApiOpts): ApiHandler {
   };
 
   const ROUTES: Route[] = [
-    defineRoute('GET',    '/api/events',                    listEvents),
-    defineRoute('POST',   '/api/events',                    createEvent),
-    defineRoute('GET',    '/api/events/:filename',          getEvent),
-    defineRoute('PUT',    '/api/events/:filename',          updateEvent),
-    defineRoute('DELETE', '/api/events/:filename',          deleteEvent),
+    ...eventRouteList,
     defineRoute('GET',    '/api/state',                     stateHandlers.get),
     defineRoute('PUT',    '/api/state',                     stateHandlers.put),
     defineRoute('GET',    '/api/tags',                      tagsHandlers.get),
