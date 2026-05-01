@@ -25,8 +25,9 @@ domain results into HTTP responses.
 
 - `node:fs`, `node:path` for IO. If you need disk, the call goes
   through a port passed in `deps`.
-- `../data/fs/*`. Concrete adapters are constructed in `index.ts`, not
-  imported by handlers.
+- `../data/fs/*.fs.ts` — concrete adapters are constructed in
+  `index.ts`, not imported by handlers. (`data/fs/paths.ts` is a
+  leaf utility and may be imported.)
 - React, DOM, `vite` runtime APIs.
 
 ## Handler shape

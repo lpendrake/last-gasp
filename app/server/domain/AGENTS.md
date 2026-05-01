@@ -26,8 +26,8 @@ the cloud migration unchanged.
 
 - `node:fs`, `node:path` for IO, `node:child_process`. If a function
   needs to read or write something, it calls a port method passed in.
-- `../http/*`, `../data/fs/*`. The domain doesn't know about protocols
-  or adapters.
+- `../http/*`, `../data/fs/*.fs.ts` (concrete adapters). The
+  `data/fs/paths.ts` leaf utility is allowed.
 - React, DOM.
 
 ## Function shape
