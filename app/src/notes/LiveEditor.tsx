@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { folderColor } from './types.ts';
-import { uploadNoteAsset } from '../data/api.ts';
+import { uploadNoteAsset } from '../data/http/notes.http.ts';
 
 // ---- HTML helpers ----
 

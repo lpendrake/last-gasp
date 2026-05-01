@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
-import { getFile, ApiError } from '../data/api.ts';
+import { getFile } from '../data/http/links.http.ts';
+import { ApiError } from '../data/http/client.ts';
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
 

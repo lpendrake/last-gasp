@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it';
-import { getEvent } from '../data/api.ts';
+import { getEvent } from '../data/http/events.http.ts';
 import { parseISOString } from '../calendar/golarian.ts';
 import { formatExpanded } from '../calendar/format.ts';
 import { weekdayColor } from '../theme.ts';

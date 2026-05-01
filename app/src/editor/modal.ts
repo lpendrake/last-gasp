@@ -10,10 +10,9 @@
  *   - Delete = soft-delete (server moves file to .trash/).
  */
 import MarkdownIt from 'markdown-it';
-import {
-  getEvent, createEvent, updateEvent, deleteEvent, ApiError,
-  type EventWithMtime,
-} from '../data/api.ts';
+import { getEvent, createEvent, updateEvent, deleteEvent } from '../data/http/events.http.ts';
+import { ApiError } from '../data/http/client.ts';
+import type { EventWithMtime } from '../data/ports.ts';
 import {
   loadDraft, writeDraft, clearDraft, draftIsRelevant, debounce, formatDraftTime,
   bufferFromEvent, bufferToFrontmatter,

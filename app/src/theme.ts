@@ -1,5 +1,5 @@
 import type { Palette } from './data/types.ts';
-import { getPalette } from './data/api.ts';
+import { getPalette } from './data/http/state.http.ts';
 import { weekdayIndex, parseISOString } from './calendar/golarian.ts';
 
 let currentPalette: Palette | null = null;
