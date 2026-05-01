@@ -1,5 +1,3 @@
-import { promises as fs } from 'fs';
-import { basename } from 'path';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
 import type { Event, EventListItem, EventFrontmatter } from '../../src/data/types.ts';
@@ -33,11 +31,13 @@ export function eventListItemFromParsed(filename: string, content: string, mtime
 }
 
 /**
- * Read a markdown file and return a display title: frontmatter `title`,
- * else the first `# ` heading in the body, else the filename minus `.md`.
+ * Extract a display title from markdown content: frontmatter `title`,
+ * else the first `# ` heading in the body, else `fallback`.
+ *
+ * Pure: takes the file's contents and a fallback (typically the
+ * basename minus `.md`). The adapter handles reading the file.
  */
-export async function extractTitle(filepath: string): Promise<string> {
-  const content = await fs.readFile(filepath, 'utf-8');
+export function extractTitleFromContent(content: string, fallback: string): string {
   try {
     const parsed = matter(content, MATTER_OPTIONS);
     if (parsed.data && typeof (parsed.data as any).title === 'string') {
@@ -49,5 +49,5 @@ export async function extractTitle(filepath: string): Promise<string> {
     const m = content.match(/^#\s+(.+)$/m);
     if (m) return m[1].trim();
   }
-  return basename(filepath, '.md');
+  return fallback;
 }

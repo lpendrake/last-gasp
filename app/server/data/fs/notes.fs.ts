@@ -1,12 +1,17 @@
 import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, basename } from 'path';
 import { writeFileAtomic } from './atomic.ts';
 import {
   NOTES_EXCLUDED, ASSET_EXTS, SCAN_DIRS, safeResolveInRepo, safeNoteResolve,
 } from './paths.ts';
-import { extractTitle } from '../../domain/yaml.ts';
+import { extractTitleFromContent } from '../../domain/yaml.ts';
 import type { NoteStore, NoteFile, NoteFileStat } from '../ports.ts';
 import type { NoteEntry, LinkIndexEntry } from '../../../src/data/types.ts';
+
+async function extractTitleFromFile(filepath: string): Promise<string> {
+  const content = await fs.readFile(filepath, 'utf-8');
+  return extractTitleFromContent(content, basename(filepath, '.md'));
+}
 
 const TYPE_BY_DIR: Record<string, LinkIndexEntry['type']> = {
   events: 'event',
@@ -34,7 +39,7 @@ async function scanMdFiles(dir: string, relBase: string): Promise<NoteEntry[]> {
         out.push(...await scanMdFiles(full, rel));
       } else if (e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md') {
         const stat = await fs.stat(full);
-        out.push({ path: rel, title: await extractTitle(full), mtime: stat.mtime.toUTCString(), kind: 'note' });
+        out.push({ path: rel, title: await extractTitleFromFile(full), mtime: stat.mtime.toUTCString(), kind: 'note' });
       } else if (e.isFile() && ASSET_EXTS.has(e.name.split('.').pop()?.toLowerCase() ?? '')) {
         const stat = await fs.stat(full);
         out.push({ path: rel, title: e.name, mtime: stat.mtime.toUTCString(), kind: 'asset' });
@@ -181,14 +186,14 @@ export function makeFsNoteStore(repoRoot: string): NoteStore {
           if (!stat.isFile()) continue;
           out.push({
             path: `${dir}/${f}`,
-            title: await extractTitle(full),
+            title: await extractTitleFromFile(full),
             type: TYPE_BY_DIR[dir] ?? 'other',
           });
         }
       }
       const partyPath = join(repoRoot, 'party.md');
       if (await pathExists(partyPath)) {
-        out.push({ path: 'party.md', title: await extractTitle(partyPath), type: 'other' });
+        out.push({ path: 'party.md', title: await extractTitleFromFile(partyPath), type: 'other' });
       }
       return out;
     },

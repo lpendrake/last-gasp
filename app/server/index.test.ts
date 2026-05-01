@@ -4,7 +4,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import http from 'http';
 import { AddressInfo } from 'net';
-import { createApi } from './api.ts';
+import { createApi } from './index.ts';
 
 let tempRepo: string;
 let server: http.Server;
