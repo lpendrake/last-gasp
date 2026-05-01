@@ -27,9 +27,9 @@ function relHref(targetPath: string): string {
   return `../${targetPath}`;
 }
 
-// Fires when @ appears at start of text or after whitespace, followed by a non-space char or nothing.
-// "met @ the inn" won't trigger (space after @); "@foo" and "text @foo" will.
-const TRIGGER_RE = /(^|[ \t])@(\S[^\n]*|)$/;
+// Fires when @ appears at start of text/line or after a space/tab, followed by a non-space char or nothing.
+// "met @ the inn" won't trigger (space after @); "@foo", "text @foo", and "\n@foo" will.
+const TRIGGER_RE = /(^|[ \t\n])@(\S[^\n]*|)$/;
 
 function getPickState(ta: HTMLTextAreaElement): { query: string; triggerStart: number } | null {
   const text = ta.value.slice(0, ta.selectionStart);
