@@ -1,5 +1,5 @@
 import Fuse from 'fuse.js';
-import { getLinkIndex } from '../data/api.ts';
+import { getLinkIndex } from '../data/http/links.http.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
 
 let indexCache: LinkIndexEntry[] | null = null;

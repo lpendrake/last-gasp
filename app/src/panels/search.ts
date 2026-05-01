@@ -1,6 +1,6 @@
 import Fuse from 'fuse.js';
 import type { Event, EventListItem } from '../data/types.ts';
-import { getEvent } from '../data/api.ts';
+import { getEvent } from '../data/http/events.http.ts';
 import { parseISOString } from '../calendar/golarian.ts';
 import { formatCompact } from '../calendar/format.ts';
 

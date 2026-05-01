@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it';
-import { getEvent } from '../data/api.ts';
+import { getEvent } from '../data/http/events.http.ts';
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
 

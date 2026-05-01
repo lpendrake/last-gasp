@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listNoteFolders, createNoteFolder, listNotes,
-  getNote, createNote, putNote, deleteNote, getLinkIndex,
+  getNote, createNote, putNote, deleteNote,
   renameNote, renameNoteFolder, deleteNoteFolder,
-} from '../data/api.ts';
+} from '../data/http/notes.http.ts';
+import { getLinkIndex } from '../data/http/links.http.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { LiveEditor } from './LiveEditor.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
