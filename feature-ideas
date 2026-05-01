@@ -36,3 +36,5 @@ Ideas:
 - searching and selecting a note should swap to the notes page and open the note.
 - the preview version of events (left click a card on the timeline) is too small to actually be useful... also the title and date are shown twice. Ditch the top one, move the tags so they show on the "footer" of the card, double width and height and make the size adjustable by dragging corners. Remember last size for all future opened events.
 - show tags event cards. Overflow to +N pill, show all on expanding the card.
+- collapse large empty sections of the timeline, stating only the point where it starts, ..., then the point where it re-starts.
+  - for the far left and far right of the timeline, show 1 year forward and backward from the earliest / latest point then collapse the rest.
