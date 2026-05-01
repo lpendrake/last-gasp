@@ -41,6 +41,11 @@ If a method on a port mentions a file path, the abstraction has leaked.
   `js-yaml`. May import `ports.ts` for the interface it implements and
   `domain/yaml.ts` for parse/serialise (because the on-disk format is
   YAML+markdown — that's the adapter's concern).
+- **`fs/paths.ts`** is a special case: it is a leaf utility of pure
+  path math (no IO) and is importable from any layer including
+  `http/*` and `domain/*`. The "no `data/fs/` from http" rule
+  targets concrete adapter modules (those ending in `.fs.ts`), not
+  this shared validator.
 
 ## Forbidden imports
 
