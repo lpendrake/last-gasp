@@ -40,6 +40,19 @@ export function formatCompactWithTime(date: GolarianDate): string {
   return base;
 }
 
+/** "4726, Desnus, 4th (Wed)" or "4726, Desnus, 4th (Wed), 01:30" when time is set */
+export function formatCardFace(date: GolarianDate): string {
+  const mn = monthName(date.month);
+  const wd = weekday(date).slice(0, 3);
+  let s = `${date.year}, ${mn}, ${ordinal(date.day)} (${wd})`;
+  if (date.hour !== 0 || date.minute !== 0 || date.second !== 0) {
+    const hh = String(date.hour).padStart(2, '0');
+    const mm = String(date.minute).padStart(2, '0');
+    s += `, ${hh}:${mm}`;
+  }
+  return s;
+}
+
 /** "Wed 4 Desnus" — axis major tick */
 export function formatAxisDay(date: GolarianDate): string {
   return `${weekday(date).slice(0, 3)} ${date.day} ${monthName(date.month)}`;

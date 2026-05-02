@@ -33,7 +33,16 @@
   gap: 2px;
 }
 
+/* Title row: title text + action icon buttons side by side */
+.event-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
 .event-card-title {
+  flex: 1;
   font-size: 15px;
   font-weight: 500;
   color: var(--theme-text-primary, #d8d0b8);
@@ -42,11 +51,70 @@
   text-overflow: ellipsis;
 }
 
+.event-card-actions {
+  display: none;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.event-card.is-expanded .event-card-actions {
+  display: flex;
+}
+
+.event-card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--theme-text-muted, #7a6f58);
+  padding: 0;
+}
+.event-card-action-btn:hover {
+  background: var(--theme-panel-accent, #3a4d35);
+}
+.event-card-action-btn--primary:hover {
+  color: var(--theme-accent, #6a9a4a);
+}
+.event-card-action-btn--danger:hover {
+  color: var(--theme-danger, #c06040);
+}
+
 .event-card-date {
   font-size: 12px;
   color: var(--theme-text-muted, #7a6f58);
   font-family: ui-monospace, 'Consolas', monospace;
   letter-spacing: 0.03em;
+}
+
+/* Tags — hidden when card is collapsed */
+.event-card-tags {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.event-card.is-expanded .event-card-tags {
+  display: flex;
+}
+
+.event-card-tag {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  background: var(--theme-panel-accent, #3a4d35);
+  color: var(--theme-text-secondary, #a89a80);
+  border: 1px solid var(--theme-border, #3a3a30);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
 }
 
 .event-card-connector {
@@ -91,13 +159,16 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
   padding: 10px 12px 8px;
   border-bottom: 1px solid var(--theme-border, #3a3a30);
   overflow: hidden;
   height: 480px;
 }
 
+.event-card-expanded.expands-down {
+  border-bottom: none;
+  border-top: 1px solid var(--theme-border, #3a3a30);
+}
 
 .exp-body {
   flex: 1;
@@ -113,100 +184,39 @@
   font-style: italic;
 }
 
-.exp-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding-top: 4px;
-  flex-shrink: 0;
-}
-
-.exp-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.exp-tag {
-  font-size: 11px;
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-secondary, #a89a80);
-  border: 1px solid var(--theme-border, #3a3a30);
-  border-radius: 3px;
-  padding: 1px 6px;
-  white-space: nowrap;
-}
-
-.exp-btns {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.exp-btn {
-  padding: 4px 14px;
-  font-size: 13px;
-  font-family: inherit;
-  border-radius: 3px;
-  border: 1px solid var(--theme-border, #3a3a30);
-  cursor: pointer;
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-primary, #d8d0b8);
-}
-.exp-btn:hover { filter: brightness(1.2); }
-.exp-btn-primary {
-  background: var(--theme-accent, #6a9a4a);
-  color: #fff;
-  border-color: transparent;
-}
-.exp-btn-danger {
-  background: transparent;
-  color: var(--theme-danger, #c06040);
-  border-color: var(--theme-danger, #c06040);
-}
-
 /* ===== Resize handles ===== */
 
 .resize-handle {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   z-index: 2;
-  opacity: 0.35;
+  opacity: 0.65;
   transition: opacity 0.15s;
 }
 .resize-handle:hover { opacity: 1; }
-.resize-handle::before {
+
+.resize-handle::before,
+.resize-handle::after {
   content: '';
-  display: block;
-  width: 7px;
-  height: 7px;
-  border: 2px solid var(--theme-border-strong, #5a4530);
-  border-radius: 1px;
   position: absolute;
+  background: var(--theme-accent-gold, #c9a860);
+  border-radius: 1px;
 }
-.resize-handle-nw {
-  top: 2px;
-  left: 2px;
-  cursor: nw-resize;
-}
-.resize-handle-nw::before {
-  top: 0;
-  left: 0;
-  border-right: none;
-  border-bottom: none;
-}
-.resize-handle-ne {
-  top: 2px;
-  right: 2px;
-  cursor: ne-resize;
-}
-.resize-handle-ne::before {
-  top: 0;
-  right: 0;
-  border-left: none;
-  border-bottom: none;
-}
+
+/* Corner bracket made of two rectangles */
+.resize-handle-nw { top: 3px; left: 3px; cursor: nw-resize; }
+.resize-handle-nw::before { top: 0; left: 0; width: 8px; height: 2px; }
+.resize-handle-nw::after  { top: 0; left: 0; width: 2px; height: 8px; }
+
+.resize-handle-ne { top: 3px; right: 3px; cursor: ne-resize; }
+.resize-handle-ne::before { top: 0; right: 0; width: 8px; height: 2px; }
+.resize-handle-ne::after  { top: 0; right: 0; width: 2px; height: 8px; }
+
+.resize-handle-sw { bottom: 3px; left: 3px; cursor: sw-resize; }
+.resize-handle-sw::before { bottom: 0; left: 0; width: 8px; height: 2px; }
+.resize-handle-sw::after  { bottom: 0; left: 0; width: 2px; height: 8px; }
+
+.resize-handle-se { bottom: 3px; right: 3px; cursor: se-resize; }
+.resize-handle-se::before { bottom: 0; right: 0; width: 8px; height: 2px; }
+.resize-handle-se::after  { bottom: 0; right: 0; width: 2px; height: 8px; }

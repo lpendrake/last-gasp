@@ -1,7 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import type { EventListItem } from '../data/types.ts';
 import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
-import { formatCompactWithTime, formatExpanded } from '../calendar/format.ts';
+import { formatCardFace } from '../calendar/format.ts';
 import { weekdayColor } from '../theme.ts';
 import { type ViewState, type ViewportSize, secondsToX } from './zoom.ts';
 
@@ -70,12 +70,19 @@ function savePreviewSize(size: PreviewSize): void {
   } catch {}
 }
 
+// MIT-licensed Heroicons v1 paths
+const ICON_EDIT = `<svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>`;
+const ICON_DELETE = `<svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`;
+
 function attachResizeHandles(
   cardEl: HTMLElement,
   expEl: HTMLElement,
   centerX: number,
+  expandsDown: boolean,
 ) {
-  for (const dir of ['nw', 'ne'] as const) {
+  const dirs = expandsDown ? (['sw', 'se'] as const) : (['nw', 'ne'] as const);
+
+  for (const dir of dirs) {
     const handle = document.createElement('div');
     handle.className = `resize-handle resize-handle-${dir}`;
     expEl.appendChild(handle);
@@ -95,20 +102,36 @@ function attachResizeHandles(
         const dy = me.clientY - startY;
 
         // Symmetric width resize around the timeline anchor point
-        const newW = Math.max(200, startW + (dir === 'ne' ? dx : -dx) * 2);
-        // Dragging up (negative dy) increases height
-        const newH = Math.max(100, startH - dy);
-
-        expEl.style.height = `${newH}px`;
+        const isWest = dir === 'nw' || dir === 'sw';
+        const newW = Math.max(200, startW + (isWest ? -dx : dx) * 2);
         cardEl.style.width = `${newW}px`;
         cardEl.style.left = `${centerX - newW / 2}px`;
-        cardEl.style.top = `${startTop + (startH - newH)}px`;
+
+        if (expandsDown) {
+          // Dragging down increases height; card top stays fixed
+          const newH = Math.max(100, startH + dy);
+          expEl.style.height = `${newH}px`;
+        } else {
+          // Dragging up increases height; card top moves up
+          const newH = Math.max(100, startH - dy);
+          const newTop = startTop + (startH - newH);
+          if (newTop < 0) {
+            // Clamp to viewport top edge
+            expEl.style.height = `${Math.max(100, startH + startTop)}px`;
+            cardEl.style.top = '0px';
+          } else {
+            expEl.style.height = `${newH}px`;
+            cardEl.style.top = `${newTop}px`;
+          }
+        }
       };
 
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
         savePreviewSize({ width: cardEl.offsetWidth, expandedHeight: expEl.offsetHeight });
+        // Block the click event that fires immediately after mouseup from collapsing the card
+        document.addEventListener('click', ev => ev.stopPropagation(), { capture: true, once: true });
       };
 
       document.addEventListener('mousemove', onMove);
@@ -175,7 +198,11 @@ export function renderCards(
     const isExpanded = expansion?.filename === card.event.filename;
     const expandedHeight = isExpanded ? previewSize!.expandedHeight : 0;
     const width = isExpanded ? Math.max(placement.width, previewSize!.width) : placement.width;
-    const extraHeight = expandedHeight;
+
+    // Determine if the expanded section must open downward to stay on-screen
+    const normalTop = axisY - CARD_HEIGHT - CARD_GAP - row * (CARD_HEIGHT + CARD_GAP);
+    const expandsDown = isExpanded && normalTop - expandedHeight < 0;
+    const cardTop = isExpanded && !expandsDown ? normalTop - expandedHeight : normalTop;
 
     const cardEl = document.createElement('div');
     cardEl.className = 'event-card'
@@ -184,15 +211,16 @@ export function renderCards(
     cardEl.dataset.filename = card.event.filename;
     cardEl.style.left = `${card.x - width / 2}px`;
     cardEl.style.width = `${width}px`;
-    cardEl.style.top = `${axisY - CARD_HEIGHT - CARD_GAP - row * (CARD_HEIGHT + CARD_GAP) - extraHeight}px`;
+    cardEl.style.top = `${cardTop}px`;
     cardEl.style.setProperty('--weekday-color', weekdayColor(card.event.date));
     if (card.event.color) cardEl.style.setProperty('--weekday-color', card.event.color);
 
-    // Expanded content area (above the normal card face)
+    // Build expanded content section
+    let expEl: HTMLElement | null = null;
     if (isExpanded) {
-      const exp = document.createElement('div');
-      exp.className = 'event-card-expanded';
-      exp.style.height = `${expandedHeight}px`;
+      expEl = document.createElement('div');
+      expEl.className = 'event-card-expanded' + (expandsDown ? ' expands-down' : '');
+      expEl.style.height = `${expandedHeight}px`;
 
       const expBody = document.createElement('div');
       expBody.className = 'exp-body markdown-body';
@@ -203,50 +231,60 @@ export function renderCards(
       } else {
         expBody.innerHTML = '<span class="exp-loading">Loading…</span>';
       }
-      exp.appendChild(expBody);
-
-      // Footer: tags on the left, action buttons on the right
-      const expFooter = document.createElement('div');
-      expFooter.className = 'exp-footer';
-
-      const expTags = document.createElement('div');
-      expTags.className = 'exp-tags';
-      if (card.event.tags && card.event.tags.length > 0) {
-        expTags.innerHTML = card.event.tags.map(t => `<span class="exp-tag">${esc(t)}</span>`).join('');
-      }
-      expFooter.appendChild(expTags);
-
-      const expBtns = document.createElement('div');
-      expBtns.className = 'exp-btns';
-      expBtns.innerHTML = `
-        <button class="exp-btn exp-btn-danger" data-action="delete">Delete</button>
-        <button class="exp-btn exp-btn-primary" data-action="edit">Edit</button>
-      `;
-      expFooter.appendChild(expBtns);
-      exp.appendChild(expFooter);
-
-      cardEl.appendChild(exp);
-      attachResizeHandles(cardEl, exp, card.x);
+      expEl.appendChild(expBody);
     }
 
+    // Card face: color bar + body
     const header = document.createElement('div');
     header.className = 'event-card-header';
-    cardEl.appendChild(header);
 
     const body = document.createElement('div');
     body.className = 'event-card-body';
 
+    // Title row: title text + icon action buttons (buttons hidden when collapsed via CSS)
+    const titleRow = document.createElement('div');
+    titleRow.className = 'event-card-title-row';
+
     const title = document.createElement('div');
     title.className = 'event-card-title';
     title.textContent = card.event.title;
-    body.appendChild(title);
+    titleRow.appendChild(title);
+
+    const actionsEl = document.createElement('div');
+    actionsEl.className = 'event-card-actions';
+    actionsEl.innerHTML = `
+      <button class="event-card-action-btn event-card-action-btn--danger" data-action="delete" title="Delete">${ICON_DELETE}</button>
+      <button class="event-card-action-btn event-card-action-btn--primary" data-action="edit" title="Edit">${ICON_EDIT}</button>
+    `;
+    titleRow.appendChild(actionsEl);
+    body.appendChild(titleRow);
 
     const dateChip = document.createElement('div');
     dateChip.className = 'event-card-date';
-    dateChip.textContent = formatCompactWithTime(parseISOString(card.event.date));
+    dateChip.textContent = formatCardFace(parseISOString(card.event.date));
     body.appendChild(dateChip);
 
+    // Tags row: shown only when expanded (CSS hides when collapsed)
+    if (card.event.tags && card.event.tags.length > 0) {
+      const tagsEl = document.createElement('div');
+      tagsEl.className = 'event-card-tags';
+      tagsEl.innerHTML = card.event.tags.map(t => `<span class="event-card-tag">${esc(t)}</span>`).join('');
+      body.appendChild(tagsEl);
+    }
+
+    // Append in correct order depending on expansion direction
+    if (isExpanded && expEl && !expandsDown) {
+      cardEl.appendChild(expEl);
+    }
+    cardEl.appendChild(header);
     cardEl.appendChild(body);
+    if (isExpanded && expEl && expandsDown) {
+      cardEl.appendChild(expEl);
+    }
+
+    if (isExpanded && expEl) {
+      attachResizeHandles(cardEl, expEl, card.x, expandsDown);
+    }
 
     // Connector line from card bottom to axis
     const connector = document.createElement('div');
