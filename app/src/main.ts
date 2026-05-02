@@ -3,10 +3,8 @@
 // switching in bootstrap/view-switcher.ts, hotkeys in
 // bootstrap/shortcuts.ts, timeline behaviour in timeline/app.ts. See
 // app/src/AGENTS.md and app/src/timeline/AGENTS.md.
-import { createRoot } from 'react-dom/client';
-import { createElement } from 'react';
-import { NotesApp } from './notes/Notes.tsx';
 import { mountAppShell } from './bootstrap/mount.ts';
+import { createViewSwitcher } from './bootstrap/view-switcher.ts';
 import { loadPalette } from './theme.ts';
 import { listEvents, getEvent, deleteEvent, updateEvent } from './data/http/events.http.ts';
 import { getState, putState, getTags, getSessions, appendSession } from './data/http/state.http.ts';
@@ -42,54 +40,10 @@ interface AppState {
   filter: FilterState;
 }
 
-let notesReactRoot: ReturnType<typeof createRoot> | null = null;
-
 async function main() {
   const appEl = document.getElementById('app')!;
   mountAppShell(appEl);
-
-  // ---- View switching ----
-  const timelineShell = document.getElementById('timeline-shell') as HTMLDivElement;
-  const notesShell = document.getElementById('notes-shell') as HTMLDivElement;
-  const root = document.getElementById('app')!;
-
-  function showNotes() {
-    // Set app to flex-column so notes-shell fills it
-    root.style.display = 'flex';
-    root.style.flexDirection = 'column';
-    timelineShell.style.display = 'none';
-    notesShell.style.display = 'flex';
-    notesShell.style.flexDirection = 'column';
-    notesShell.style.flex = '1 1 auto';
-    notesShell.style.minHeight = '0';
-    if (!notesReactRoot) {
-      notesReactRoot = createRoot(notesShell);
-    }
-    notesReactRoot.render(createElement(NotesApp));
-    document.getElementById('btn-view-timeline')!.classList.remove('is-active');
-    document.getElementById('btn-view-notes')!.classList.add('is-active');
-  }
-
-  function showTimeline() {
-    notesShell.style.display = 'none';
-    timelineShell.style.display = 'contents';
-    // notesReactRoot stays alive so state is preserved between switches
-    document.getElementById('btn-view-timeline')!.classList.add('is-active');
-    document.getElementById('btn-view-notes')!.classList.remove('is-active');
-  }
-
-  document.getElementById('btn-view-notes')!.addEventListener('click', () => {
-    history.pushState(null, '', '/notes');
-    showNotes();
-  });
-  window.addEventListener('notes:exit', () => {
-    history.pushState(null, '', '/timeline');
-    showTimeline();
-  });
-  window.addEventListener('popstate', () => {
-    if (location.pathname.startsWith('/notes')) showNotes();
-    else showTimeline();
-  });
+  const { showNotes } = createViewSwitcher();
 
   const [palette, events, state, tags] = await Promise.all([
     loadPalette(),
