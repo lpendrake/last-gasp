@@ -5,6 +5,7 @@
 // app/src/AGENTS.md and app/src/timeline/AGENTS.md.
 import { mountAppShell } from './bootstrap/mount.ts';
 import { createViewSwitcher } from './bootstrap/view-switcher.ts';
+import { attachGlobalShortcuts } from './bootstrap/shortcuts.ts';
 import { loadPalette } from './theme.ts';
 import { listEvents, getEvent, deleteEvent, updateEvent } from './data/http/events.http.ts';
 import { getState, putState, getTags, getSessions, appendSession } from './data/http/state.http.ts';
@@ -623,43 +624,27 @@ async function main() {
     );
   });
 
-  // Global keyboard shortcuts
-  window.addEventListener('keydown', (e) => {
-    // Ctrl+F / Cmd+F: open search. Works even if another overlay is up.
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-      e.preventDefault();
-      search.open();
-      return;
-    }
-
-    // Don't intercept other keys when a modal has focus handling
-    if (document.querySelector('.modal-overlay') || search.isOpen()) return;
-
-    // Don't intercept keys when user is typing in an input
-    const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
-      return;
-    }
-
-    if (e.key === '+' || e.key === '=') {
-      appState.view = zoomAbout(appState.view, viewportSize(), viewportSize().width / 2, 1 / 1.2);
+  attachGlobalShortcuts({
+    openSearch: () => search.open(),
+    isSearchOpen: () => search.isOpen(),
+    zoomBy: (factor) => {
+      appState.view = zoomAbout(appState.view, viewportSize(), viewportSize().width / 2, factor);
       renderTimeline();
-    } else if (e.key === '-') {
-      appState.view = zoomAbout(appState.view, viewportSize(), viewportSize().width / 2, 1.2);
+    },
+    panBy: (pixels) => {
+      appState.view = panByPixels(appState.view, pixels);
       renderTimeline();
-    } else if (e.key === 'Home') {
+    },
+    jumpToNow: () => {
       appState.view.centerSeconds = appState.inGameNowSeconds;
       renderTimeline();
-    } else if (e.key === 'ArrowLeft') {
-      appState.view = panByPixels(appState.view, 50);
-      renderTimeline();
-    } else if (e.key === 'ArrowRight') {
-      appState.view = panByPixels(appState.view, -50);
-      renderTimeline();
-    } else if (e.key === 'Escape' && cardExpansion) {
+    },
+    collapseExpansion: () => {
+      if (!cardExpansion) return false;
       cardExpansion = undefined;
       renderTimeline();
-    }
+      return true;
+    },
   });
 
   document.getElementById('btn-now')!.addEventListener('click', () => {
