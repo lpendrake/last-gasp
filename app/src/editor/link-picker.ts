@@ -131,10 +131,34 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): {
 
     const taRect = textarea.getBoundingClientRect();
     const caretRect = caretPos !== undefined ? getCaretRect(caretPos) : null;
-    dropdown.style.left = `${(caretRect ?? taRect).left}px`;
-    dropdown.style.top = `${(caretRect?.bottom ?? taRect.bottom) + 4}px`;
-    dropdown.style.minWidth = `${Math.min(taRect.width, 400)}px`;
+    const anchorLeft = (caretRect ?? taRect).left;
+    const anchorBottom = (caretRect?.bottom ?? taRect.bottom) + 4;
+    const anchorTop = (caretRect?.top ?? taRect.top) - 4;
+
+    // Measure dropdown to clamp within viewport
+    dropdown.style.left = '-9999px';
+    dropdown.style.top = '-9999px';
     dropdown.hidden = false;
+    const ddRect = dropdown.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MARGIN = 4;
+
+    let left = Math.min(anchorLeft, vw - ddRect.width - MARGIN);
+    left = Math.max(left, MARGIN);
+
+    // Prefer opening below the anchor; flip above if it would overflow the bottom
+    let top: number;
+    if (anchorBottom + ddRect.height + MARGIN <= vh) {
+      top = anchorBottom;
+    } else {
+      top = anchorTop - ddRect.height;
+    }
+    top = Math.max(top, MARGIN);
+
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
+    dropdown.style.minWidth = `${Math.min(taRect.width, 400)}px`;
   }
 
   function hideDropdown() {
