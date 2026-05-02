@@ -29,6 +29,17 @@ export function formatCompact(date: GolarianDate): string {
   return `${wd} ${date.day} ${monthName(date.month)} ${date.year}`;
 }
 
+/** "Wed 4 Desnus 4726" or "Wed 4 Desnus 4726 — 18:30" when time is set */
+export function formatCompactWithTime(date: GolarianDate): string {
+  const base = formatCompact(date);
+  if (date.hour !== 0 || date.minute !== 0 || date.second !== 0) {
+    const hh = String(date.hour).padStart(2, '0');
+    const mm = String(date.minute).padStart(2, '0');
+    return `${base} — ${hh}:${mm}`;
+  }
+  return base;
+}
+
 /** "Wed 4 Desnus" — axis major tick */
 export function formatAxisDay(date: GolarianDate): string {
   return `${weekday(date).slice(0, 3)} ${date.day} ${monthName(date.month)}`;
