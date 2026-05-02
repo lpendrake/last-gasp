@@ -178,15 +178,12 @@ export function makeFsNoteStore(repoRoot: string): NoteStore {
       for (const dir of SCAN_DIRS) {
         const dirPath = join(repoRoot, dir);
         if (!(await pathExists(dirPath))) continue;
-        const files = await fs.readdir(dirPath);
-        for (const f of files) {
-          if (!f.endsWith('.md') || f === 'README.md') continue;
-          const full = join(dirPath, f);
-          const stat = await fs.stat(full);
-          if (!stat.isFile()) continue;
+        const entries = await scanMdFiles(dirPath, dir);
+        for (const e of entries) {
+          if (e.kind !== 'note') continue;
           out.push({
-            path: `${dir}/${f}`,
-            title: await extractTitleFromFile(full),
+            path: e.path,
+            title: e.title,
             type: TYPE_BY_DIR[dir] ?? 'other',
           });
         }

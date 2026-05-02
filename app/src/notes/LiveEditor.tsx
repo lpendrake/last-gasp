@@ -18,12 +18,11 @@ function kindFromPath(
 ): string {
   if (!href) return 'broken';
   let folder = currentFolder;
-  let m = /^\.\.\/([^/]+)\/(.+)$/.exec(href);
+  const m = /^\.\.\/([^/]+)\//.exec(href);
   if (m) { folder = m[1]; }
-  else if ((m = /^([^/]+)\/(.+)$/.exec(href))) { folder = m[1]; }
-  // Check existence via link index
-  const target = href.replace(/^\.\.\//, '');
-  const found = linkIndex.some(e => e.path === target || e.path === `${folder}/${href.split('/').pop()}`);
+  // Resolve href to a repo-relative path for index lookup
+  const target = href.startsWith('../') ? href.slice(3) : `${currentFolder}/${href}`;
+  const found = linkIndex.some(e => e.path === target);
   if (!found && href.includes('/')) return 'broken';
   return folder;
 }
