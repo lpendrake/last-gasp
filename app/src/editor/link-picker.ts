@@ -27,9 +27,9 @@ function relHref(targetPath: string): string {
   return `../${targetPath}`;
 }
 
-// Fires when @ appears at start of text or after whitespace, followed by a non-space char or nothing.
-// "met @ the inn" won't trigger (space after @); "@foo" and "text @foo" will.
-const TRIGGER_RE = /(^|[ \t])@(\S[^\n]*|)$/;
+// Fires when @ appears at start of text/line or after a space/tab, followed by a non-space char or nothing.
+// "met @ the inn" won't trigger (space after @); "@foo", "text @foo", and "\n@foo" will.
+const TRIGGER_RE = /(^|[ \t\n])@(\S[^\n]*|)$/;
 
 function getPickState(ta: HTMLTextAreaElement): { query: string; triggerStart: number } | null {
   const text = ta.value.slice(0, ta.selectionStart);
@@ -71,7 +71,45 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): {
     `).join('');
   }
 
-  function showDropdown(items: LinkIndexEntry[]) {
+  function getCaretRect(pos: number): DOMRect | null {
+    const mirror = document.createElement('div');
+    const computed = getComputedStyle(textarea);
+    for (const prop of [
+      'fontFamily', 'fontSize', 'fontWeight', 'fontStyle',
+      'lineHeight', 'letterSpacing', 'wordSpacing',
+      'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+      'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+      'boxSizing', 'whiteSpace', 'wordBreak', 'overflowWrap', 'tabSize',
+    ] as const) {
+      (mirror.style as any)[prop] = computed[prop];
+    }
+    const taRect = textarea.getBoundingClientRect();
+    Object.assign(mirror.style, {
+      position: 'fixed',
+      top: `${taRect.top}px`,
+      left: `${taRect.left}px`,
+      width: `${taRect.width}px`,
+      height: `${taRect.height}px`,
+      overflow: 'hidden',
+      visibility: 'hidden',
+      pointerEvents: 'none',
+      zIndex: '-1',
+    });
+    mirror.appendChild(document.createTextNode(textarea.value.slice(0, pos)));
+    const caret = document.createElement('span');
+    caret.textContent = '​'; // zero-width space to give the span measurable height
+    mirror.appendChild(caret);
+    mirror.appendChild(document.createTextNode(textarea.value.slice(pos)));
+    document.body.appendChild(mirror);
+    mirror.scrollTop = textarea.scrollTop;
+    const rect = caret.getBoundingClientRect();
+    mirror.remove();
+    // Return null if the caret is scrolled out of the visible textarea area
+    if (rect.bottom <= taRect.top || rect.top >= taRect.bottom) return null;
+    return rect;
+  }
+
+  function showDropdown(items: LinkIndexEntry[], caretPos?: number) {
     results = items;
     selected = 0;
 
@@ -91,11 +129,36 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): {
 
     renderItems();
 
-    const rect = textarea.getBoundingClientRect();
-    dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + 4}px`;
-    dropdown.style.minWidth = `${Math.min(rect.width, 400)}px`;
+    const taRect = textarea.getBoundingClientRect();
+    const caretRect = caretPos !== undefined ? getCaretRect(caretPos) : null;
+    const anchorLeft = (caretRect ?? taRect).left;
+    const anchorBottom = (caretRect?.bottom ?? taRect.bottom) + 4;
+    const anchorTop = (caretRect?.top ?? taRect.top) - 4;
+
+    // Measure dropdown to clamp within viewport
+    dropdown.style.left = '-9999px';
+    dropdown.style.top = '-9999px';
     dropdown.hidden = false;
+    const ddRect = dropdown.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MARGIN = 4;
+
+    let left = Math.min(anchorLeft, vw - ddRect.width - MARGIN);
+    left = Math.max(left, MARGIN);
+
+    // Prefer opening below the anchor; flip above if it would overflow the bottom
+    let top: number;
+    if (anchorBottom + ddRect.height + MARGIN <= vh) {
+      top = anchorBottom;
+    } else {
+      top = anchorTop - ddRect.height;
+    }
+    top = Math.max(top, MARGIN);
+
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
+    dropdown.style.minWidth = `${Math.min(taRect.width, 400)}px`;
   }
 
   function hideDropdown() {
@@ -149,7 +212,7 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): {
       const items = state.query.trim()
         ? fuse.search(state.query).map(r => r.item)
         : index;
-      showDropdown(items.slice(0, 10));
+      showDropdown(items.slice(0, 10), state.triggerStart);
     } catch {
       hideDropdown();
     }
@@ -189,7 +252,7 @@ export function attachLinkPicker(textarea: HTMLTextAreaElement): {
       const items = displayText.trim()
         ? fuse.search(displayText).map(r => r.item)
         : index;
-      showDropdown(items.slice(0, 10));
+      showDropdown(items.slice(0, 10), selStart);
     } catch {
       pendingSelection = null;
       active = false;
