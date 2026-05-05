@@ -3,10 +3,10 @@ import React, {
 } from 'react';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { folderColor } from './types.ts';
-import { uploadNoteAsset } from '../data/http/notes.http.ts';
 import { escHtml, kindFromPath } from './editor/markdown/inline.ts';
 import { lineHtml } from './editor/markdown/line.ts';
 import { saveCaret, restoreCaret, getCaretLineIndex, readAllText } from './editor/markdown/caret.ts';
+import { uploadPastedImage } from './editor/upload.ts';
 
 // ---- LiveEditor component ----
 
@@ -164,29 +164,23 @@ export function LiveEditor({
   }, [ctx, onChange, rebuild, maybeShowLinkPicker]);
 
   const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
-    const imageItem = Array.from(e.clipboardData.items).find(item => item.type.startsWith('image/'));
-    if (!imageItem) return;
+    if (!Array.from(e.clipboardData.items).some(it => it.type.startsWith('image/'))) return;
     e.preventDefault();
-    const blob = imageItem.getAsFile();
-    if (!blob) return;
-    const ext = imageItem.type === 'image/jpeg' ? 'jpg' : (imageItem.type.split('/')[1] ?? 'png');
-    const filename = `pasted-${Date.now()}.${ext}`;
     const root = rootRef.current;
     const caret = root ? saveCaret(root) : null;
     try {
-      const relativePath = await uploadNoteAsset(currentFolder, filename, await blob.arrayBuffer(), imageItem.type);
-      if (!root) return;
+      const result = await uploadPastedImage(e.clipboardData, currentFolder);
+      if (!result || !root) return;
       const lines = readAllText(root).split('\n');
       const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
       const offset = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
-      const imageMarkdown = `![](${relativePath})`;
-      lines[lineIdx] = (lines[lineIdx] ?? '').slice(0, offset) + imageMarkdown + (lines[lineIdx] ?? '').slice(offset);
+      lines[lineIdx] = (lines[lineIdx] ?? '').slice(0, offset) + result.markdown + (lines[lineIdx] ?? '').slice(offset);
       const newText = lines.join('\n');
       valueRef.current = newText;
       onChange(newText);
       rebuild(newText, lineIdx);
       requestAnimationFrame(() => {
-        restoreCaret(root, { lineIndex: lineIdx, offset: offset + imageMarkdown.length });
+        restoreCaret(root, { lineIndex: lineIdx, offset: offset + result.advance });
       });
     } catch (err) {
       console.error('Image paste failed', err);
