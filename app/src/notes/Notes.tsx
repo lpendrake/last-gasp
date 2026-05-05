@@ -11,16 +11,14 @@ import { NoteContextMenu, type ContextMenuTarget } from './components/NoteContex
 import { EditorTabs } from './components/EditorTabs.tsx';
 import { BreadcrumbNav } from './components/BreadcrumbNav.tsx';
 import { EditorContent, type RenderMode } from './components/EditorContent.tsx';
+import { FolderSidebar } from './components/FolderSidebar.tsx';
 import {
-  folderColor, tabKey, slugify, ASSET_EXTS,
+  tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
-  type ConfirmState, type TreeNode,
+  type ConfirmState,
 } from './types.ts';
 import { useSaveSync } from './hooks/useSaveSync.ts';
 import { useFolderTree } from './hooks/useFolderTree.ts';
-
-const DRAG_MIME = 'application/x-last-gasp-note';
-interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
 
 export function NotesApp() {
   // ---- Data ----
@@ -570,269 +568,39 @@ export function NotesApp() {
 
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
 
-  // ---- Sidebar tree node renderer ----
-  function renderTreeNode(node: TreeNode, topFolder: string, depth: number): React.ReactNode {
-    const indent = depth * 12;
-    if (node.kind === 'file') {
-      const isAsset = node.fileKind === 'asset';
-      const isActive = activeTab?.folder === topFolder && activeTab.path === node.path;
-      const file = openFiles[`${topFolder}/${node.path}`];
-      const isRenaming = renamingKey === `${topFolder}/${node.path}`;
-      const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'file', displayName: node.name.replace(/\.md$/, '') };
-      return (
-        <button
-          key={node.path}
-          className={`file-row${isAsset ? ' is-asset' : ''}${isActive ? ' is-active' : ''}`}
-          style={{ '--kind-color': folderColor(topFolder), paddingLeft: 8 + indent } as React.CSSProperties}
-          draggable
-          onClick={() => openFile(topFolder, node.path, isAsset ? 'asset' : undefined)}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'file', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', dragPayload.displayName); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragEnd={() => setDragTarget(null)}
-        >
-          <span className={`file-dot${isAsset ? ' is-asset' : ''}`} />
-          {isRenaming ? (
-            <input
-              className="new-file-input"
-              autoFocus
-              defaultValue={node.name.replace(/\.md$/, '')}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
-            />
-          ) : (
-            <span className="file-name">{isAsset ? node.name : node.name.replace(/\.md$/, '')}</span>
-          )}
-          {file?.dirty && !isRenaming && <span className="file-dirty">●</span>}
-        </button>
-      );
-    }
-    const dirKey = `${topFolder}/${node.path}`;
-    const isOpen = openFolderPaths.has(dirKey);
-    const isDragOver = dragTarget === dirKey;
-    const isRenaming = renamingKey === dirKey;
-    const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'dir', displayName: node.name };
-    return (
-      <div key={node.path} className="sidebar-folder">
-        <button
-          className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
-          style={{ paddingLeft: 4 + indent } as React.CSSProperties}
-          draggable
-          onClick={() => { setOpenFolderPaths(prev => { const next = new Set(prev); if (next.has(dirKey)) next.delete(dirKey); else next.add(dirKey); return next; }); }}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'dir', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', node.name); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragEnd={() => setDragTarget(null)}
-          onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(dirKey); }}
-          onDragLeave={() => setDragTarget(prev => prev === dirKey ? null : prev)}
-          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); handleMove(p.folder, p.path, topFolder, node.path); }}
-        >
-          <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-          {isRenaming ? (
-            <input
-              className="new-file-input"
-              autoFocus
-              defaultValue={node.name}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
-            />
-          ) : (
-            <span className="folder-name">{node.name}/</span>
-          )}
-        </button>
-        {isOpen && (
-          <div className="folder-children">
-            {node.children.map(child => renderTreeNode(child, topFolder, depth + 1))}
-            {creatingDirIn?.folder === topFolder && creatingDirIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
-                <span className="folder-caret">▸</span>
-                <input
-                  className="new-file-input"
-                  autoFocus
-                  placeholder="folder-name"
-                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingDirIn(null); }}
-                  onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
-                />
-              </div>
-            )}
-            {creatingIn?.folder === topFolder && creatingIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
-                <span className="file-dot" style={{ '--kind-color': folderColor(topFolder) } as React.CSSProperties} />
-                <input
-                  className="new-file-input"
-                  autoFocus
-                  placeholder="new-note-title"
-                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingIn(null); }}
-                  onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function filterMatchesNode(node: TreeNode, q: string): boolean {
-    if (node.kind === 'file') return node.title.toLowerCase().includes(q) || node.path.toLowerCase().includes(q);
-    return node.children.some(child => filterMatchesNode(child, q));
-  }
-
-  function renderFilteredNodes(nodes: TreeNode[], topFolder: string, q: string, depth: number): React.ReactNode[] {
-    const result: React.ReactNode[] = [];
-    for (const node of nodes) {
-      if (!filterMatchesNode(node, q)) continue;
-      if (node.kind === 'file') {
-        result.push(renderTreeNode(node, topFolder, depth));
-      } else {
-        const children = renderFilteredNodes(node.children, topFolder, q, depth + 1);
-        if (children.length > 0) {
-          const indent = depth * 12;
-          result.push(
-            <div key={node.path}>
-              <div className="folder-row is-open" style={{ paddingLeft: 4 + indent } as React.CSSProperties}>
-                <span className="folder-caret">▾</span>
-                <span className="folder-name">{node.name}/</span>
-              </div>
-              <div className="folder-children">{children}</div>
-            </div>,
-          );
-        }
-      }
-    }
-    return result;
-  }
-
-  const q = filter.toLowerCase().trim();
-
   return (
     <>
       <div className="notes-shell">
-        {/* Sidebar */}
-        <aside className="notes-sidebar">
-          <div className="sidebar-header">
-            <div className="sidebar-title">VAULT · last-gasp</div>
-            <input
-              className="sidebar-filter"
-              placeholder="filter notes…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          </div>
-          <div className="sidebar-tree">
-            {folders.map(folder => {
-              const isOpen = openFolderPaths.has(folder);
-              const entries = folderFiles[folder];
-              const count = entries?.length ?? '…';
-              const tree = folderTrees[folder] ?? [];
-              const isDragOver = dragTarget === folder;
-              const topDragPayload: NoteDragPayload = { folder, path: '', kind: 'topfolder', displayName: folder };
-              return (
-                <div key={folder} className="sidebar-folder">
-                  <button
-                    className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
-                    style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
-                    draggable
-                    onClick={() => toggleFolder(folder, folder)}
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'topfolder', folder, x: e.clientX, y: e.clientY }); }}
-                    onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(topDragPayload)); e.dataTransfer.setData('text/plain', folder); e.dataTransfer.effectAllowed = 'move'; }}
-                    onDragEnd={() => setDragTarget(null)}
-                    onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(folder); }}
-                    onDragLeave={() => setDragTarget(prev => prev === folder ? null : prev)}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); if (p.kind !== 'topfolder') handleMove(p.folder, p.path, folder); }}
-                  >
-                    <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-                    {renamingKey === folder ? (
-                      <input
-                        className="new-file-input"
-                        autoFocus
-                        defaultValue={folder}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-                        onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRenameFolder(folder, e.target.value); }}
-                      />
-                    ) : (
-                      <>
-                        <span className="folder-name">{folder}/</span>
-                        <span className="folder-count">{count}</span>
-                      </>
-                    )}
-                    <span
-                      className="folder-add"
-                      title={`New in ${folder}/`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isOpen) {
-                          toggleFolder(folder, folder).then(() => setCreatingIn({ folder }));
-                        } else {
-                          setCreatingIn({ folder });
-                        }
-                      }}
-                    >+</span>
-                  </button>
-                  {isOpen && (
-                    <div className="folder-children">
-                      {entries === null ? (
-                        <div className="file-row" style={{ color: 'var(--theme-text-muted)', fontStyle: 'italic', cursor: 'default' }}>loading…</div>
-                      ) : q ? (
-                        renderFilteredNodes(tree, folder, q, 0)
-                      ) : (
-                        tree.map(node => renderTreeNode(node, folder, 0))
-                      )}
-                      {creatingDirIn?.folder === folder && !creatingDirIn.subdir && (
-                        <div className="new-file-row">
-                          <span className="folder-caret">▸</span>
-                          <input
-                            className="new-file-input"
-                            autoFocus
-                            placeholder="folder-name"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value);
-                              if (e.key === 'Escape') setCreatingDirIn(null);
-                            }}
-                            onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
-                          />
-                        </div>
-                      )}
-                      {creatingIn?.folder === folder && (!creatingIn.subdir || !tree.some(n => n.kind === 'dir' && n.path === creatingIn.subdir)) && (
-                        <div className="new-file-row">
-                          <span className="file-dot" style={{ '--kind-color': folderColor(folder) } as React.CSSProperties} />
-                          {creatingIn.subdir && <span style={{ color: 'var(--theme-text-muted)', fontSize: 12 }}>{creatingIn.subdir}/</span>}
-                          <input
-                            className="new-file-input"
-                            autoFocus
-                            placeholder="new-note-title"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value);
-                              if (e.key === 'Escape') setCreatingIn(null);
-                            }}
-                            onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {newFolderMode ? (
-              <div className="new-folder-row">
-                <input
-                  className="new-folder-input"
-                  autoFocus
-                  placeholder="folder-name"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCreateFolder(e.currentTarget.value);
-                    if (e.key === 'Escape') setNewFolderMode(false);
-                  }}
-                  onBlur={(e) => handleCreateFolder(e.target.value)}
-                />
-              </div>
-            ) : (
-              <button className="new-folder-btn" onClick={() => setNewFolderMode(true)}>+ new folder</button>
-            )}
-          </div>
-        </aside>
+        <FolderSidebar
+          folders={folders}
+          folderFiles={folderFiles}
+          folderTrees={folderTrees}
+          openFiles={openFiles}
+          activeTab={activeTab}
+          filter={filter}
+          openFolderPaths={openFolderPaths}
+          creatingIn={creatingIn}
+          creatingDirIn={creatingDirIn}
+          newFolderMode={newFolderMode}
+          renamingKey={renamingKey}
+          dragTarget={dragTarget}
+          setFilter={setFilter}
+          setCreatingIn={setCreatingIn}
+          setCreatingDirIn={setCreatingDirIn}
+          setNewFolderMode={setNewFolderMode}
+          setRenamingKey={setRenamingKey}
+          setDragTarget={setDragTarget}
+          setOpenFolderPaths={setOpenFolderPaths}
+          setContextMenu={setContextMenu}
+          onToggleFolder={toggleFolder}
+          onOpenFile={openFile}
+          onMove={handleMove}
+          onCreateFolder={handleCreateFolder}
+          onRenameFolder={handleRenameFolder}
+          onRename={handleRename}
+          onCommitNewFileInFolder={commitNewFileInFolder}
+          onCommitNewDirInFolder={commitNewDirInFolder}
+        />
 
         {/* Main */}
         <main className="notes-main">
