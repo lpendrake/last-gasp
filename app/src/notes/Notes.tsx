@@ -6,21 +6,21 @@ import {
 } from '../data/http/notes.http.ts';
 import { getLinkIndex } from '../data/http/links.http.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
-import { LiveEditor } from './editor/LiveEditor.tsx';
-import { QuickAdd } from './QuickAdd.tsx';
-import { NoteContextMenu, type ContextMenuTarget } from './NoteContextMenu.tsx';
+import { QuickAdd } from './components/QuickAdd.tsx';
+import { NoteContextMenu, type ContextMenuTarget } from './components/NoteContextMenu.tsx';
+import { EditorTabs } from './components/EditorTabs.tsx';
+import { BreadcrumbNav } from './components/BreadcrumbNav.tsx';
+import { EditorContent, type RenderMode } from './components/EditorContent.tsx';
 import {
   folderColor, tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
   type ConfirmState, type TreeNode,
 } from './types.ts';
-import { useSaveSync, type SaveStatus } from './hooks/useSaveSync.ts';
+import { useSaveSync } from './hooks/useSaveSync.ts';
 import { useFolderTree } from './hooks/useFolderTree.ts';
 
 const DRAG_MIME = 'application/x-last-gasp-note';
 interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
-
-type RenderMode = 'live' | 'source' | 'split';
 
 export function NotesApp() {
   // ---- Data ----
@@ -570,10 +570,6 @@ export function NotesApp() {
 
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
 
-  function titleForTab(tab: OpenTab): string {
-    return tab.path.split('/').pop()?.replace(/\.md$/, '') ?? tab.path;
-  }
-
   // ---- Sidebar tree node renderer ----
   function renderTreeNode(node: TreeNode, topFolder: string, depth: number): React.ReactNode {
     const indent = depth * 12;
@@ -840,125 +836,28 @@ export function NotesApp() {
 
         {/* Main */}
         <main className="notes-main">
-          {tabs.length > 0 && (
-            <div className="tabs-bar">
-              {tabs.map(tab => {
-                const isActive = activeTab?.folder === tab.folder && activeTab.path === tab.path;
-                const file = openFiles[tabKey(tab)];
-                return (
-                  <div
-                    key={tabKey(tab)}
-                    className={`tab${isActive ? ' is-active' : ''}`}
-                    style={{ '--kind-color': folderColor(tab.folder) } as React.CSSProperties}
-                    onClick={() => openFile(tab.folder, tab.path)}
-                    onMouseDown={(e) => { if (e.button === 1) { e.preventDefault(); closeTab(tab); } }}
-                  >
-                    <span className="tab-dot" />
-                    <span className="tab-label">{titleForTab(tab)}</span>
-                    {file?.dirty && <span className="tab-dirty">●</span>}
-                    <button className="tab-close" onClick={(e) => { e.stopPropagation(); closeTab(tab); }} title="Close">×</button>
-                  </div>
-                );
-              })}
-            </div>
+          <EditorTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            openFiles={openFiles}
+            onSelect={(tab) => openFile(tab.folder, tab.path)}
+            onClose={closeTab}
+          />
+
+          {activeTab && (
+            <BreadcrumbNav activeTab={activeTab} savingState={savingState} savedAt={savedAt} />
           )}
 
-          {activeTab && (() => {
-            const key = tabKey(activeTab);
-            const status: SaveStatus = savingState[key] ?? 'clean';
-            const at = savedAt[key];
-            const statusText: Record<SaveStatus, string> = {
-              clean: at ? `saved ${at}` : 'saved',
-              dirty: 'unsaved',
-              saving: 'saving…',
-              saved: at ? `saved ${at}` : 'saved ✓',
-            };
-            const pathParts = activeTab.path.split('/');
-            return (
-              <div className="breadcrumbs">
-                <span className="breadcrumb-segment">vault</span>
-                <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-segment">{activeTab.folder}</span>
-                {pathParts.slice(0, -1).map((part, i) => (
-                  <React.Fragment key={i}>
-                    <span className="breadcrumb-sep">/</span>
-                    <span className="breadcrumb-segment">{part}</span>
-                  </React.Fragment>
-                ))}
-                <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-segment is-leaf">{pathParts[pathParts.length - 1]}</span>
-                <span className={`breadcrumb-status is-${status}`}>{statusText[status]}</span>
-              </div>
-            );
-          })()}
-
-          {!activeTab ? (
-            <div className="empty-pane">
-              <div className="empty-pane-mark">∅</div>
-              <div>No note open</div>
-              <div className="empty-pane-hint">
-                Pick a note from the sidebar, or press <kbd>Ctrl+K</kbd> to create one.
-              </div>
-            </div>
-          ) : activeTab.fileKind === 'asset' ? (
-            <div className="image-pane">
-              <img
-                src={`/api/notes/${encodeURIComponent(activeTab.folder)}/${activeTab.path}`}
-                alt={activeTab.path.split('/').pop()}
-              />
-            </div>
-          ) : !activeFile || activeFile.loading || activeFile.content === null ? (
-            <div className="loading-pane">loading…</div>
-          ) : renderMode === 'source' ? (
-            <div className="editor-surface mode-source">
-              <div className="editor-pane">
-                <textarea
-                  className="source-editor"
-                  value={activeFile.content}
-                  onChange={(e) => handleContentChange(activeTab.folder, activeTab.path, e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-            </div>
-          ) : renderMode === 'split' ? (
-            <div className="editor-surface mode-split">
-              <div className="editor-pane">
-                <textarea
-                  className="source-editor"
-                  value={activeFile.content}
-                  onChange={(e) => handleContentChange(activeTab.folder, activeTab.path, e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-              <div className="editor-pane">
-                <LiveEditor
-                  key={tabKey(activeTab) + ':split'}
-                  value={activeFile.content}
-                  onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
-                  currentFolder={activeTab.folder}
-                  linkIndex={linkIndex}
-                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
-                  onOpenLink={handleOpenLink}
-                  onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="editor-surface mode-live">
-              <div className="editor-pane">
-                <LiveEditor
-                  key={tabKey(activeTab) + ':live'}
-                  value={activeFile.content}
-                  onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
-                  currentFolder={activeTab.folder}
-                  linkIndex={linkIndex}
-                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
-                  onOpenLink={handleOpenLink}
-                  onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
-                />
-              </div>
-            </div>
-          )}
+          <EditorContent
+            activeTab={activeTab}
+            activeFile={activeFile}
+            renderMode={renderMode}
+            linkIndex={linkIndex}
+            folderFiles={folderFiles}
+            onContentChange={handleContentChange}
+            onOpenLink={handleOpenLink}
+            onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
+          />
         </main>
       </div>
 

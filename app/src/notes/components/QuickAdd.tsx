@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { folderColor, slugify } from './types.ts';
+import { folderColor, slugify } from '../types.ts';
 
 const KNOWN_KINDS = [
   { folder: 'npcs',           label: 'NPC',           desc: 'A person — ally, foe, or wandering merchant', kbd: '1' },
