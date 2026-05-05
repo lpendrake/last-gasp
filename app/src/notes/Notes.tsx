@@ -6,7 +6,7 @@ import {
 } from '../data/http/notes.http.ts';
 import { getLinkIndex } from '../data/http/links.http.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
-import { LiveEditor } from './LiveEditor.tsx';
+import { LiveEditor } from './editor/LiveEditor.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
 import { NoteContextMenu, type ContextMenuTarget } from './NoteContextMenu.tsx';
 import {

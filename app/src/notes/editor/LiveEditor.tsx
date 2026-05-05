@@ -1,13 +1,11 @@
-import React, {
-  useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle,
-} from 'react';
-import type { LinkIndexEntry } from '../data/types.ts';
-import { folderColor } from './types.ts';
-import { lineHtml, type LineCtx } from './editor/markdown/line.ts';
-import { saveCaret, restoreCaret, readAllText } from './editor/markdown/caret.ts';
-import { uploadPastedImage } from './editor/upload.ts';
-import { useCaretTracking } from './hooks/useCaretTracking.ts';
-import { useLinkPicker, type LinkPickerHandle } from './hooks/useLinkPicker.ts';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import type { LinkIndexEntry } from '../../data/types.ts';
+import { lineHtml, type LineCtx } from './markdown/line.ts';
+import { saveCaret, restoreCaret, readAllText } from './markdown/caret.ts';
+import { uploadPastedImage } from './upload.ts';
+import { useCaretTracking } from '../hooks/useCaretTracking.ts';
+import { useLinkPicker } from '../hooks/useLinkPicker.ts';
+import { LinkPickerDropdown } from './LinkPickerDropdown.tsx';
 
 // ---- LiveEditor component ----
 
@@ -247,55 +245,3 @@ export function LiveEditor({
     </div>
   );
 }
-
-// ---- LinkPickerDropdown ----
-
-interface LinkPickerDropdownProps {
-  x: number;
-  y: number;
-  items: LinkIndexEntry[];
-  onPick: (entry: LinkIndexEntry) => void;
-  onClose: () => void;
-}
-
-const LinkPickerDropdown = forwardRef<LinkPickerHandle, LinkPickerDropdownProps>(
-  function LinkPickerDropdown({ x, y, items, onPick, onClose: _onClose }, ref) {
-    const [selected, setSelected] = useState(0);
-    useEffect(() => { setSelected(0); }, [items]);
-    useImperativeHandle(ref, () => ({
-      handleKey(key: string): boolean {
-        if (key === 'ArrowDown') { setSelected(s => Math.min(s + 1, items.length - 1)); return true; }
-        if (key === 'ArrowUp') { setSelected(s => Math.max(s - 1, 0)); return true; }
-        if (key === 'Enter') { if (items[selected]) onPick(items[selected]); return true; }
-        return false;
-      },
-    }), [items, selected, onPick]);
-
-    if (items.length === 0) {
-      return (
-        <div className="link-picker" style={{ left: x, top: y }}>
-          <div style={{ padding: '10px 12px', color: 'var(--theme-text-muted)', fontSize: 13 }}>No matches</div>
-        </div>
-      );
-    }
-    return (
-      <div className="link-picker" style={{ left: x, top: y }}>
-        {items.map((it, i) => {
-          const folder = it.path.split('/')[0];
-          return (
-            <div
-              key={it.path}
-              className={`link-picker-row${i === selected ? ' is-selected' : ''}`}
-              style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
-              onMouseDown={(e) => { e.preventDefault(); onPick(it); }}
-            >
-              <span className="pip" />
-              <span className="ttl">{it.title}</span>
-              <span className="pth">{it.path}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  },
-);
