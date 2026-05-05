@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   listNoteFolders, createNoteFolder, listNotes,
-  getNote, createNote, putNote, deleteNote,
+  getNote, createNote, deleteNote,
   renameNote, renameNoteFolder, deleteNoteFolder,
 } from '../data/http/notes.http.ts';
 import { getLinkIndex } from '../data/http/links.http.ts';
@@ -10,16 +10,17 @@ import { LiveEditor } from './LiveEditor.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
 import { NoteContextMenu, type ContextMenuTarget } from './NoteContextMenu.tsx';
 import {
-  buildTree, folderColor, tabKey, slugify, ASSET_EXTS,
+  folderColor, tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
   type ConfirmState, type TreeNode,
 } from './types.ts';
+import { useSaveSync, type SaveStatus } from './hooks/useSaveSync.ts';
+import { useFolderTree } from './hooks/useFolderTree.ts';
 
 const DRAG_MIME = 'application/x-last-gasp-note';
 interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
 
 type RenderMode = 'live' | 'source' | 'split';
-type SaveStatus = 'dirty' | 'saving' | 'saved' | 'clean';
 
 export function NotesApp() {
   // ---- Data ----
@@ -67,8 +68,16 @@ export function NotesApp() {
   const [quickAddFolder, setQuickAddFolder] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
-  const [savingState, setSavingState] = useState<Record<string, SaveStatus>>({});
-  const [savedAt, setSavedAt] = useState<Record<string, string>>({});
+
+  const pushToast = useCallback((message: string) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { id, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2600);
+  }, []);
+
+  const { savingState, setSavingState, savedAt, setSavedAt } = useSaveSync({
+    openFiles, setOpenFiles, setFolderFiles, pushToast,
+  });
 
   const activeTabRef = useRef<OpenTab | null>(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -103,46 +112,6 @@ export function NotesApp() {
     if (!location.pathname.startsWith('/notes')) return;
     history.replaceState(null, '', activeTab ? `/notes/${activeTab.folder}/${activeTab.path}` : '/notes');
   }, [activeTab]);
-
-  // ---- Auto-save ----
-  useEffect(() => {
-    const dirtyKeys = Object.entries(savingState)
-      .filter(([, v]) => v === 'dirty')
-      .map(([k]) => k);
-    if (dirtyKeys.length === 0) return;
-    const id = setTimeout(async () => { // 2s debounce: save 2s after last change
-      for (const key of dirtyKeys) {
-        const slashIdx = key.indexOf('/');
-        const folder = key.slice(0, slashIdx);
-        const path = key.slice(slashIdx + 1);
-        const file = openFiles[key];
-        if (!file || file.content === null) continue;
-        setSavingState(prev => ({ ...prev, [key]: 'saving' }));
-        try {
-          const newMtime = await putNote(folder, path, file.content, file.mtime || undefined);
-          setOpenFiles(prev => ({ ...prev, [key]: { ...prev[key], mtime: newMtime, dirty: false } }));
-          setSavingState(prev => ({ ...prev, [key]: 'saved' }));
-          setSavedAt(prev => ({ ...prev, [key]: new Date().toLocaleTimeString() }));
-          setTimeout(() => {
-            setSavingState(prev => prev[key] === 'saved' ? { ...prev, [key]: 'clean' } : prev);
-          }, 1100);
-          // Refresh title in folder index
-          const m = /^#\s+(.+)$/m.exec(file.content);
-          const title = m ? m[1].trim() : path.replace(/\.md$/, '');
-          setFolderFiles(prev => {
-            const entries = prev[folder];
-            if (!entries) return prev;
-            return { ...prev, [folder]: entries.map(e => e.path === path ? { ...e, title } : e) };
-          });
-        } catch (err) {
-          console.error('Save failed', err);
-          pushToast(`Failed to save ${key}`);
-          setSavingState(prev => ({ ...prev, [key]: 'dirty' }));
-        }
-      }
-    }, 2000);
-    return () => clearTimeout(id);
-  }, [savingState, openFiles]);
 
   // ---- Global hotkeys ----
   useEffect(() => {
@@ -596,21 +565,8 @@ export function NotesApp() {
     openFile(folder, path).catch(() => pushToast(`Note not found: ${folder}/${path}`));
   }
 
-  const pushToast = useCallback((message: string) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts(prev => [...prev, { id, message }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2600);
-  }, []);
-
   // ---- Trees ----
-  const folderTrees = useMemo(() => {
-    const out: Record<string, TreeNode[]> = {};
-    for (const f of folders) {
-      const entries = folderFiles[f];
-      out[f] = entries ? buildTree(entries) : [];
-    }
-    return out;
-  }, [folders, folderFiles]);
+  const folderTrees = useFolderTree(folders, folderFiles);
 
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
 
