@@ -3,16 +3,16 @@ import React, {
 } from 'react';
 import type { LinkIndexEntry } from '../data/types.ts';
 import { folderColor } from './types.ts';
-import { escHtml, kindFromPath } from './editor/markdown/inline.ts';
-import { lineHtml } from './editor/markdown/line.ts';
-import { saveCaret, restoreCaret, getCaretLineIndex, readAllText } from './editor/markdown/caret.ts';
+import { lineHtml, type LineCtx } from './editor/markdown/line.ts';
+import { saveCaret, restoreCaret, readAllText } from './editor/markdown/caret.ts';
 import { uploadPastedImage } from './editor/upload.ts';
+import { useCaretTracking } from './hooks/useCaretTracking.ts';
+import { useLinkPicker, type LinkPickerHandle } from './hooks/useLinkPicker.ts';
 
 // ---- LiveEditor component ----
 
 const DRAG_MIME = 'application/x-last-gasp-note';
 interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
-const IMAGE_EXTS = /\.(png|jpe?g|gif|webp|svg)$/i;
 
 interface LiveEditorProps {
   value: string;
@@ -29,9 +29,6 @@ export function LiveEditor({
 }: LiveEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const valueRef = useRef(value);
-  const activeLineRef = useRef(-1);
-  const [linkPicker, setLinkPicker] = useState<LinkPickerState | null>(null);
-  const linkPickerRef = useRef<LinkPickerHandle>(null);
 
   const ctx = useMemo<LineCtx>(() => ({ currentFolder, linkIndex }), [currentFolder, linkIndex]);
 
@@ -45,30 +42,15 @@ export function LiveEditor({
     }).join('');
   }, [ctx]);
 
-  const refreshActive = useCallback((newActiveIdx: number) => {
-    const root = rootRef.current;
-    if (!root) return;
-    if (newActiveIdx === activeLineRef.current) return;
-    const lines = Array.from(root.querySelectorAll<HTMLElement>(':scope > .ml-line'));
-    const text = readAllText(root);
-    const txtLines = text.split('\n');
-    const wasFocused = document.activeElement === root;
-    const saved = wasFocused ? saveCaret(root) : null;
-    if (activeLineRef.current >= 0 && lines[activeLineRef.current]) {
-      const ln = lines[activeLineRef.current];
-      const txt = txtLines[activeLineRef.current] ?? '';
-      const { cls, inner } = lineHtml(txt, false, ctx);
-      ln.className = cls; ln.innerHTML = inner;
-    }
-    if (newActiveIdx >= 0 && lines[newActiveIdx]) {
-      const ln = lines[newActiveIdx];
-      const txt = txtLines[newActiveIdx] ?? '';
-      const { cls, inner } = lineHtml(txt, true, ctx);
-      ln.className = cls; ln.innerHTML = inner;
-    }
-    activeLineRef.current = newActiveIdx;
-    if (wasFocused) restoreCaret(root, saved);
-  }, [ctx]);
+  const {
+    linkPicker, setLinkPicker, linkPickerRef, maybeShowLinkPicker, filteredLinks, pickLink,
+  } = useLinkPicker({
+    rootRef, valueRef, currentFolder, linkIndex, currentFolderAssets, onChange, rebuild,
+  });
+
+  const { activeLineRef } = useCaretTracking({
+    rootRef, ctx, onCaretMove: maybeShowLinkPicker,
+  });
 
   useEffect(() => {
     rebuild(value, -1);
@@ -85,7 +67,7 @@ export function LiveEditor({
         activeLineRef.current = -1;
       }
     }
-  }, [value, rebuild]);
+  }, [value, rebuild, activeLineRef]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -94,49 +76,7 @@ export function LiveEditor({
     const saved = wasFocused ? saveCaret(root) : null;
     rebuild(valueRef.current, activeLineRef.current);
     if (wasFocused) restoreCaret(root, saved);
-  }, [ctx, rebuild]);
-
-  const maybeShowLinkPicker = useCallback(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) { setLinkPicker(null); return; }
-    const range = sel.getRangeAt(0);
-    if (!root.contains(range.startContainer)) { setLinkPicker(null); return; }
-    const idx = getCaretLineIndex(root);
-    if (idx < 0) { setLinkPicker(null); return; }
-    const text = readAllText(root);
-    const lines = text.split('\n');
-    const cur = lines[idx] ?? '';
-    const saved = saveCaret(root);
-    const beforeCaret = saved ? cur.slice(0, saved.offset) : cur;
-    const m = /(^|[ \t])@(\S[^\n]*|)$/.exec(beforeCaret);
-    if (!m) { setLinkPicker(null); return; }
-    const rect = range.getClientRects()[0] ?? range.getBoundingClientRect();
-    const rootRect = root.getBoundingClientRect();
-    setLinkPicker({
-      query: m[2],
-      x: rect.left - rootRect.left + root.scrollLeft,
-      y: rect.bottom - rootRect.top + root.scrollTop + 4,
-      lineIndex: idx,
-      caretOffset: saved?.offset ?? 0,
-      triggerStart: (saved?.offset ?? 0) - (m[2].length + 1),
-    });
-  }, []);
-
-  const handleSelectionChange = useCallback(() => {
-    const root = rootRef.current;
-    if (!root || document.activeElement !== root) return;
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) return; // don't re-render during drag-select
-    refreshActive(getCaretLineIndex(root));
-    maybeShowLinkPicker();
-  }, [refreshActive, maybeShowLinkPicker]);
-
-  useEffect(() => {
-    document.addEventListener('selectionchange', handleSelectionChange);
-    return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, [handleSelectionChange]);
+  }, [ctx, rebuild, activeLineRef]);
 
   const handleInput = useCallback(() => {
     const root = rootRef.current;
@@ -247,53 +187,6 @@ export function LiveEditor({
     });
   }
 
-  function pickLink(entry: LinkIndexEntry) {
-    if (!linkPicker) return;
-    const root = rootRef.current;
-    if (!root) return;
-    const text = readAllText(root);
-    const lines = text.split('\n');
-    const cur = lines[linkPicker.lineIndex] ?? '';
-    // Compute relative href
-    const entryFolder = entry.path.split('/')[0];
-    const href = entryFolder === currentFolder
-      ? entry.path.split('/').slice(1).join('/')
-      : `../${entry.path}`;
-    const isImage = IMAGE_EXTS.test(entry.path);
-    const insertion = isImage ? `![${entry.title}](${href})` : `[${entry.title}](${href})`;
-    const before = cur.slice(0, linkPicker.triggerStart);
-    const after = cur.slice(linkPicker.caretOffset);
-    lines[linkPicker.lineIndex] = before + insertion + after;
-    const newText = lines.join('\n');
-    valueRef.current = newText;
-    setLinkPicker(null);
-    onChange(newText);
-    requestAnimationFrame(() => {
-      rebuild(newText, linkPicker.lineIndex);
-      const r = rootRef.current;
-      if (!r) return;
-      const lineEl = r.querySelectorAll<HTMLElement>(':scope > .ml-line')[linkPicker.lineIndex];
-      if (!lineEl) return;
-      const targetOffset = before.length + insertion.length;
-      let remaining = targetOffset;
-      const walker = document.createTreeWalker(lineEl, NodeFilter.SHOW_TEXT);
-      let n: Node | null;
-      while ((n = walker.nextNode())) {
-        const len = n.textContent?.length ?? 0;
-        if (remaining <= len) {
-          const range = document.createRange();
-          range.setStart(n, remaining);
-          range.collapse(true);
-          const s = window.getSelection();
-          if (s) { s.removeAllRanges(); s.addRange(range); }
-          r.focus();
-          return;
-        }
-        remaining -= len;
-      }
-    });
-  }
-
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'N' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
@@ -326,19 +219,6 @@ export function LiveEditor({
     if (link && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onOpenLink?.(link.dataset.href ?? ''); }
   }
 
-  const filteredLinks = useMemo(() => {
-    if (!linkPicker) return [];
-    const assetEntries: LinkIndexEntry[] = (currentFolderAssets ?? []).map(a => ({
-      path: a.path, title: a.title, type: 'other' as const,
-    }));
-    const allEntries = [...assetEntries, ...linkIndex];
-    const q = linkPicker.query.toLowerCase().trim();
-    if (!q) return allEntries.slice(0, 8);
-    return allEntries
-      .filter(e => e.title.toLowerCase().includes(q) || e.path.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [linkPicker, linkIndex, currentFolderAssets]);
-
   return (
     <div style={{ position: 'relative', flex: '1 1 auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div
@@ -369,19 +249,6 @@ export function LiveEditor({
 }
 
 // ---- LinkPickerDropdown ----
-
-interface LinkPickerState {
-  query: string;
-  x: number;
-  y: number;
-  lineIndex: number;
-  caretOffset: number;
-  triggerStart: number;
-}
-
-interface LinkPickerHandle {
-  handleKey: (key: string) => boolean;
-}
 
 interface LinkPickerDropdownProps {
   x: number;
