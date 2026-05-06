@@ -22,8 +22,10 @@ import { showConflictModal } from './conflict.ts';
 import { attachLinkPicker } from './link-picker.ts';
 import { attachFormatToolbar } from './format-toolbar.ts';
 import { parseISOString } from '../calendar/golarian.ts';
-import { weekdayColor } from '../theme.ts';
 import { type Mode, editorHtml, promptRestoreDraft } from './modal/view.ts';
+import {
+  getColor, setColor, readBuffer, updatePreview, updateColorSwatch,
+} from './modal/fields.ts';
 
 // html: true so <u> underline and other inline HTML render in preview (local single-user app)
 const md = new MarkdownIt({ html: true, linkify: true, breaks: false });
@@ -121,22 +123,6 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
   const errorMsgEl    = q<HTMLSpanElement>('.editor-error-message');
   const retryBtn      = q<HTMLButtonElement>('.editor-retry');
 
-  function getColor(): string {
-    return colorPreset.value === '__custom__' ? colorCustom.value.trim() : colorPreset.value;
-  }
-
-  function setColor(raw: string) {
-    const isPreset = COLOR_PRESETS.some(p => p.value === raw);
-    if (!raw || isPreset) {
-      colorPreset.value = raw;
-      colorCustom.hidden = true;
-    } else {
-      colorPreset.value = '__custom__';
-      colorCustom.value = raw;
-      colorCustom.hidden = false;
-    }
-  }
-
   preview.dataset.baseDir = 'events';
   const { detach: detachLinkPicker, openForSelection } = attachLinkPicker(bodyInput);
   const detachFormatToolbar = attachFormatToolbar(bodyInput, openForSelection);
@@ -145,27 +131,16 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
   titleInput.value = initialBuffer.title;
   dateInput.value  = initialBuffer.date;
   tagsInput.value  = initialBuffer.tagsText;
-  setColor(initialBuffer.color);
+  setColor(colorPreset, colorCustom, initialBuffer.color);
   bodyInput.value  = initialBuffer.body;
-  updatePreview();
-  updateColorSwatch();
+  updatePreview(preview, md, bodyInput);
+  updateColorSwatch(colorSwatch, dateInput, colorPreset, colorCustom);
 
   // ---- State ----
   let state: SaveState = restoredFromDraft ? 'dirty' : 'clean';
   let filenameCurrent: string | null = mode.kind === 'edit' ? mode.filename : null;
   let baseMtimeCurrent: string | null = baseMtime;
   renderState();
-
-  function readBuffer(): DraftBuffer {
-    return {
-      title: titleInput.value,
-      date: dateInput.value,
-      tagsText: tagsInput.value,
-      color: getColor(),
-      status: '',
-      body: bodyInput.value,
-    };
-  }
 
   function setState(s: SaveState, err?: string) {
     state = s;
@@ -189,30 +164,10 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
     }
   }
 
-  function updatePreview() {
-    preview.innerHTML = md.render(bodyInput.value || '_(preview — start typing)_');
-    for (const img of preview.querySelectorAll<HTMLImageElement>('img[src]')) {
-      const src = img.getAttribute('src') ?? '';
-      if (!src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
-        img.setAttribute('src', `/api/file/events/${src}`);
-      }
-    }
-  }
-
-  function updateColorSwatch() {
-    const raw = getColor();
-    let resolved = raw;
-    if (!raw && dateInput.value.trim()) {
-      try { resolved = weekdayColor(dateInput.value.trim()); } catch { resolved = ''; }
-    }
-    colorSwatch.style.background = resolved || 'transparent';
-    colorSwatch.title = raw ? `Override: ${raw}` : (resolved ? `Weekday default: ${resolved}` : '');
-  }
-
   // ---- Debounced draft autosave ----
   const writeDraftDebounced = debounce(() => {
     if (state === 'clean' || state === 'saved') return;
-    writeDraft(draftKey, readBuffer(), baseMtimeCurrent);
+    writeDraft(draftKey, readBuffer(titleInput, dateInput, tagsInput, colorPreset, colorCustom, bodyInput), baseMtimeCurrent);
   }, DRAFT_DEBOUNCE_MS);
 
   function onInput() {
@@ -227,15 +182,15 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
     colorCustom.hidden = colorPreset.value !== '__custom__';
     if (colorPreset.value === '__custom__') colorCustom.focus();
     onInput();
-    updateColorSwatch();
+    updateColorSwatch(colorSwatch, dateInput, colorPreset, colorCustom);
   });
-  colorCustom.addEventListener('input', () => { onInput(); updateColorSwatch(); });
-  dateInput.addEventListener('input', updateColorSwatch);
-  bodyInput.addEventListener('input', updatePreview);
+  colorCustom.addEventListener('input', () => { onInput(); updateColorSwatch(colorSwatch, dateInput, colorPreset, colorCustom); });
+  dateInput.addEventListener('input', () => updateColorSwatch(colorSwatch, dateInput, colorPreset, colorCustom));
+  bodyInput.addEventListener('input', () => updatePreview(preview, md, bodyInput));
 
   // ---- Save flow ----
   async function attemptSave(overwriteConflict = false): Promise<void> {
-    const buf = readBuffer();
+    const buf = readBuffer(titleInput, dateInput, tagsInput, colorPreset, colorCustom, bodyInput);
     const validationError = validateBuffer(buf) ?? extraValidate?.(buf) ?? null;
     if (validationError) {
       setState('error', validationError);
