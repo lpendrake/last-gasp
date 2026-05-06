@@ -1,20 +1,11 @@
 import Fuse from 'fuse.js';
-import type { EventListItem, TagsRegistry } from '../data/types.ts';
+import type { EventListItem, TagsRegistry } from '../../data/types.ts';
 import type {
   DateField, TagFilter, DateFilter, Filter, FilterState,
-} from './filters/types.ts';
+} from './types.ts';
 import {
-  makeInitialFilterState, applyFilters, matchesFilter, filterSummary,
-  newFilterId, collectAllTags, nowForField,
-} from './filters/logic.ts';
-
-export type { DateField, TagFilter, DateFilter, Filter, FilterState };
-export {
-  makeInitialFilterState, applyFilters, matchesFilter, filterSummary,
-  newFilterId, collectAllTags, nowForField,
-};
-
-export { loadPinnedFilters, savePinnedFilters } from './filters/persistence.ts';
+  filterSummary, newFilterId, collectAllTags, nowForField,
+} from './logic.ts';
 
 // ---- Sidebar rendering ----
 
