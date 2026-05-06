@@ -12,7 +12,7 @@ import {
 import { renderAxis } from './axis.ts';
 import { layoutCards, renderCards, type CardExpansion } from './card.ts';
 import { computeSessionBands, renderSessionBands, findSessionConflicts } from './session-band.ts';
-import { openCreateEditor, openEditEditor } from '../editor/modal.ts';
+import { openCreateEditor, openEditEditor } from '../editor/modal/index.ts';
 import {
   type FilterState, makeInitialFilterState, applyFilters, renderFilterSidebar,
   loadPinnedFilters, savePinnedFilters,

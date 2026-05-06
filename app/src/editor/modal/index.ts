@@ -10,28 +10,28 @@
  *   - Delete = soft-delete (server moves file to .trash/).
  */
 import MarkdownIt from 'markdown-it';
-import { getEvent } from '../data/http/events.http.ts';
+import { getEvent } from '../../data/http/events.http.ts';
 import {
   loadDraft, writeDraft, clearDraft, draftIsRelevant, debounce,
   bufferFromEvent,
   type DraftBuffer, type DraftKey,
-} from './drafts.ts';
-import { attachLinkPicker } from './link-picker.ts';
-import { attachFormatToolbar } from './format-toolbar.ts';
-import { type Mode, editorHtml, promptRestoreDraft } from './modal/view.ts';
+} from '../drafts.ts';
+import { attachLinkPicker } from '../link-picker.ts';
+import { attachFormatToolbar } from '../format-toolbar.ts';
+import { type Mode, editorHtml, promptRestoreDraft } from './view.ts';
 import {
   getColor, setColor, readBuffer, updatePreview, updateColorSwatch,
-} from './modal/fields.ts';
+} from './fields.ts';
 import {
   type SaveState, type EditorResult, type SaveCtx,
   newCreationStamp, emptyBuffer,
   attemptSave, handleDeleteEvent, tryClose, handleDiscard,
-} from './modal/save.ts';
+} from './save.ts';
 
 // html: true so <u> underline and other inline HTML render in preview (local single-user app)
 const md = new MarkdownIt({ html: true, linkify: true, breaks: false });
 
-export type { EditorResult } from './modal/save.ts';
+export type { EditorResult } from './save.ts';
 
 const DRAFT_DEBOUNCE_MS = 500;
 
@@ -251,6 +251,3 @@ async function runEditor(mode: Mode, opts: EditorOpts = {}): Promise<EditorResul
     resolveResult(result);
   }
 }
-
-
-
