@@ -14,18 +14,23 @@ module before writing any code.
 |---|---|---|
 | **Hook** | State, effects, subscriptions, refs | `notes/hooks/` |
 | **Component** | JSX only, takes props, returns elements | `notes/components/` |
-| **Service** | Pure logic that needs to be testable without React | `notes/services/` |
+| **Service** | Pure logic that needs to be testable without React | `notes/services/` (create when needed) |
 | **Markdown helper** | String → string or string → DOM rendering of markdown | `notes/editor/markdown/` |
+
+`notes/services/` doesn't exist yet — create it the first time a piece
+of non-React logic is worth extracting (testability, reuse). The
+file-operation handlers in `Notes.tsx` are intentionally not extracted;
+see `notes/AGENTS.md` "Notes.tsx ceiling" for why.
 
 If your feature has more than one of these (most do), make one of each
 and have the component compose them. **Don't dump everything into
 `Notes.tsx`** — that's the file we're trying to keep under 400 lines.
 
-## Files (target structure)
+## Files
 
 ```
 notes/
-  Notes.tsx                   # orchestrator
+  Notes.tsx                   # orchestrator (~730 lines — see ceiling note in AGENTS.md)
   types.ts
   hooks/
     useSaveSync.ts
@@ -47,8 +52,6 @@ notes/
       line.ts
       caret.ts
     upload.ts
-  services/
-    file-ops.ts
 ```
 
 ## Hook conventions

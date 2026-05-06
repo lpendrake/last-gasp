@@ -22,9 +22,10 @@ breaks the abstraction that lets adapters be swapped.
 
 Any of the target files (`server/http/<entity>.routes.ts`,
 `server/domain/<entity>.ts`, `server/data/fs/<entity>.fs.ts`,
-`server/data/ports.ts`, `server/data/fs/index.ts`, `server/index.ts`)
-may or may not exist yet. **Create them if missing; extend them if
-present.**
+`server/data/ports.ts`, `server/index.ts`) may or may not exist yet.
+**Create them if missing; extend them if present.** There is no
+aggregate `data/fs/index.ts`; each entity has its own `make<Entity>Store`
+factory.
 
 You may grep for existing symbols (e.g. `EventStore`,
 `makeFsEventStore`) to match the style of code that's already in
@@ -147,26 +148,47 @@ Handlers are thin: parse → validate input shape → call domain → shape
 response. Use the helpers in `app/server/http/responses.ts` and
 `app/server/http/body.ts`.
 
+Each entity file exports a `<entity>Routes(deps)` function that
+returns an array of `Route` objects. The composition root spreads
+these into a single dispatch table — there is no `router.add(...)`
+imperative API.
+
+Patterns are written as path strings with `:param` (single segment)
+or `:param*` (greedy, slashes allowed); `defineRoute` compiles them
+into the regex. Handlers receive `(req, res, params)` where `params`
+is `Record<string, string>`.
+
 ```ts
+import type { EventStore } from '../data/ports.ts';
+import { defineRoute, type Route } from './router.ts';
 import { sendJson, sendError } from './responses.ts';
-import { readBody } from './body.ts';
 import { archiveEvent } from '../domain/events.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../domain/errors.ts';
 
-export function registerEventRoutes(router, deps) {
-  router.add('POST', /^\/api\/events\/([^/]+)\/archive$/, async (req, res, [id]) => {
-    const ifMatch = Number(req.headers['if-match']);
-    if (!Number.isFinite(ifMatch)) return sendError(res, 400, 'if-match required');
-    try {
-      const result = await archiveEvent(deps.events, id, ifMatch);
-      sendJson(res, 200, result);
-    } catch (e) {
-      if (e instanceof NotFoundError) return sendError(res, 404, e.message);
-      if (e instanceof ConflictError) return sendError(res, 409, { mtime: e.mtime });
-      if (e instanceof ValidationError) return sendError(res, 400, e.message);
-      throw e;
-    }
-  });
+interface Deps { events: EventStore }
+
+function mapDomainError(res: any, err: unknown): boolean {
+  if (err instanceof ValidationError) { sendError(res, 400, err.message); return true; }
+  if (err instanceof NotFoundError)   { sendError(res, 404, err.message); return true; }
+  if (err instanceof ConflictError)   { sendError(res, 409, err.message); return true; }
+  return false;
+}
+
+export function eventRoutes(deps: Deps): Route[] {
+  return [
+    defineRoute('POST', '/api/events/:filename/archive', async (req, res, params) => {
+      const filename = decodeURIComponent(params.filename);
+      const ifMatch = Number(req.headers['if-match']);
+      if (!Number.isFinite(ifMatch)) return sendError(res, 400, 'if-match required');
+      try {
+        const result = await archiveEvent(deps.events, filename, ifMatch);
+        sendJson(res, 200, result);
+      } catch (err) {
+        if (mapDomainError(res, err)) return;
+        throw err;
+      }
+    }),
+  ];
 }
 ```
 
@@ -177,22 +199,29 @@ export function registerEventRoutes(router, deps) {
 
 File: `app/server/index.ts` (the composition root).
 
-The composition root is the only place adapters meet handlers:
+The composition root is the only place adapters meet handlers. Each
+entity has its own `make<Entity>Store(repoRoot)` factory; the
+composition root calls each one and threads the resulting ports into
+each `<entity>Routes(deps)` call:
 
 ```ts
-import { makeFsStores } from './data/fs/index.ts';
-import { registerEventRoutes } from './http/events.routes.ts';
+import { makeFsEventStore } from './data/fs/events.fs.ts';
+import { eventRoutes } from './http/events.routes.ts';
 
-const stores = makeFsStores({ root: REPO_ROOT });
-registerEventRoutes(router, { events: stores.events });
+export function createApi({ repoRoot }: CreateApiOpts): ApiHandler {
+  const events = makeFsEventStore(repoRoot);
+  // … other adapters …
+  const ROUTES: Route[] = [
+    ...eventRoutes({ events }),
+    // … other route arrays …
+  ];
+  return (req, res, next) => dispatch(ROUTES, req, res, next);
+}
 ```
 
-`makeFsStores` (in `app/server/data/fs/index.ts`) is a single factory
-that constructs every adapter from a config object and returns
-`{ events, notes, state, trash, ... }`. If you're adding the first
-method to a brand-new entity, you may also need to wire that entity
-into `makeFsStores`. That's a port-shape change — see the
-`add-data-store-method` skill.
+If you're adding the first method to a brand-new entity, you also
+add a new `make<Entity>Store` factory call here and a new
+`...<entity>Routes(deps)` line.
 
 ## 6. Test the domain function
 

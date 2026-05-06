@@ -13,48 +13,63 @@ them separate.
 
 | Render | Interaction |
 |---|---|
-| Mutates a host element | Attaches `addEventListener` |
-| Reads view state | Reads user input |
-| Pure-ish | Calls back with state changes |
-| `render/axis.ts`, `render/cards.ts` | `interactions/zoom.ts`, `interactions/pan.ts` |
+| State → pixels | User input → state |
+| Idempotent re-render from state | Owns event listeners + transient DOM |
+| No event listeners | Exposes a status API for peers |
+| `render/axis.ts`, `render/cards.ts` | `interactions/pan.ts`, `interactions/reschedule.ts` |
 
-If the feature is both — say, drag-to-reschedule renders a ghost card
-while dragging — split it. The interaction module emits "draft state"
-into `app.ts`; the render module reads it.
+If the feature has a transient overlay tied to the gesture itself
+(e.g. the drag label that follows the cursor while rescheduling), that
+DOM lives inside the interaction module — not in render. Render is
+state-derived; gesture-overlays are gesture-owned.
 
 ## Files
 
 ```
 src/timeline/
-  app.ts                    # controller, owns ViewState
+  app.ts                    # controller, owns ViewState; wires interactions
   render/
-    axis.ts
-    cards.ts
-    session-bands.ts
+    axis.ts                 # renderAxis(host, view, size)
+    cards.ts                # layoutCards + renderCards
+    session-bands.ts        # computeSessionBands + renderSessionBands + findSessionConflicts
+    session-bands.test.ts
   interactions/
-    zoom.ts                 # xToSeconds, secondsToX, zoomAbout, panByPixels
-    pan.ts
-    reschedule.ts
-    quick-add-zones.ts
+    zoom.ts                 # math + types: ViewState, xToSeconds, secondsToX, zoomAbout, panByPixels
+    pan.ts                  # createPan(container, deps)
+    reschedule.ts           # createReschedule(container, deps)
+    quick-add-zones.ts      # createQuickAddZones(container, deps)
   event-modal.ts
 ```
 
-## Module shape
+## Module shapes
 
-Every timeline module exports a factory:
+**Render modules** export a plain `renderX(host, ...)` function. They
+take whatever state they need and re-render idempotently. No
+listeners, no internal DOM ownership beyond the children of `host`.
 
 ```ts
-export function createCardLayer(host: HTMLElement, deps: CardDeps) {
-  // attach DOM, listeners, etc.
-  return {
-    update(state: ViewState) { /* re-render */ },
-    destroy() { /* remove listeners, clear DOM */ },
-  };
+export function renderAxis(host: HTMLElement, view: ViewState, size: ViewportSize): void {
+  host.innerHTML = '';
+  // build axis DOM from view + size
 }
 ```
 
-`app.ts` calls `update(state)` whenever ViewState changes. `destroy()`
-runs on view-switch (timeline → notes).
+**Interaction modules** export a `createX(host, deps) → controller`
+factory. The controller has `destroy()` plus a small status API used
+by peers and by the click handler in `app.ts`.
+
+```ts
+export interface PanController {
+  destroy(): void;
+  isDragging(): boolean;       // for peers — should I yield?
+  wasMoved(): boolean;         // for the click handler — suppress?
+}
+export function createPan(container: HTMLElement, deps: PanDeps): PanController;
+```
+
+`app.ts` constructs interactions in priority order, threads `getView`
+/ `setView` callbacks through deps, and never reads the modules'
+internal state directly.
 
 ## Coordinate math
 
@@ -66,24 +81,37 @@ runs on view-switch (timeline → notes).
 ## Add a render module
 
 1. Create `src/timeline/render/<feature>.ts` exporting
-   `create<Feature>Layer(host, deps)`.
-2. In the factory, create the DOM scaffolding once and store
-   references.
-3. `update(state)` re-renders idempotently from `state`. Reuse DOM
-   nodes; don't `innerHTML = ''` on every frame.
-4. `app.ts` wires it in.
-5. Tests: layout math goes in a sibling `.test.ts` (no DOM); see
-   `session-band.test.ts`.
+   `render<Feature>(host, ...args)`.
+2. The function builds DOM from its arguments. It's called by `app.ts`
+   from `renderTimeline()` on every state change — keep it cheap.
+3. Pure layout math (e.g. card placement) goes in a sibling
+   `.test.ts`; see `render/session-bands.test.ts` for the pattern.
+4. `app.ts` wires it into `renderTimeline()`.
 
 ## Add an interaction module
 
 1. Create `src/timeline/interactions/<feature>.ts` exporting
-   `create<Feature>(host, deps)`.
-2. Attach listeners in the factory; remove them in `destroy()`.
-3. Don't mutate DOM directly except for transient feedback (e.g.
-   cursor style). Persistent visuals are render's job.
-4. State changes go via callbacks in `deps`:
-   `deps.onZoomChange(nextViewState)`.
+   `create<Feature>(container, deps) → controller`.
+2. Attach listeners in the factory. Remove them in `destroy()`. Any
+   gesture-owned DOM (drag label, hover indicator) is created inside
+   the factory and removed in `destroy()`.
+3. State changes go via callbacks in `deps`:
+   `deps.setView(nextViewState)`, `deps.onQuickAdd(seconds)`, …
+4. Expose a status API for peers: `isActive()` / `wasMoved()` /
+   `wasActivated()`. Read-only peeks; clear flags on the next
+   mousedown so both `app.ts` and other interactions can poll without
+   stepping on each other.
+5. If your interaction needs to coordinate with an existing one
+   (mousedown precedence, click suppression), wire it through deps —
+   don't reach into another module's state.
+
+### Coordination patterns the timeline already uses
+
+- **Mousedown precedence**: `reschedule` registers before `pan`; pan
+  checks `deps.isOtherDragActive()` before claiming the gesture.
+- **Click suppression**: both the `cardsLayer` click in `app.ts` and
+  the container click in `quick-add-zones` peek `pan.wasMoved()` and
+  `reschedule.wasActivated()`. The flags clear on the next mousedown.
 
 ## Touching the data layer
 
