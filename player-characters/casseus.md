@@ -1,5 +1,4 @@
 # Casseus The Gorgon
-Casseus The Gorgon
 Ancestry: Minotaur
 Class: Demonic Dragon Instinct Barbarian
 Weapon of choice: Dorn-Dergar
