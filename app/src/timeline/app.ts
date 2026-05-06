@@ -8,10 +8,10 @@ import { openAdvanceTimePopover, openSessionManagerPopover } from '../panels/too
 import {
   type ViewState, type ViewportSize,
   DEFAULT_SECONDS_PER_PIXEL, SECONDS_PER_DAY, zoomAbout, panByPixels, xToSeconds, secondsToX,
-} from './zoom.ts';
-import { renderAxis } from './axis.ts';
-import { layoutCards, renderCards, type CardExpansion } from './card.ts';
-import { computeSessionBands, renderSessionBands, findSessionConflicts } from './session-band.ts';
+} from './interactions/zoom.ts';
+import { renderAxis } from './render/axis.ts';
+import { layoutCards, renderCards, type CardExpansion } from './render/cards.ts';
+import { computeSessionBands, renderSessionBands, findSessionConflicts } from './render/session-bands.ts';
 import { openCreateEditor, openEditEditor } from '../editor/modal/index.ts';
 import type { FilterState } from '../panels/filters/types.ts';
 import { makeInitialFilterState, applyFilters } from '../panels/filters/logic.ts';

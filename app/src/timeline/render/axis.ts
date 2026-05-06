@@ -1,6 +1,6 @@
-import { type ViewState, type ViewportSize, xToSeconds, secondsToX, SECONDS_PER_DAY } from './zoom.ts';
-import { fromAbsoluteDays, toAbsoluteDays, daysInMonth, monthName } from '../calendar/golarian.ts';
-import { formatAxisDay } from '../calendar/format.ts';
+import { type ViewState, type ViewportSize, xToSeconds, secondsToX, SECONDS_PER_DAY } from '../interactions/zoom.ts';
+import { fromAbsoluteDays, toAbsoluteDays, daysInMonth, monthName } from '../../calendar/golarian.ts';
+import { formatAxisDay } from '../../calendar/format.ts';
 
 /**
  * Render axis major tick marks and labels for the visible range.

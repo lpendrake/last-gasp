@@ -1,9 +1,9 @@
 import MarkdownIt from 'markdown-it';
-import type { EventListItem } from '../data/types.ts';
-import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
-import { formatCardFace } from '../calendar/format.ts';
-import { weekdayColor } from '../theme.ts';
-import { type ViewState, type ViewportSize, secondsToX } from './zoom.ts';
+import type { EventListItem } from '../../data/types.ts';
+import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
+import { formatCardFace } from '../../calendar/format.ts';
+import { weekdayColor } from '../../theme.ts';
+import { type ViewState, type ViewportSize, secondsToX } from '../interactions/zoom.ts';
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
 
