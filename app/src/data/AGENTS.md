@@ -8,13 +8,12 @@ implement them. Domain code never imports an adapter directly.
 
 ```
 data/
-  ports.ts          # interfaces: EventStore, NoteStore, StateStore, …
+  ports.ts          # interfaces: EventStore, NoteStore, StateStore, LinkStore, …
   http/             # adapter that fetches /api/*
     client.ts       # fetch wrapper + ApiError
     events.http.ts
     notes.http.ts
-    state.http.ts
-    sessions.http.ts
+    state.http.ts   # state, sessions, tags
     links.http.ts
   <other-adapter>/  # one folder per additional backend
   types.ts          # shared DTOs (EventListItem, NoteEntry, …)

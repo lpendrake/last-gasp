@@ -7,7 +7,7 @@ notes (NPCs, locations, factions, plots, etc.). React, not vanilla DOM.
 
 ```
 notes/
-  Notes.tsx                   # slice orchestrator
+  Notes.tsx                   # slice orchestrator (see "Notes.tsx ceiling" below)
   types.ts
   hooks/
     useSaveSync.ts            # autosave + mtime conflict
@@ -29,9 +29,27 @@ notes/
       line.ts                 # classifyLine, lineHtml
       caret.ts                # save/restoreCaret
     upload.ts                 # handlePaste image conversion
-  services/
-    file-ops.ts               # rename / delete / move / migrate
 ```
+
+A `services/` folder may be added when a piece of non-React logic is
+testable and reused. None of the current code qualifies — see the
+Notes.tsx ceiling note below for why the file-operations handlers stay
+on the orchestrator.
+
+## Notes.tsx ceiling
+
+`Notes.tsx` is around 730 lines, above the 300-line soft cap and below
+the 500-line hard cap. The file-ops handlers (`handleRename`,
+`handleDeleteFile`, `handleMove`, `migrateKey`, `migrateDirKeys`) each
+touch ~10 setState slots and don't have a natural home outside the
+orchestrator without dragging the same setters along as deps. Treat the
+current size as the documented ceiling.
+
+If `Notes.tsx` grows past 800 lines, revisit: candidates are moving the
+rename/delete UI state into `FolderSidebar` end-to-end, or extracting
+the handlers into a `useNotesFileOps(state, setters)` hook. Until then,
+adding new orchestrator-level glue is fine; new logic that isn't glue
+goes into a hook, component, or (eventually) a service.
 
 ## Layer rules
 

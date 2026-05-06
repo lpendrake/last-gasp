@@ -5,13 +5,14 @@ domain results into HTTP responses.
 
 ## What lives here
 
-- `router.ts` — `(method, path) → handler` dispatch.
+- `router.ts` — `Route[]` dispatch (`dispatch(routes, req, res)`); a
+  route is `{ method, pattern, handler }`.
 - `responses.ts` — `sendJson`, `sendError`, status code helpers.
 - `body.ts` — `readBody` (JSON), `readTextBody`, `readBinaryBody`.
 - `<entity>.routes.ts` — one file per entity:
   `events.routes.ts`, `notes.routes.ts`, `state.routes.ts`,
-  `trash.routes.ts`, `git.routes.ts`, `links.routes.ts`,
-  `assets.routes.ts`. Each exports `register<Entity>Routes(router, deps)`.
+  `trash.routes.ts`, `git.routes.ts`. Each exports
+  `<entity>Routes(deps) → Route[]`.
 
 ## Allowed imports
 
@@ -33,12 +34,21 @@ domain results into HTTP responses.
 ## Handler shape
 
 ```ts
-export function registerEventRoutes(router, deps) {
-  router.add('GET', '/api/events', async (req, res) => {
-    const query = parseQuery(req.url);
-    const result = await listEvents(deps.events, query);  // domain fn
-    sendJson(res, 200, result);
-  });
+import type { Route } from './router.ts';
+import { sendJson } from './responses.ts';
+import { listEvents } from '../domain/events.ts';
+
+export function eventRoutes(deps: { events: EventStore }): Route[] {
+  return [
+    {
+      method: 'GET',
+      pattern: /^\/api\/events$/,
+      async handler(req, res) {
+        const result = await listEvents(deps.events, parseQuery(req.url));
+        sendJson(res, 200, result);
+      },
+    },
+  ];
 }
 ```
 
@@ -52,8 +62,9 @@ domain → shape response. Anything more belongs in `domain/`.
 - 409 for mtime conflicts (use the helper in `responses.ts`).
 - 500 only for genuinely unexpected errors. Domain errors are mapped
   to specific status codes by name, not rethrown.
-- Routes are registered in `server/index.ts`; this file does not run on
-  import.
+- Routes are spread into a single `Route[]` table in `server/index.ts`
+  (`[...eventRoutes(deps), ...stateRoutes(deps), …]`); this file does
+  not run on import.
 
 ## Don't
 
