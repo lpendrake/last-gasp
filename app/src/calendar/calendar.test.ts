@@ -178,7 +178,7 @@ describe('format', () => {
     expect(formatCompact(date)).toBe('Wed 4 Desnus 4726');
   });
   it('formatAxisDay', () => {
-    expect(formatAxisDay(date)).toBe('4 Desnus');
+    expect(formatAxisDay(date)).toBe('Wed 4 Desnus');
   });
   it('formatFloatingDay', () => {
     expect(formatFloatingDay(date)).toBe('Desnus 4th, Wednesday, 4726 AR');
