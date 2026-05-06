@@ -759,7 +759,7 @@ export function NotesApp() {
         {/* Sidebar */}
         <aside className="notes-sidebar">
           <div className="sidebar-header">
-            <div className="sidebar-title">VAULT · last-gasp</div>
+            <div className="sidebar-title">The Last Gasp Of Civilisation</div>
             <input
               className="sidebar-filter"
               placeholder="filter notes…"
