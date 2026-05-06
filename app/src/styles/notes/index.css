@@ -1,0 +1,37 @@
+/* ============================================================
+   Notes view styles — inherits palette from base.css
+
+   Imports below are in cascade order. Per CSS spec, @import must
+   appear before any rules in this file; tokens + shell layout
+   follow them.
+   ============================================================ */
+
+@import './sidebar.css';
+@import './tabs.css';
+@import './editor-surface.css';
+@import './markdown.css';
+@import './link-picker.css';
+@import './quick-add.css';
+@import './toast.css';
+@import './confirm.css';
+@import './context-menu.css';
+
+/* Kind colour variables (echoing palette.json) */
+:root {
+  --kind-npc:            #8da8c4;
+  --kind-location:       #d4a850;
+  --kind-faction:        #c06040;
+  --kind-plot:           #7560a0;
+  --kind-rule:           #6a9a4a;
+  --kind-session:        #5a8090;
+  --kind-misc:           #7a6f58;
+  --kind-player-facing:  #a07850;
+}
+
+/* ---- Shell ---- */
+.notes-shell {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
