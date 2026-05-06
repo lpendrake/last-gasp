@@ -15,7 +15,7 @@ import { FolderSidebar } from './components/FolderSidebar.tsx';
 import {
   tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
-  type ConfirmState,
+  type ConfirmState, folderColor,
 } from './types.ts';
 import { useSaveSync } from './hooks/useSaveSync.ts';
 import { useFolderTree } from './hooks/useFolderTree.ts';
