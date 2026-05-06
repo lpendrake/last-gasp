@@ -19,3 +19,5 @@ The dampners will piss off the elementals, it's like having dog whistles going a
 Paused mid combat, start of round 8
 Since the magus got two failures on his checks which were prompt, they just need to keep the keep the portal safe for another round while it closes.
 Enemies haven't had any success at closing it so far so they're gonna want to rush the portal and try to close it.
+
+They closed it successfully
