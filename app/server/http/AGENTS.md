@@ -33,27 +33,49 @@ domain results into HTTP responses.
 
 ## Handler shape
 
+Patterns use path strings with `:param` (single segment) or `:param*`
+(greedy, slashes allowed). `defineRoute` compiles them into the regex.
+Handlers receive `(req, res, params)` where `params` is
+`Record<string, string>`.
+
 ```ts
-import type { Route } from './router.ts';
+import { defineRoute, type Route } from './router.ts';
 import { sendJson } from './responses.ts';
-import { listEvents } from '../domain/events.ts';
+import { listEvents, getEvent } from '../domain/events.ts';
+import type { EventStore } from '../data/ports.ts';
 
 export function eventRoutes(deps: { events: EventStore }): Route[] {
   return [
-    {
-      method: 'GET',
-      pattern: /^\/api\/events$/,
-      async handler(req, res) {
-        const result = await listEvents(deps.events, parseQuery(req.url));
-        sendJson(res, 200, result);
-      },
-    },
+    defineRoute('GET', '/api/events', async (_req, res) => {
+      const result = await listEvents(deps.events);
+      sendJson(res, 200, result);
+    }),
+
+    defineRoute('GET', '/api/events/:filename', async (_req, res, params) => {
+      const filename = decodeURIComponent(params.filename);
+      const { event, mtime } = await getEvent(deps.events, filename);
+      sendJson(res, 200, event, { 'Last-Modified': mtime.toUTCString() });
+    }),
   ];
 }
 ```
 
 Handlers do four things, in order: parse request → validate → call
 domain → shape response. Anything more belongs in `domain/`.
+
+### Crossing the HTTP ↔ domain boundary
+
+- **Request body**: `readBody(req)` returns the parsed JSON typed as
+  `unknown`; validate the shape before passing it to the domain layer.
+  `readTextBody`/`readBinaryBody` cover non-JSON payloads.
+- **Filenames vs ids**: URL paths and on-disk filenames carry the
+  `.md` extension; the domain and ports speak in bare ids. Strip
+  `.md` (or pass through `:filename` as the existing routes do — note
+  files use the bare path) at this layer; never let the extension
+  reach a domain function.
+- **Status codes**: 200 for read/update, 201 for create-style
+  endpoints, 400 for validation, 404 for missing, 409 for mtime
+  conflicts, 500 only for genuinely unexpected errors.
 
 ## Conventions
 

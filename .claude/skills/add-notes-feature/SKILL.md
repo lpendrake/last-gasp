@@ -96,6 +96,11 @@ notes/
   component.
 - Autosave goes through `useSaveSync`. Don't add a parallel save
   path.
+- If the feature needs a new backend operation, that's an API route
+  change first (see `add-api-route`) and a `data/ports.ts` +
+  `data/http/<entity>.http.ts` change second (see
+  `add-data-store-method`). The notes-feature work consumes those
+  ports — it doesn't design them.
 
 ## Style
 
