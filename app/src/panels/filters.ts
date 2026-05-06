@@ -1,34 +1,11 @@
 import Fuse from 'fuse.js';
 import type { EventListItem, TagsRegistry } from '../data/types.ts';
 import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
+import type {
+  DateField, TagFilter, DateFilter, Filter, FilterState,
+} from './filters/types.ts';
 
-// ---- Types ----
-
-export type DateField = 'in-game' | 'session' | 'creation';
-
-export interface TagFilter {
-  id: string;
-  type: 'tag';
-  enabled: boolean;
-  pinned: boolean;
-  tags: string[]; // OR'd together
-}
-
-export interface DateFilter {
-  id: string;
-  type: 'date';
-  enabled: boolean;
-  pinned: boolean;
-  field: DateField;
-  from: string | null; // YYYY-MM-DD
-  to: string | null;   // YYYY-MM-DD (inclusive whole day)
-}
-
-export type Filter = TagFilter | DateFilter;
-
-export interface FilterState {
-  filters: Filter[];
-}
+export type { DateField, TagFilter, DateFilter, Filter, FilterState };
 
 export function makeInitialFilterState(): FilterState {
   return { filters: [] };
