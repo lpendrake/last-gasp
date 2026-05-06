@@ -1,0 +1,22 @@
+/* ---- Toasts ---- */
+.notes-toasts {
+  position: fixed;
+  bottom: 60px;
+  right: 16px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  z-index: 400;
+  pointer-events: none;
+}
+.notes-toast {
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-left: 3px solid var(--theme-accent-gold, #c9a860);
+  color: var(--theme-text-primary, #d8d0b8);
+  padding: 8px 14px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 13px;
+  border-radius: 2px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+}

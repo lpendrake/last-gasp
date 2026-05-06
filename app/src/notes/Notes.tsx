@@ -1,25 +1,24 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   listNoteFolders, createNoteFolder, listNotes,
-  getNote, createNote, putNote, deleteNote,
+  getNote, createNote, deleteNote,
   renameNote, renameNoteFolder, deleteNoteFolder,
 } from '../data/http/notes.http.ts';
 import { getLinkIndex } from '../data/http/links.http.ts';
 import type { LinkIndexEntry } from '../data/types.ts';
-import { LiveEditor } from './LiveEditor.tsx';
-import { QuickAdd } from './QuickAdd.tsx';
-import { NoteContextMenu, type ContextMenuTarget } from './NoteContextMenu.tsx';
+import { QuickAdd } from './components/QuickAdd.tsx';
+import { NoteContextMenu, type ContextMenuTarget } from './components/NoteContextMenu.tsx';
+import { EditorTabs } from './components/EditorTabs.tsx';
+import { BreadcrumbNav } from './components/BreadcrumbNav.tsx';
+import { EditorContent, type RenderMode } from './components/EditorContent.tsx';
+import { FolderSidebar } from './components/FolderSidebar.tsx';
 import {
-  buildTree, folderColor, tabKey, slugify, ASSET_EXTS,
+  tabKey, slugify, ASSET_EXTS,
   type NoteEntry, type OpenTab, type FileState, type Toast,
-  type ConfirmState, type TreeNode,
+  type ConfirmState, folderColor,
 } from './types.ts';
-
-const DRAG_MIME = 'application/x-last-gasp-note';
-interface NoteDragPayload { folder: string; path: string; kind: 'file' | 'dir' | 'topfolder'; displayName: string; }
-
-type RenderMode = 'live' | 'source' | 'split';
-type SaveStatus = 'dirty' | 'saving' | 'saved' | 'clean';
+import { useSaveSync } from './hooks/useSaveSync.ts';
+import { useFolderTree } from './hooks/useFolderTree.ts';
 
 export function NotesApp() {
   // ---- Data ----
@@ -67,8 +66,16 @@ export function NotesApp() {
   const [quickAddFolder, setQuickAddFolder] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
-  const [savingState, setSavingState] = useState<Record<string, SaveStatus>>({});
-  const [savedAt, setSavedAt] = useState<Record<string, string>>({});
+
+  const pushToast = useCallback((message: string) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { id, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2600);
+  }, []);
+
+  const { savingState, setSavingState, savedAt, setSavedAt } = useSaveSync({
+    openFiles, setOpenFiles, setFolderFiles, pushToast,
+  });
 
   const activeTabRef = useRef<OpenTab | null>(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
@@ -103,46 +110,6 @@ export function NotesApp() {
     if (!location.pathname.startsWith('/notes')) return;
     history.replaceState(null, '', activeTab ? `/notes/${activeTab.folder}/${activeTab.path}` : '/notes');
   }, [activeTab]);
-
-  // ---- Auto-save ----
-  useEffect(() => {
-    const dirtyKeys = Object.entries(savingState)
-      .filter(([, v]) => v === 'dirty')
-      .map(([k]) => k);
-    if (dirtyKeys.length === 0) return;
-    const id = setTimeout(async () => { // 2s debounce: save 2s after last change
-      for (const key of dirtyKeys) {
-        const slashIdx = key.indexOf('/');
-        const folder = key.slice(0, slashIdx);
-        const path = key.slice(slashIdx + 1);
-        const file = openFiles[key];
-        if (!file || file.content === null) continue;
-        setSavingState(prev => ({ ...prev, [key]: 'saving' }));
-        try {
-          const newMtime = await putNote(folder, path, file.content, file.mtime || undefined);
-          setOpenFiles(prev => ({ ...prev, [key]: { ...prev[key], mtime: newMtime, dirty: false } }));
-          setSavingState(prev => ({ ...prev, [key]: 'saved' }));
-          setSavedAt(prev => ({ ...prev, [key]: new Date().toLocaleTimeString() }));
-          setTimeout(() => {
-            setSavingState(prev => prev[key] === 'saved' ? { ...prev, [key]: 'clean' } : prev);
-          }, 1100);
-          // Refresh title in folder index
-          const m = /^#\s+(.+)$/m.exec(file.content);
-          const title = m ? m[1].trim() : path.replace(/\.md$/, '');
-          setFolderFiles(prev => {
-            const entries = prev[folder];
-            if (!entries) return prev;
-            return { ...prev, [folder]: entries.map(e => e.path === path ? { ...e, title } : e) };
-          });
-        } catch (err) {
-          console.error('Save failed', err);
-          pushToast(`Failed to save ${key}`);
-          setSavingState(prev => ({ ...prev, [key]: 'dirty' }));
-        }
-      }
-    }, 2000);
-    return () => clearTimeout(id);
-  }, [savingState, openFiles]);
 
   // ---- Global hotkeys ----
   useEffect(() => {
@@ -596,413 +563,69 @@ export function NotesApp() {
     openFile(folder, path).catch(() => pushToast(`Note not found: ${folder}/${path}`));
   }
 
-  const pushToast = useCallback((message: string) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts(prev => [...prev, { id, message }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 2600);
-  }, []);
-
   // ---- Trees ----
-  const folderTrees = useMemo(() => {
-    const out: Record<string, TreeNode[]> = {};
-    for (const f of folders) {
-      const entries = folderFiles[f];
-      out[f] = entries ? buildTree(entries) : [];
-    }
-    return out;
-  }, [folders, folderFiles]);
+  const folderTrees = useFolderTree(folders, folderFiles);
 
   const activeFile = activeTab ? openFiles[tabKey(activeTab)] : null;
-
-  function titleForTab(tab: OpenTab): string {
-    return tab.path.split('/').pop()?.replace(/\.md$/, '') ?? tab.path;
-  }
-
-  // ---- Sidebar tree node renderer ----
-  function renderTreeNode(node: TreeNode, topFolder: string, depth: number): React.ReactNode {
-    const indent = depth * 12;
-    if (node.kind === 'file') {
-      const isAsset = node.fileKind === 'asset';
-      const isActive = activeTab?.folder === topFolder && activeTab.path === node.path;
-      const file = openFiles[`${topFolder}/${node.path}`];
-      const isRenaming = renamingKey === `${topFolder}/${node.path}`;
-      const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'file', displayName: node.name.replace(/\.md$/, '') };
-      return (
-        <button
-          key={node.path}
-          className={`file-row${isAsset ? ' is-asset' : ''}${isActive ? ' is-active' : ''}`}
-          style={{ '--kind-color': folderColor(topFolder), paddingLeft: 8 + indent } as React.CSSProperties}
-          draggable
-          onClick={() => openFile(topFolder, node.path, isAsset ? 'asset' : undefined)}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'file', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', dragPayload.displayName); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragEnd={() => setDragTarget(null)}
-        >
-          <span className={`file-dot${isAsset ? ' is-asset' : ''}`} />
-          {isRenaming ? (
-            <input
-              className="new-file-input"
-              autoFocus
-              defaultValue={node.name.replace(/\.md$/, '')}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
-            />
-          ) : (
-            <span className="file-name">{isAsset ? node.name : node.name.replace(/\.md$/, '')}</span>
-          )}
-          {file?.dirty && !isRenaming && <span className="file-dirty">●</span>}
-        </button>
-      );
-    }
-    const dirKey = `${topFolder}/${node.path}`;
-    const isOpen = openFolderPaths.has(dirKey);
-    const isDragOver = dragTarget === dirKey;
-    const isRenaming = renamingKey === dirKey;
-    const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'dir', displayName: node.name };
-    return (
-      <div key={node.path} className="sidebar-folder">
-        <button
-          className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
-          style={{ paddingLeft: 4 + indent } as React.CSSProperties}
-          draggable
-          onClick={() => { setOpenFolderPaths(prev => { const next = new Set(prev); if (next.has(dirKey)) next.delete(dirKey); else next.add(dirKey); return next; }); }}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'dir', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', node.name); e.dataTransfer.effectAllowed = 'move'; }}
-          onDragEnd={() => setDragTarget(null)}
-          onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(dirKey); }}
-          onDragLeave={() => setDragTarget(prev => prev === dirKey ? null : prev)}
-          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); handleMove(p.folder, p.path, topFolder, node.path); }}
-        >
-          <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-          {isRenaming ? (
-            <input
-              className="new-file-input"
-              autoFocus
-              defaultValue={node.name}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRename(topFolder, node.path, e.target.value); }}
-            />
-          ) : (
-            <span className="folder-name">{node.name}/</span>
-          )}
-        </button>
-        {isOpen && (
-          <div className="folder-children">
-            {node.children.map(child => renderTreeNode(child, topFolder, depth + 1))}
-            {creatingDirIn?.folder === topFolder && creatingDirIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
-                <span className="folder-caret">▸</span>
-                <input
-                  className="new-file-input"
-                  autoFocus
-                  placeholder="folder-name"
-                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingDirIn(null); }}
-                  onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
-                />
-              </div>
-            )}
-            {creatingIn?.folder === topFolder && creatingIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
-                <span className="file-dot" style={{ '--kind-color': folderColor(topFolder) } as React.CSSProperties} />
-                <input
-                  className="new-file-input"
-                  autoFocus
-                  placeholder="new-note-title"
-                  onKeyDown={(e) => { if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingIn(null); }}
-                  onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function filterMatchesNode(node: TreeNode, q: string): boolean {
-    if (node.kind === 'file') return node.title.toLowerCase().includes(q) || node.path.toLowerCase().includes(q);
-    return node.children.some(child => filterMatchesNode(child, q));
-  }
-
-  function renderFilteredNodes(nodes: TreeNode[], topFolder: string, q: string, depth: number): React.ReactNode[] {
-    const result: React.ReactNode[] = [];
-    for (const node of nodes) {
-      if (!filterMatchesNode(node, q)) continue;
-      if (node.kind === 'file') {
-        result.push(renderTreeNode(node, topFolder, depth));
-      } else {
-        const children = renderFilteredNodes(node.children, topFolder, q, depth + 1);
-        if (children.length > 0) {
-          const indent = depth * 12;
-          result.push(
-            <div key={node.path}>
-              <div className="folder-row is-open" style={{ paddingLeft: 4 + indent } as React.CSSProperties}>
-                <span className="folder-caret">▾</span>
-                <span className="folder-name">{node.name}/</span>
-              </div>
-              <div className="folder-children">{children}</div>
-            </div>,
-          );
-        }
-      }
-    }
-    return result;
-  }
-
-  const q = filter.toLowerCase().trim();
 
   return (
     <>
       <div className="notes-shell">
-        {/* Sidebar */}
-        <aside className="notes-sidebar">
-          <div className="sidebar-header">
-            <div className="sidebar-title">VAULT · last-gasp</div>
-            <input
-              className="sidebar-filter"
-              placeholder="filter notes…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          </div>
-          <div className="sidebar-tree">
-            {folders.map(folder => {
-              const isOpen = openFolderPaths.has(folder);
-              const entries = folderFiles[folder];
-              const count = entries?.length ?? '…';
-              const tree = folderTrees[folder] ?? [];
-              const isDragOver = dragTarget === folder;
-              const topDragPayload: NoteDragPayload = { folder, path: '', kind: 'topfolder', displayName: folder };
-              return (
-                <div key={folder} className="sidebar-folder">
-                  <button
-                    className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
-                    style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
-                    draggable
-                    onClick={() => toggleFolder(folder, folder)}
-                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'topfolder', folder, x: e.clientX, y: e.clientY }); }}
-                    onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(topDragPayload)); e.dataTransfer.setData('text/plain', folder); e.dataTransfer.effectAllowed = 'move'; }}
-                    onDragEnd={() => setDragTarget(null)}
-                    onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(folder); }}
-                    onDragLeave={() => setDragTarget(prev => prev === folder ? null : prev)}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); if (p.kind !== 'topfolder') handleMove(p.folder, p.path, folder); }}
-                  >
-                    <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
-                    {renamingKey === folder ? (
-                      <input
-                        className="new-file-input"
-                        autoFocus
-                        defaultValue={folder}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-                        onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; handleRenameFolder(folder, e.target.value); }}
-                      />
-                    ) : (
-                      <>
-                        <span className="folder-name">{folder}/</span>
-                        <span className="folder-count">{count}</span>
-                      </>
-                    )}
-                    <span
-                      className="folder-add"
-                      title={`New in ${folder}/`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isOpen) {
-                          toggleFolder(folder, folder).then(() => setCreatingIn({ folder }));
-                        } else {
-                          setCreatingIn({ folder });
-                        }
-                      }}
-                    >+</span>
-                  </button>
-                  {isOpen && (
-                    <div className="folder-children">
-                      {entries === null ? (
-                        <div className="file-row" style={{ color: 'var(--theme-text-muted)', fontStyle: 'italic', cursor: 'default' }}>loading…</div>
-                      ) : q ? (
-                        renderFilteredNodes(tree, folder, q, 0)
-                      ) : (
-                        tree.map(node => renderTreeNode(node, folder, 0))
-                      )}
-                      {creatingDirIn?.folder === folder && !creatingDirIn.subdir && (
-                        <div className="new-file-row">
-                          <span className="folder-caret">▸</span>
-                          <input
-                            className="new-file-input"
-                            autoFocus
-                            placeholder="folder-name"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNewDirInFolder(creatingDirIn, e.currentTarget.value);
-                              if (e.key === 'Escape') setCreatingDirIn(null);
-                            }}
-                            onBlur={(e) => commitNewDirInFolder(creatingDirIn!, e.target.value)}
-                          />
-                        </div>
-                      )}
-                      {creatingIn?.folder === folder && (!creatingIn.subdir || !tree.some(n => n.kind === 'dir' && n.path === creatingIn.subdir)) && (
-                        <div className="new-file-row">
-                          <span className="file-dot" style={{ '--kind-color': folderColor(folder) } as React.CSSProperties} />
-                          {creatingIn.subdir && <span style={{ color: 'var(--theme-text-muted)', fontSize: 12 }}>{creatingIn.subdir}/</span>}
-                          <input
-                            className="new-file-input"
-                            autoFocus
-                            placeholder="new-note-title"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNewFileInFolder(creatingIn, e.currentTarget.value);
-                              if (e.key === 'Escape') setCreatingIn(null);
-                            }}
-                            onBlur={(e) => commitNewFileInFolder(creatingIn!, e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {newFolderMode ? (
-              <div className="new-folder-row">
-                <input
-                  className="new-folder-input"
-                  autoFocus
-                  placeholder="folder-name"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCreateFolder(e.currentTarget.value);
-                    if (e.key === 'Escape') setNewFolderMode(false);
-                  }}
-                  onBlur={(e) => handleCreateFolder(e.target.value)}
-                />
-              </div>
-            ) : (
-              <button className="new-folder-btn" onClick={() => setNewFolderMode(true)}>+ new folder</button>
-            )}
-          </div>
-        </aside>
+        <FolderSidebar
+          folders={folders}
+          folderFiles={folderFiles}
+          folderTrees={folderTrees}
+          openFiles={openFiles}
+          activeTab={activeTab}
+          filter={filter}
+          openFolderPaths={openFolderPaths}
+          creatingIn={creatingIn}
+          creatingDirIn={creatingDirIn}
+          newFolderMode={newFolderMode}
+          renamingKey={renamingKey}
+          dragTarget={dragTarget}
+          setFilter={setFilter}
+          setCreatingIn={setCreatingIn}
+          setCreatingDirIn={setCreatingDirIn}
+          setNewFolderMode={setNewFolderMode}
+          setRenamingKey={setRenamingKey}
+          setDragTarget={setDragTarget}
+          setOpenFolderPaths={setOpenFolderPaths}
+          setContextMenu={setContextMenu}
+          onToggleFolder={toggleFolder}
+          onOpenFile={openFile}
+          onMove={handleMove}
+          onCreateFolder={handleCreateFolder}
+          onRenameFolder={handleRenameFolder}
+          onRename={handleRename}
+          onCommitNewFileInFolder={commitNewFileInFolder}
+          onCommitNewDirInFolder={commitNewDirInFolder}
+        />
 
         {/* Main */}
         <main className="notes-main">
-          {tabs.length > 0 && (
-            <div className="tabs-bar">
-              {tabs.map(tab => {
-                const isActive = activeTab?.folder === tab.folder && activeTab.path === tab.path;
-                const file = openFiles[tabKey(tab)];
-                return (
-                  <div
-                    key={tabKey(tab)}
-                    className={`tab${isActive ? ' is-active' : ''}`}
-                    style={{ '--kind-color': folderColor(tab.folder) } as React.CSSProperties}
-                    onClick={() => openFile(tab.folder, tab.path)}
-                    onMouseDown={(e) => { if (e.button === 1) { e.preventDefault(); closeTab(tab); } }}
-                  >
-                    <span className="tab-dot" />
-                    <span className="tab-label">{titleForTab(tab)}</span>
-                    {file?.dirty && <span className="tab-dirty">●</span>}
-                    <button className="tab-close" onClick={(e) => { e.stopPropagation(); closeTab(tab); }} title="Close">×</button>
-                  </div>
-                );
-              })}
-            </div>
+          <EditorTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            openFiles={openFiles}
+            onSelect={(tab) => openFile(tab.folder, tab.path)}
+            onClose={closeTab}
+          />
+
+          {activeTab && (
+            <BreadcrumbNav activeTab={activeTab} savingState={savingState} savedAt={savedAt} />
           )}
 
-          {activeTab && (() => {
-            const key = tabKey(activeTab);
-            const status: SaveStatus = savingState[key] ?? 'clean';
-            const at = savedAt[key];
-            const statusText: Record<SaveStatus, string> = {
-              clean: at ? `saved ${at}` : 'saved',
-              dirty: 'unsaved',
-              saving: 'saving…',
-              saved: at ? `saved ${at}` : 'saved ✓',
-            };
-            const pathParts = activeTab.path.split('/');
-            return (
-              <div className="breadcrumbs">
-                <span className="breadcrumb-segment">vault</span>
-                <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-segment">{activeTab.folder}</span>
-                {pathParts.slice(0, -1).map((part, i) => (
-                  <React.Fragment key={i}>
-                    <span className="breadcrumb-sep">/</span>
-                    <span className="breadcrumb-segment">{part}</span>
-                  </React.Fragment>
-                ))}
-                <span className="breadcrumb-sep">/</span>
-                <span className="breadcrumb-segment is-leaf">{pathParts[pathParts.length - 1]}</span>
-                <span className={`breadcrumb-status is-${status}`}>{statusText[status]}</span>
-              </div>
-            );
-          })()}
-
-          {!activeTab ? (
-            <div className="empty-pane">
-              <div className="empty-pane-mark">∅</div>
-              <div>No note open</div>
-              <div className="empty-pane-hint">
-                Pick a note from the sidebar, or press <kbd>Ctrl+K</kbd> to create one.
-              </div>
-            </div>
-          ) : activeTab.fileKind === 'asset' ? (
-            <div className="image-pane">
-              <img
-                src={`/api/notes/${encodeURIComponent(activeTab.folder)}/${activeTab.path}`}
-                alt={activeTab.path.split('/').pop()}
-              />
-            </div>
-          ) : !activeFile || activeFile.loading || activeFile.content === null ? (
-            <div className="loading-pane">loading…</div>
-          ) : renderMode === 'source' ? (
-            <div className="editor-surface mode-source">
-              <div className="editor-pane">
-                <textarea
-                  className="source-editor"
-                  value={activeFile.content}
-                  onChange={(e) => handleContentChange(activeTab.folder, activeTab.path, e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-            </div>
-          ) : renderMode === 'split' ? (
-            <div className="editor-surface mode-split">
-              <div className="editor-pane">
-                <textarea
-                  className="source-editor"
-                  value={activeFile.content}
-                  onChange={(e) => handleContentChange(activeTab.folder, activeTab.path, e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-              <div className="editor-pane">
-                <LiveEditor
-                  key={tabKey(activeTab) + ':split'}
-                  value={activeFile.content}
-                  onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
-                  currentFolder={activeTab.folder}
-                  linkIndex={linkIndex}
-                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
-                  onOpenLink={handleOpenLink}
-                  onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="editor-surface mode-live">
-              <div className="editor-pane">
-                <LiveEditor
-                  key={tabKey(activeTab) + ':live'}
-                  value={activeFile.content}
-                  onChange={(v) => handleContentChange(activeTab.folder, activeTab.path, v)}
-                  currentFolder={activeTab.folder}
-                  linkIndex={linkIndex}
-                  currentFolderAssets={(folderFiles[activeTab.folder] ?? []).filter(e => e.kind === 'asset').map(e => ({ path: `${activeTab.folder}/${e.path}`, title: e.path.split('/').pop()! }))}
-                  onOpenLink={handleOpenLink}
-                  onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
-                />
-              </div>
-            </div>
-          )}
+          <EditorContent
+            activeTab={activeTab}
+            activeFile={activeFile}
+            renderMode={renderMode}
+            linkIndex={linkIndex}
+            folderFiles={folderFiles}
+            onContentChange={handleContentChange}
+            onOpenLink={handleOpenLink}
+            onTriggerQuickAdd={(sel) => { setQuickAddSeed(sel); setQuickAddFolder(undefined); setQuickAddOpen(true); }}
+          />
         </main>
       </div>
 
