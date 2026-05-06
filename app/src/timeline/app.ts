@@ -13,10 +13,10 @@ import { renderAxis } from './axis.ts';
 import { layoutCards, renderCards, type CardExpansion } from './card.ts';
 import { computeSessionBands, renderSessionBands, findSessionConflicts } from './session-band.ts';
 import { openCreateEditor, openEditEditor } from '../editor/modal/index.ts';
-import {
-  type FilterState, makeInitialFilterState, applyFilters, renderFilterSidebar,
-  loadPinnedFilters, savePinnedFilters,
-} from '../panels/filters.ts';
+import type { FilterState } from '../panels/filters/types.ts';
+import { makeInitialFilterState, applyFilters } from '../panels/filters/logic.ts';
+import { renderFilterSidebar } from '../panels/filters/sidebar.ts';
+import { loadPinnedFilters, savePinnedFilters } from '../panels/filters/persistence.ts';
 import { createSearchOverlay } from '../panels/search.ts';
 import { initPeek } from '../peek/stack.ts';
 import type { EventListItem, TagsRegistry, State } from '../data/types.ts';

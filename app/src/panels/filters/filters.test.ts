@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   applyFilters, matchesFilter, filterSummary,
   makeInitialFilterState, newFilterId,
-  type Filter, type TagFilter, type DateFilter,
-} from './filters.ts';
-import type { EventListItem } from '../data/types.ts';
+} from './logic.ts';
+import type { Filter, TagFilter, DateFilter } from './types.ts';
+import type { EventListItem } from '../../data/types.ts';
 
 function ev(overrides: Partial<EventListItem>): EventListItem {
   return {
