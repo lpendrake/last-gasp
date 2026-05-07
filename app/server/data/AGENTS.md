@@ -7,18 +7,19 @@ depends on the interfaces in `ports.ts`; adapters implement them.
 
 ```
 data/
-  ports.ts          # interfaces: EventStore, NoteStore, StateStore,
-                    #             TrashStore, GitPort
+  ports.ts          # interfaces: EventStore, NoteStore, StateStore, EventTrashStore
   fs/               # filesystem adapter
-    index.ts        # makeFsStores({ root }) — constructs all adapters
-    events.fs.ts
-    notes.fs.ts
-    state.fs.ts
-    trash.fs.ts
+    events.fs.ts    # makeFsEventStore(repoRoot)
+    notes.fs.ts     # makeFsNoteStore(repoRoot)
+    state.fs.ts     # makeFsStateStore(repoRoot)
+    trash.fs.ts     # makeFsEventTrashStore(repoRoot)
     atomic.ts       # writeFileAtomic — the only sanctioned write path
     paths.ts        # safeResolveInRepo, validNoteFolder, safeNoteResolve
   <other-adapter>/  # one folder per additional backend
 ```
+
+The `GitPort` lives outside this folder in `server/git/` (see
+`server/AGENTS.md`); it's a parallel port system, not a `data/` port.
 
 ## The port-vs-adapter rule
 
@@ -33,6 +34,14 @@ serialisation, and atomic writes. A different backend (e.g. a remote
 API) would know about HTTP requests, auth tokens, and retry policy.
 
 If a method on a port mentions a file path, the abstraction has leaked.
+
+## Adapter shape
+
+Each `*.fs.ts` exports a single factory `makeFsXxxStore(repoRoot)` that
+returns the port. The composition root in `server/index.ts` calls each
+factory and threads the resulting ports into the route registrations.
+There is no aggregate `makeFsStores` — adding a new entity means
+adding a new factory and one more call in `index.ts`.
 
 ## Allowed imports
 

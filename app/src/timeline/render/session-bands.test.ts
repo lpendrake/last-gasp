@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { computeSessionBands } from './session-band.ts';
-import type { EventListItem } from '../data/types.ts';
-import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
+import { computeSessionBands } from './session-bands.ts';
+import type { EventListItem } from '../../data/types.ts';
+import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
 
 function makeEvent(overrides: Partial<EventListItem>): EventListItem {
   return {

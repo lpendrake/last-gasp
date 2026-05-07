@@ -1,8 +1,8 @@
-import type { EventListItem } from '../data/types.ts';
-import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
-import { formatCompact } from '../calendar/format.ts';
-import { type ViewState, type ViewportSize, secondsToX } from './zoom.ts';
-import { themeColor } from '../theme.ts';
+import type { EventListItem } from '../../data/types.ts';
+import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
+import { formatCompact } from '../../calendar/format.ts';
+import { type ViewState, type ViewportSize, secondsToX } from '../interactions/zoom.ts';
+import { themeColor } from '../../theme.ts';
 
 export interface SessionBand {
   sessionId: string;

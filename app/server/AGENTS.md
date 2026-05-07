@@ -12,12 +12,18 @@ http/        — request parsing, response shaping, route dispatch
 domain/      — pure business logic, no IO
   │
   ▼
-data/ports.ts ◀── data/fs/                 (current adapter)
+data/ports.ts ◀── data/fs/                 (current persistence adapter)
               ◀── data/<other-adapter>/    (additional adapters)
+
+git/port.ts  ◀── git/exec.ts               (shells out to `git`)
 ```
 
 The composition root in `index.ts` is the only place adapters meet
 handlers.
+
+`git/` is a parallel port system alongside `data/`: the same direction
+of dependency, but its adapter shells out to a `git` binary instead of
+touching the filesystem directly. Treat it like any other port.
 
 ## Layer rules
 
@@ -58,11 +64,15 @@ See `.claude/skills/add-api-route/SKILL.md`. The short version:
 ## Conventions
 
 - Routes go in `http/<entity>.routes.ts`, exporting a function
-  `registerXxxRoutes(router, deps)`.
+  `<entity>Routes(deps) → Route[]` (returns the routes; the
+  composition root spreads them into a single dispatch table).
 - Domain modules export plain functions. They take port objects as
   arguments — no hidden module-level state.
-- mtime-based optimistic concurrency: every write returns the new mtime;
-  every update accepts an `If-Match` mtime and 409s on mismatch.
+- mtime-based optimistic concurrency: every write returns a
+  `Last-Modified` header; every update accepts an `If-Unmodified-Since`
+  request header. The domain layer compares with `mtimeMatch` (second
+  precision per HTTP-date rules) and throws `ConflictError` on
+  mismatch; the handler maps that to 409.
 - Tests cover domain logic against in-memory ports. Integration tests
   against the real fs adapter live in `*.fs.test.ts`.
 

@@ -33,16 +33,21 @@ the cloud migration unchanged.
 ## Function shape
 
 ```ts
-// good — port is an explicit arg
+// good — port is an explicit arg; mtime check via stat + mtimeMatch
 export async function archiveEvent(
   events: EventStore,
-  id: string,
-  ifMatch: number,
-): Promise<{ mtime: number }> {
-  const current = await events.get(id);
-  if (!current) throw new NotFoundError(id);
-  if (current.mtime !== ifMatch) throw new ConflictError(current.mtime);
-  return events.put(id, { ...current.frontmatter, archived: true });
+  filename: string,
+  ifUnmodifiedSince: string | undefined,
+): Promise<{ mtime: Date }> {
+  const stat = await events.stat(filename);
+  if (!stat) throw new NotFoundError(filename);
+  if (ifUnmodifiedSince && !mtimeMatch(ifUnmodifiedSince, stat.mtime)) {
+    throw new ConflictError('File modified since last read');
+  }
+  const current = await events.get(filename);
+  if (!current) throw new NotFoundError(filename);
+  // …compose the new content via yaml.ts and call events.put…
+  return events.put(filename, nextContent);
 }
 
 // bad — module-level state, reaches for fs
@@ -57,7 +62,9 @@ let cache = new Map();
 - Functions are stateless. Module-level mutable state is a smell —
   caches belong in adapters, not in domain.
 - mtime-based optimistic concurrency is the responsibility of this
-  layer, not the HTTP layer.
+  layer, not the HTTP layer. The handler forwards
+  `If-Unmodified-Since` as a string; the domain function calls
+  `store.stat()` and compares via `mtimeMatch`.
 - If a piece of logic can be done without IO, it belongs here, even if
   it currently lives in an adapter.
 

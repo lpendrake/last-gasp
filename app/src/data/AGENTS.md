@@ -8,13 +8,12 @@ implement them. Domain code never imports an adapter directly.
 
 ```
 data/
-  ports.ts          # interfaces: EventStore, NoteStore, StateStore, …
+  ports.ts          # interfaces: EventStore, NoteStore, StateStore, LinkStore, …
   http/             # adapter that fetches /api/*
     client.ts       # fetch wrapper + ApiError
     events.http.ts
     notes.http.ts
-    state.http.ts
-    sessions.http.ts
+    state.http.ts   # state, sessions, tags
     links.http.ts
   <other-adapter>/  # one folder per additional backend
   types.ts          # shared DTOs (EventListItem, NoteEntry, …)
@@ -47,7 +46,9 @@ data/
   the `Response` object.
 - DTOs live in `types.ts`. They're the wire format; if the UI needs a
   different shape, transform in `domain/`.
-- mtime is a `number`. Pass it through unchanged for `If-Match`.
+- mtime is the RFC2822 string from the server's `Last-Modified`
+  response header. Stash it on the loaded entity and send it back as
+  `If-Unmodified-Since` on the next mutation.
 
 ## Don't
 

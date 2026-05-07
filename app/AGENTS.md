@@ -60,8 +60,11 @@ them rather than guessing at conventions.
 
 ## Conventions
 
-- Files cap at ~300 lines (orchestrators may run to 400). When you cross
-  that, run the `split-large-file` skill rather than letting it grow.
+- Files cap at ~300 lines (orchestrators may run to 400, with a hard
+  cap of 500). When you cross that, run the `split-large-file` skill
+  rather than letting it grow. `src/notes/Notes.tsx` currently sits
+  above the hard cap as a documented exception — see
+  `src/notes/AGENTS.md` "Notes.tsx ceiling".
 - Tests live next to the code: `foo.ts` ↔ `foo.test.ts`. Vitest only.
 - `npm --prefix app run build` and `npm --prefix app test` must stay
   green at every commit.

@@ -9,6 +9,9 @@ The browser-side code. Two paradigms coexist; the layer rule from
 src/
   main.ts            # thin entry: mount shell, dispatch to view
   bootstrap/         # mount, view-switcher, global hotkeys
+                     # — composition root: may construct adapters and
+                     #   mount React (this is the only React import
+                     #   outside notes/)
   data/              # client data layer
     ports.ts         # interfaces the UI depends on
     http/            # current adapter: fetch /api/*
@@ -26,13 +29,12 @@ src/
     modal/           # index, view, fields, save
   peek/              # vanilla DOM — hover-preview windows
   notes/             # React — notes view
-    Notes.tsx
+    Notes.tsx        # orchestrator (over the soft cap; see slice AGENTS.md)
     components/
     hooks/
     editor/
       LiveEditor.tsx
       markdown/
-    services/
   styles/            # css per slice, plus tokens
     notes/           # split of the notes css by section
   theme.ts
@@ -45,12 +47,17 @@ for JSX, services for non-React logic. Styles are global CSS imported
 once.
 
 **Vanilla DOM** lives everywhere else (`timeline/`, `panels/`, `editor/`,
-`peek/`, `bootstrap/`). Modules export factory functions that take an
-HTMLElement plus a deps object, attach listeners, and return a teardown
-or update API. No framework.
+`peek/`). Modules export factory functions that take an HTMLElement
+plus a deps object, attach listeners, and return a teardown or update
+API. No framework.
 
-Don't mix them: no React in vanilla slices, no manual `innerHTML` in
-React components.
+`bootstrap/` is the **composition root** — vanilla TS, but it's the one
+place that may import `react-dom/client` and mount the notes React tree
+(`view-switcher.ts`). Don't add React imports anywhere else outside
+`notes/`.
+
+Don't mix them otherwise: no React in vanilla slices, no manual
+`innerHTML` in React components.
 
 ## Layer rules (mirrors the server)
 

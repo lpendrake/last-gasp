@@ -7,7 +7,7 @@ notes (NPCs, locations, factions, plots, etc.). React, not vanilla DOM.
 
 ```
 notes/
-  Notes.tsx                   # slice orchestrator
+  Notes.tsx                   # slice orchestrator (see "Notes.tsx ceiling" below)
   types.ts
   hooks/
     useSaveSync.ts            # autosave + mtime conflict
@@ -29,9 +29,32 @@ notes/
       line.ts                 # classifyLine, lineHtml
       caret.ts                # save/restoreCaret
     upload.ts                 # handlePaste image conversion
-  services/
-    file-ops.ts               # rename / delete / move / migrate
 ```
+
+A `services/` folder may be added when a piece of non-React logic is
+testable and reused. None of the current code qualifies — see the
+Notes.tsx ceiling note below for why the file-operations handlers stay
+on the orchestrator.
+
+## Notes.tsx ceiling
+
+`Notes.tsx` is around 730 lines — over both the 300-line soft cap and
+the 500-line hard cap from `app/AGENTS.md`. This is a **documented
+exception**, not the new normal: every clean extraction has been tried
+and rejected. The file-ops handlers (`handleRename`,
+`handleDeleteFile`, `handleMove`, `migrateKey`, `migrateDirKeys`) each
+touch ~10 setState slots; pulling them into a hook would mean
+threading every setter through a deps object — the abstraction would
+be larger than the code it hides.
+
+The cap exists to keep files navigable for agents; the orchestrator's
+size is currently the cost of that decision. **Don't grow it.** New
+behaviour goes into a hook, component, or service. If you find
+yourself adding orchestrator-level glue and the file climbs past
+800 lines, that's the trigger to revisit — candidates are moving the
+rename/delete UI state into `FolderSidebar` end-to-end, or biting the
+bullet on a `useNotesFileOps(state, setters)` hook even with the
+setter-threading cost.
 
 ## Layer rules
 

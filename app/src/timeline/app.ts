@@ -3,15 +3,18 @@ import { listEvents, getEvent, deleteEvent, updateEvent } from '../data/http/eve
 import { getState, putState, getTags, getSessions, appendSession } from '../data/http/state.http.ts';
 import { ApiError } from '../data/http/client.ts';
 import { parseISOString, toAbsoluteSeconds, fromAbsoluteSeconds, toISOString } from '../calendar/golarian.ts';
-import { formatNowMarker, formatAxisDay, formatAxisHour } from '../calendar/format.ts';
+import { formatNowMarker, formatAxisDay } from '../calendar/format.ts';
 import { openAdvanceTimePopover, openSessionManagerPopover } from '../panels/toolbar.ts';
 import {
   type ViewState, type ViewportSize,
-  DEFAULT_SECONDS_PER_PIXEL, SECONDS_PER_DAY, zoomAbout, panByPixels, xToSeconds, secondsToX,
-} from './zoom.ts';
-import { renderAxis } from './axis.ts';
-import { layoutCards, renderCards, type CardExpansion } from './card.ts';
-import { computeSessionBands, renderSessionBands, findSessionConflicts } from './session-band.ts';
+  DEFAULT_SECONDS_PER_PIXEL, zoomAbout, panByPixels,
+} from './interactions/zoom.ts';
+import { createPan } from './interactions/pan.ts';
+import { createReschedule } from './interactions/reschedule.ts';
+import { createQuickAddZones } from './interactions/quick-add-zones.ts';
+import { renderAxis } from './render/axis.ts';
+import { layoutCards, renderCards, type CardExpansion } from './render/cards.ts';
+import { computeSessionBands, renderSessionBands, findSessionConflicts } from './render/session-bands.ts';
 import { openCreateEditor, openEditEditor } from '../editor/modal/index.ts';
 import type { FilterState } from '../panels/filters/types.ts';
 import { makeInitialFilterState, applyFilters } from '../panels/filters/logic.ts';
@@ -191,230 +194,50 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     renderTimeline();
   }, { passive: false });
 
-  // Click-drag pan
-  let dragging = false;
-  let dragStartX = 0;
-  let dragMoved = false;
-  let lastX = 0;
-  const DRAG_THRESHOLD_PX = 5;
-
-  // Ctrl+drag state for rescheduling events
-  let ctrlDrag: {
-    filename: string;
-    cardEl: HTMLElement;
-    connectorEl: HTMLElement | null;
-    dotEl: HTMLElement | null;
-    cardWidth: number;
-    startMouseX: number;
-    originalSecs: number;
-    currentSecs: number;
-  } | null = null;
-  let ctrlDragActivated = false; // suppress post-drag click
-
-  container.addEventListener('mousedown', (e) => {
-    if ((e.target as HTMLElement).closest('.event-modal, .modal-overlay, .search-overlay')) return;
-
-    if (e.shiftKey && e.button === 0) {
-      const cardEl = (e.target as HTMLElement).closest('.event-card') as HTMLElement | null;
-      if (cardEl) {
-        const filename = cardEl.dataset.filename;
-        if (filename) {
-          const ev = appState.events.find(ev => ev.filename === filename);
-          if (ev) {
-            const originalSecs = toAbsoluteSeconds(parseISOString(ev.date));
-            ctrlDrag = {
-              filename,
-              cardEl,
-              connectorEl: cardsLayer.querySelector<HTMLElement>(`.event-card-connector[data-filename="${CSS.escape(filename)}"]`),
-              dotEl: cardsLayer.querySelector<HTMLElement>(`.event-card-dot[data-filename="${CSS.escape(filename)}"]`),
-              cardWidth: parseInt(cardEl.style.width, 10),
-              startMouseX: e.clientX,
-              originalSecs,
-              currentSecs: originalSecs,
-            };
-            ctrlDragActivated = true;
-            cardEl.classList.add('is-ctrl-dragging');
-            container.style.cursor = 'ew-resize';
-            return;
-          }
-        }
-      }
-    }
-
-    dragging = true;
-    dragMoved = false;
-    dragStartX = e.clientX;
-    lastX = e.clientX;
-    container.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mouseup', async () => {
-    if (ctrlDrag) {
-      const { filename, originalSecs, currentSecs, cardEl } = ctrlDrag;
-      cardEl.classList.remove('is-ctrl-dragging');
-      ctrlDragLabel.style.display = 'none';
-      ctrlDrag = null;
-      container.style.cursor = '';
-      if (currentSecs !== originalSecs) {
-        try {
-          const full = await getEvent(filename);
-          const newDate = toISOString(fromAbsoluteSeconds(currentSecs));
-          await updateEvent(filename, {
-            title: full.title,
-            date: newDate,
-            ...(full.tags ? { tags: full.tags } : {}),
-            ...(full.color ? { color: full.color } : {}),
-            ...(full.status ? { status: full.status } : {}),
-          }, full.body, full.lastModified);
-          await refreshEvents();
-        } catch (err) {
-          console.error('Reschedule failed', err);
-          renderTimeline();
-        }
-      }
-      return;
-    }
-    dragging = false;
-    container.style.cursor = '';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (ctrlDrag) {
-      const size = viewportSize();
-      const axisY = Math.floor(container.clientHeight * 0.8);
-      const deltaX = e.clientX - ctrlDrag.startMouseX;
-      const originalX = secondsToX(ctrlDrag.originalSecs, appState.view, size);
-      const rawSecs = xToSeconds(originalX + deltaX, appState.view, size);
-      const dragSnapUnit = e.ctrlKey ? SECONDS_PER_DAY : SNAP_SECS;
-      const snappedSecs = Math.round(rawSecs / dragSnapUnit) * dragSnapUnit;
-      ctrlDrag.currentSecs = snappedSecs;
-      const snappedX = secondsToX(snappedSecs, appState.view, size);
-      ctrlDrag.cardEl.style.left = `${snappedX - ctrlDrag.cardWidth / 2}px`;
-      if (ctrlDrag.connectorEl) ctrlDrag.connectorEl.style.left = `${snappedX}px`;
-      if (ctrlDrag.dotEl) ctrlDrag.dotEl.style.left = `${snappedX}px`;
-      const date = fromAbsoluteSeconds(snappedSecs);
-      ctrlDragLabel.textContent = formatAxisDay(date) + ' ' + formatAxisHour(date);
-      ctrlDragLabel.style.left = `${snappedX}px`;
-      ctrlDragLabel.style.top = `${axisY + 8}px`;
-      ctrlDragLabel.style.display = '';
-      return;
-    }
-    if (!dragging) return;
-    if (!dragMoved && Math.abs(e.clientX - dragStartX) >= DRAG_THRESHOLD_PX) {
-      dragMoved = true;
-    }
-    if (!dragMoved) return;
-    const delta = e.clientX - lastX;
-    lastX = e.clientX;
-    appState.view = panByPixels(appState.view, delta);
-    renderTimeline();
+  // Drag interactions. Reschedule registers first so its mousedown
+  // listener runs before pan's; pan checks reschedule.isActive() to defer.
+  const reschedule = createReschedule(container, {
+    cardsLayer,
+    getView: () => appState.view,
+    getViewport: viewportSize,
+    getEvents: () => appState.events,
+    saveReschedule: async (filename, newSeconds) => {
+      const full = await getEvent(filename);
+      const newDate = toISOString(fromAbsoluteSeconds(newSeconds));
+      await updateEvent(filename, {
+        title: full.title,
+        date: newDate,
+        ...(full.tags ? { tags: full.tags } : {}),
+        ...(full.color ? { color: full.color } : {}),
+        ...(full.status ? { status: full.status } : {}),
+      }, full.body, full.lastModified);
+      await refreshEvents();
+    },
   });
 
-  // Quick-add indicator — only active below the axis (in the month band zone, ~64px)
-  const SNAP_SECS = 900;
-  const QUICK_ADD_ZONE_TOP = 4;   // px below axisY to start activating
-  const QUICK_ADD_ZONE_BOTTOM = 68; // px below axisY to stop
-  let quickAddSeconds: number | null = null;
-  let shiftPreviewSeconds: number | null = null;
-
-  const quickAdd = document.createElement('div');
-  quickAdd.className = 'quick-add';
-  quickAdd.innerHTML = `<div class="quick-add-circle">+</div><div class="quick-add-label"></div>`;
-  quickAdd.style.display = 'none';
-  container.appendChild(quickAdd);
-
-  const shiftPreview = document.createElement('div');
-  shiftPreview.className = 'shift-now-preview';
-  shiftPreview.innerHTML = `
-    <div class="shift-now-labels">
-      <div class="shift-now-hint">set now</div>
-      <div class="shift-now-date"></div>
-      <div class="shift-now-year"></div>
-      <div class="shift-now-time"></div>
-    </div>`;
-  shiftPreview.style.display = 'none';
-  container.appendChild(shiftPreview);
-
-  const ctrlDragLabel = document.createElement('div');
-  ctrlDragLabel.className = 'ctrl-drag-label';
-  ctrlDragLabel.style.display = 'none';
-  container.appendChild(ctrlDragLabel);
-
-  function hideZoneIndicators() {
-    quickAdd.style.display = 'none'; quickAddSeconds = null;
-    shiftPreview.style.display = 'none'; shiftPreviewSeconds = null;
-  }
-
-  container.addEventListener('mousemove', (e) => {
-    if (dragging || ctrlDrag) { hideZoneIndicators(); return; }
-    const rect = container.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const axisY = Math.floor(container.clientHeight * 0.8);
-
-    if (y < axisY + QUICK_ADD_ZONE_TOP || y > axisY + QUICK_ADD_ZONE_BOTTOM) {
-      hideZoneIndicators(); return;
-    }
-
-    const size = viewportSize();
-    const rawSecs = xToSeconds(x, appState.view, size);
-    const snapUnit = e.ctrlKey ? SECONDS_PER_DAY : SNAP_SECS;
-    const snapped = Math.round(rawSecs / snapUnit) * snapUnit;
-    const snappedX = secondsToX(snapped, appState.view, size);
-    const date = fromAbsoluteSeconds(snapped);
-
-    if (e.shiftKey) {
-      quickAdd.style.display = 'none'; quickAddSeconds = null;
-      shiftPreviewSeconds = snapped;
-      const [dayMonth, year, time] = formatNowMarker(date);
-      shiftPreview.style.left = `${snappedX}px`;
-      shiftPreview.style.display = '';
-      const labelsEl = shiftPreview.querySelector('.shift-now-labels') as HTMLElement;
-      labelsEl.style.top = `${axisY + 66}px`;
-      (shiftPreview.querySelector('.shift-now-date') as HTMLElement).textContent = dayMonth;
-      (shiftPreview.querySelector('.shift-now-year') as HTMLElement).textContent = year;
-      const timeEl = shiftPreview.querySelector('.shift-now-time') as HTMLElement;
-      timeEl.textContent = time ?? '';
-      timeEl.style.display = time ? '' : 'none';
-    } else {
-      shiftPreview.style.display = 'none'; shiftPreviewSeconds = null;
-      quickAddSeconds = snapped;
-      const label = quickAdd.querySelector('.quick-add-label') as HTMLElement;
-      label.textContent = e.ctrlKey
-        ? formatAxisDay(date)
-        : `${formatAxisDay(date)} ${formatAxisHour(date)}`;
-      quickAdd.style.left = `${snappedX}px`;
-      quickAdd.style.top = `${axisY}px`;
-      quickAdd.style.display = '';
-    }
+  const pan = createPan(container, {
+    getView: () => appState.view,
+    setView: (v) => { appState.view = v; renderTimeline(); },
+    shouldIgnore: (target) =>
+      !!(target as HTMLElement | null)?.closest?.('.event-modal, .modal-overlay, .search-overlay'),
+    isOtherDragActive: () => reschedule.isActive(),
   });
 
-  container.addEventListener('mouseleave', hideZoneIndicators);
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && ctrlDrag) {
-      const size = viewportSize();
-      const originalX = secondsToX(ctrlDrag.originalSecs, appState.view, size);
-      ctrlDrag.cardEl.style.left = `${originalX - ctrlDrag.cardWidth / 2}px`;
-      if (ctrlDrag.connectorEl) ctrlDrag.connectorEl.style.left = `${originalX}px`;
-      if (ctrlDrag.dotEl) ctrlDrag.dotEl.style.left = `${originalX}px`;
-      ctrlDrag.cardEl.classList.remove('is-ctrl-dragging');
-      ctrlDragLabel.style.display = 'none';
-      ctrlDrag = null;
-      container.style.cursor = '';
-      // ctrlDragActivated stays true to suppress the upcoming mouseup→click
-    }
-  });
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'Shift') { shiftPreview.style.display = 'none'; shiftPreviewSeconds = null; }
-  });
-
-  container.addEventListener('click', async (e) => {
-    if (dragMoved) return;
-    if (ctrlDragActivated) { ctrlDragActivated = false; return; }
-
-    // Shift+click: set in-game now to the previewed time
-    if (e.shiftKey && shiftPreviewSeconds !== null) {
-      const secs = shiftPreviewSeconds;
-      hideZoneIndicators();
+  createQuickAddZones(container, {
+    getView: () => appState.view,
+    getViewport: viewportSize,
+    isInteractionActive: () => pan.isDragging() || reschedule.isActive(),
+    shouldSuppressClick: () => pan.wasMoved() || reschedule.wasActivated(),
+    onQuickAdd: async (secs) => {
+      const sessionTag = appState.state.current_session ? `session:${appState.state.current_session}` : undefined;
+      const result = await openCreateEditor({
+        initialDate: toISOString(fromAbsoluteSeconds(secs)),
+        initialTags: sessionTag,
+        extraValidate: makeSessionValidator(),
+      });
+      await handleEditorResult(result);
+    },
+    onSetNow: async (secs) => {
       const newNow = toISOString(fromAbsoluteSeconds(secs));
       const newState: State = { ...appState.state, in_game_now: newNow };
       await putState(newState);
@@ -422,20 +245,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
       appState.inGameNow = newNow;
       appState.inGameNowSeconds = toAbsoluteSeconds(parseISOString(newNow));
       renderTimeline();
-      return;
-    }
-
-    if (quickAddSeconds === null) return;
-    if ((e.target as HTMLElement).closest('.event-card')) return;
-    const secs = quickAddSeconds;
-    quickAdd.style.display = 'none'; quickAddSeconds = null;
-    const sessionTag = appState.state.current_session ? `session:${appState.state.current_session}` : undefined;
-    const result = await openCreateEditor({
-      initialDate: toISOString(fromAbsoluteSeconds(secs)),
-      initialTags: sessionTag,
-      extraValidate: makeSessionValidator(),
-    });
-    await handleEditorResult(result);
+    },
   });
 
   function makeSessionValidator(skipFilename?: string): (buf: DraftBuffer) => string | null {
@@ -505,8 +315,8 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   const DBLCLICK_MS = 300;
 
   cardsLayer.addEventListener('click', async (e) => {
-    if (dragMoved) return;
-    if (ctrlDragActivated) { ctrlDragActivated = false; return; }
+    if (pan.wasMoved()) return;
+    if (reschedule.wasActivated()) return;
 
     // Action buttons inside an expanded card
     const actionBtn = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;

@@ -38,7 +38,8 @@ editor/
 ## Add a save behaviour
 
 Goes in `modal/save.ts`. Follows the existing mtime-conflict pattern:
-write attempts include `If-Match`; 409 routes to `conflict.ts`;
+write attempts include `If-Unmodified-Since` (the `Last-Modified`
+captured when the editor opened); 409 routes to `conflict.ts`;
 discard path returns to caller.
 
 ## Conventions

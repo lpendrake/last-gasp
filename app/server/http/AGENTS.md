@@ -5,13 +5,14 @@ domain results into HTTP responses.
 
 ## What lives here
 
-- `router.ts` — `(method, path) → handler` dispatch.
+- `router.ts` — `Route[]` dispatch (`dispatch(routes, req, res)`); a
+  route is `{ method, pattern, handler }`.
 - `responses.ts` — `sendJson`, `sendError`, status code helpers.
 - `body.ts` — `readBody` (JSON), `readTextBody`, `readBinaryBody`.
 - `<entity>.routes.ts` — one file per entity:
   `events.routes.ts`, `notes.routes.ts`, `state.routes.ts`,
-  `trash.routes.ts`, `git.routes.ts`, `links.routes.ts`,
-  `assets.routes.ts`. Each exports `register<Entity>Routes(router, deps)`.
+  `trash.routes.ts`, `git.routes.ts`. Each exports
+  `<entity>Routes(deps) → Route[]`.
 
 ## Allowed imports
 
@@ -32,18 +33,49 @@ domain results into HTTP responses.
 
 ## Handler shape
 
+Patterns use path strings with `:param` (single segment) or `:param*`
+(greedy, slashes allowed). `defineRoute` compiles them into the regex.
+Handlers receive `(req, res, params)` where `params` is
+`Record<string, string>`.
+
 ```ts
-export function registerEventRoutes(router, deps) {
-  router.add('GET', '/api/events', async (req, res) => {
-    const query = parseQuery(req.url);
-    const result = await listEvents(deps.events, query);  // domain fn
-    sendJson(res, 200, result);
-  });
+import { defineRoute, type Route } from './router.ts';
+import { sendJson } from './responses.ts';
+import { listEvents, getEvent } from '../domain/events.ts';
+import type { EventStore } from '../data/ports.ts';
+
+export function eventRoutes(deps: { events: EventStore }): Route[] {
+  return [
+    defineRoute('GET', '/api/events', async (_req, res) => {
+      const result = await listEvents(deps.events);
+      sendJson(res, 200, result);
+    }),
+
+    defineRoute('GET', '/api/events/:filename', async (_req, res, params) => {
+      const filename = decodeURIComponent(params.filename);
+      const { event, mtime } = await getEvent(deps.events, filename);
+      sendJson(res, 200, event, { 'Last-Modified': mtime.toUTCString() });
+    }),
+  ];
 }
 ```
 
 Handlers do four things, in order: parse request → validate → call
 domain → shape response. Anything more belongs in `domain/`.
+
+### Crossing the HTTP ↔ domain boundary
+
+- **Request body**: `readBody(req)` returns the parsed JSON typed as
+  `unknown`; validate the shape before passing it to the domain layer.
+  `readTextBody`/`readBinaryBody` cover non-JSON payloads.
+- **Filenames vs ids**: URL paths and on-disk filenames carry the
+  `.md` extension; the domain and ports speak in bare ids. Strip
+  `.md` (or pass through `:filename` as the existing routes do — note
+  files use the bare path) at this layer; never let the extension
+  reach a domain function.
+- **Status codes**: 200 for read/update, 201 for create-style
+  endpoints, 400 for validation, 404 for missing, 409 for mtime
+  conflicts, 500 only for genuinely unexpected errors.
 
 ## Conventions
 
@@ -52,8 +84,9 @@ domain → shape response. Anything more belongs in `domain/`.
 - 409 for mtime conflicts (use the helper in `responses.ts`).
 - 500 only for genuinely unexpected errors. Domain errors are mapped
   to specific status codes by name, not rethrown.
-- Routes are registered in `server/index.ts`; this file does not run on
-  import.
+- Routes are spread into a single `Route[]` table in `server/index.ts`
+  (`[...eventRoutes(deps), ...stateRoutes(deps), …]`); this file does
+  not run on import.
 
 ## Don't
 
