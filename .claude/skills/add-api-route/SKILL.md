@@ -40,23 +40,37 @@ the surrounding code currently does.
 File: `app/server/data/ports.ts`.
 
 Decide which port the operation belongs to (`EventStore`, `NoteStore`,
-`StateStore`, `TrashStore`, `GitPort`). If none fit, that's a design
-question — ask, don't invent.
+`StateStore`, `EventTrashStore`, `GitPort`). If none fit, that's a
+design question — ask, don't invent.
+
+The ports are intentionally CRUD-shaped: `list`, `get`, `stat`, `put`,
+`exists`, `del`. Mtime checks happen in the **domain** layer, not on
+the port: a domain function calls `stat` first, compares with
+`mtimeMatch`, then calls `put`. Don't add a method like
+`archive(id, ifUnmodifiedSince)` — express that as a domain function
+over the existing primitives.
 
 The method speaks in domain terms — never paths or file extensions:
 
 ```ts
-// good
+// good — CRUD primitive
 export interface EventStore {
-  archive(id: string, ifMatch: number): Promise<{ mtime: number }>;
+  put(filename: string, content: string): Promise<EventStat>;
 }
 
 // bad — leaks filesystem concerns
-archive(filename: string, mtime: number): Promise<void>;
+put(absolutePath: string, content: string): Promise<void>;
+
+// bad — concurrency policy belongs in domain, not on the port
+put(filename: string, content: string, ifUnmodifiedSince: string): Promise<EventStat>;
 ```
 
 If the operation can be done without IO (filtering, deriving), it
 **does not belong on a port** — put it in `domain/` instead.
+
+Many endpoints don't need a new port method at all. An "archive"
+endpoint, for example, is a domain function that does
+`stat → mtimeMatch → put` against the existing CRUD primitives.
 
 ## 2. Adapter: filesystem implementation
 
@@ -72,44 +86,41 @@ Use only the sanctioned utilities:
 - `app/server/domain/yaml.ts` → for parse/serialise. Don't import
   `gray-matter` directly.
 
-Adapter shape:
+Adapter shape (`put`/`stat` are CRUD primitives — no concurrency
+checks here, just IO):
 
 ```ts
 import { writeFileAtomic } from './atomic.ts';
 import { safeResolveInRepo } from './paths.ts';
-import { parseEventFile, serialiseEvent } from '../../domain/yaml.ts';
 
 export function makeFsEventStore(root: string): EventStore {
   return {
-    async archive(id, ifMatch) {
-      const path = safeResolveInRepo(root, 'events', `${id}.md`);
-      let stat;
+    async stat(filename) {
+      const path = safeResolveInRepo(root, 'events', filename);
       try {
-        stat = await fs.stat(path);
+        const s = await fs.stat(path);
+        return { mtime: s.mtime };
       } catch (e) {
-        if (e.code === 'ENOENT') return null;       // not found → null
+        if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
         throw e;
       }
-      if (stat.mtimeMs !== ifMatch) {
-        throw new ConflictError(stat.mtimeMs);      // stale → typed error
-      }
-      const current = parseEventFile(await fs.readFile(path, 'utf8'));
-      const next = serialiseEvent({ ...current, archived: true });
-      await writeFileAtomic(path, next);
-      const newStat = await fs.stat(path);
-      return { mtime: newStat.mtimeMs };
     },
+    async put(filename, content) {
+      const path = safeResolveInRepo(root, 'events', filename);
+      await writeFileAtomic(path, content);
+      const s = await fs.stat(path);
+      return { mtime: s.mtime };
+    },
+    // …get, list, exists, del…
   };
 }
 ```
 
-**Adapter error contract (important):**
+**Adapter error contract:**
 
 - "Not found" → return `null` or `undefined`. Catch `ENOENT` from
   `fs.stat`/`fs.readFile` and translate. Adapters never throw
   `NotFoundError` — that's a domain concern.
-- "Stale mtime" → throw `ConflictError(currentMtime)`. The domain
-  layer re-throws; the handler maps to 409.
 - Anything else (permissions, disk full, parse failure) → throw the
   raw error. The domain layer lets it propagate; the handler returns
   500.
@@ -123,16 +134,31 @@ File: `app/server/domain/<entity>.ts`.
 
 Functions take ports as arguments. They throw typed errors from
 `app/server/domain/errors.ts` (`NotFoundError`, `ConflictError`,
-`ValidationError`).
+`ValidationError`). The mtime-conflict check lives here, using
+`mtimeMatch` from `domain/events.ts`:
 
 ```ts
+import type { EventStore } from '../data/ports.ts';
+import { ConflictError, NotFoundError, ValidationError } from './errors.ts';
+import { mtimeMatch, isValidEventFilename } from './events.ts';
+import { eventFromParsed, serialiseEvent } from './yaml.ts';
+
 export async function archiveEvent(
   events: EventStore,
-  id: string,
-  ifMatch: number,
-): Promise<{ mtime: number }> {
-  if (!isValidId(id)) throw new ValidationError('id');
-  return events.archive(id, ifMatch);
+  filename: string,
+  ifUnmodifiedSince: string | undefined,
+): Promise<{ mtime: Date }> {
+  if (!isValidEventFilename(filename)) throw new ValidationError('filename');
+  const stat = await events.stat(filename);
+  if (!stat) throw new NotFoundError(filename);
+  if (ifUnmodifiedSince && !mtimeMatch(ifUnmodifiedSince, stat.mtime)) {
+    throw new ConflictError('File modified since last read');
+  }
+  const current = await events.get(filename);
+  if (!current) throw new NotFoundError(filename);
+  const event = eventFromParsed(filename, current.content, current.mtime);
+  const next = serialiseEvent({ ...event, archived: true }, event.body);
+  return events.put(filename, next);
 }
 ```
 
@@ -178,11 +204,14 @@ export function eventRoutes(deps: Deps): Route[] {
   return [
     defineRoute('POST', '/api/events/:filename/archive', async (req, res, params) => {
       const filename = decodeURIComponent(params.filename);
-      const ifMatch = Number(req.headers['if-match']);
-      if (!Number.isFinite(ifMatch)) return sendError(res, 400, 'if-match required');
+      const ius = req.headers['if-unmodified-since'];
       try {
-        const result = await archiveEvent(deps.events, filename, ifMatch);
-        sendJson(res, 200, result);
+        const { mtime } = await archiveEvent(
+          deps.events,
+          filename,
+          typeof ius === 'string' ? ius : undefined,
+        );
+        sendJson(res, 200, { ok: true }, { 'Last-Modified': mtime.toUTCString() });
       } catch (err) {
         if (mapDomainError(res, err)) return;
         throw err;
@@ -232,41 +261,68 @@ Vitest. Use an in-memory port stub — never the real fs adapter.
 ```ts
 import { describe, it, expect } from 'vitest';
 import { archiveEvent } from './events.ts';
+import { ConflictError, NotFoundError } from './errors.ts';
 
-function memoryEventStore(seed = {}) {
-  let store = { ...seed };
+function memoryEventStore(seed: Record<string, { content: string; mtime: Date }> = {}) {
+  const store = { ...seed };
   return {
-    async archive(id, ifMatch) {
-      const cur = store[id];
-      if (!cur) throw new NotFoundError(id);
-      if (cur.mtime !== ifMatch) throw new ConflictError(cur.mtime);
-      store[id] = { ...cur, archived: true, mtime: cur.mtime + 1 };
-      return { mtime: store[id].mtime };
+    async stat(filename: string) {
+      return store[filename] ? { mtime: store[filename].mtime } : null;
     },
-  };
+    async get(filename: string) {
+      return store[filename] ?? null;
+    },
+    async put(filename: string, content: string) {
+      const mtime = new Date(Date.now() + 1000);
+      store[filename] = { content, mtime };
+      return { mtime };
+    },
+    // …other CRUD methods stubbed as the test needs…
+  } as any;
 }
 
 describe('archiveEvent', () => {
-  it('archives and bumps mtime', async () => {
-    const events = memoryEventStore({ e1: { mtime: 100 } });
-    expect(await archiveEvent(events, 'e1', 100)).toEqual({ mtime: 101 });
+  it('archives and returns the new mtime', async () => {
+    const original = new Date('2026-05-01T00:00:00Z');
+    const events = memoryEventStore({
+      'a.md': { content: '---\ntitle: a\n---\n', mtime: original },
+    });
+    const { mtime } = await archiveEvent(events, 'a.md', original.toUTCString());
+    expect(mtime.getTime()).toBeGreaterThan(original.getTime());
   });
-  it('409s on stale mtime', async () => {
-    const events = memoryEventStore({ e1: { mtime: 100 } });
-    await expect(archiveEvent(events, 'e1', 99)).rejects.toThrow(ConflictError);
+  it('409s on stale If-Unmodified-Since', async () => {
+    const events = memoryEventStore({
+      'a.md': { content: '---\ntitle: a\n---\n', mtime: new Date('2026-05-02T00:00:00Z') },
+    });
+    await expect(archiveEvent(events, 'a.md', 'Fri, 01 May 2026 00:00:00 GMT'))
+      .rejects.toThrow(ConflictError);
+  });
+  it('404s when the file is missing', async () => {
+    const events = memoryEventStore();
+    await expect(archiveEvent(events, 'a.md', undefined))
+      .rejects.toThrow(NotFoundError);
   });
 });
 ```
 
 ## mtime-conflict pattern
 
-Every write goes through:
+Every write that needs concurrency safety goes through:
 
-1. Client sends `If-Match: <mtime>`.
-2. Adapter reads current mtime, throws `ConflictError(currentMtime)` on mismatch.
-3. Domain re-throws.
-4. Handler maps `ConflictError` to HTTP 409 with `{ mtime: currentMtime }`.
-5. Client surfaces a conflict UI with the new mtime.
+1. Client reads the resource and remembers the `Last-Modified`
+   response header.
+2. Client sends the next mutation with that value as the
+   `If-Unmodified-Since` request header.
+3. The handler forwards the header value to the domain function as
+   `ifUnmodifiedSince: string | undefined`.
+4. The domain function calls `store.stat()`, compares with
+   `mtimeMatch(ifUnmodifiedSince, stat.mtime)` (second-precision per
+   HTTP-date rules), and throws `ConflictError` on mismatch.
+5. `mapDomainError` turns the `ConflictError` into a 409 response.
+6. The client surfaces a conflict UI; on the next read it picks up
+   the fresh `Last-Modified` and retries.
+
+Don't invent a different concurrency story.
 
 Don't invent a different concurrency story.
 

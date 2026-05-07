@@ -68,8 +68,11 @@ See `.claude/skills/add-api-route/SKILL.md`. The short version:
   composition root spreads them into a single dispatch table).
 - Domain modules export plain functions. They take port objects as
   arguments — no hidden module-level state.
-- mtime-based optimistic concurrency: every write returns the new mtime;
-  every update accepts an `If-Match` mtime and 409s on mismatch.
+- mtime-based optimistic concurrency: every write returns a
+  `Last-Modified` header; every update accepts an `If-Unmodified-Since`
+  request header. The domain layer compares with `mtimeMatch` (second
+  precision per HTTP-date rules) and throws `ConflictError` on
+  mismatch; the handler maps that to 409.
 - Tests cover domain logic against in-memory ports. Integration tests
   against the real fs adapter live in `*.fs.test.ts`.
 

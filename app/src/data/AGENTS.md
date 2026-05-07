@@ -46,7 +46,9 @@ data/
   the `Response` object.
 - DTOs live in `types.ts`. They're the wire format; if the UI needs a
   different shape, transform in `domain/`.
-- mtime is a `number`. Pass it through unchanged for `If-Match`.
+- mtime is the RFC2822 string from the server's `Last-Modified`
+  response header. Stash it on the loaded entity and send it back as
+  `If-Unmodified-Since` on the next mutation.
 
 ## Don't
 
