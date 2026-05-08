@@ -14,3 +14,4 @@ export const putPalette = (p: Palette) => jsonFetch<{ ok: true }>('/api/palette'
 
 export const getSessions   = () => jsonFetch<Session[]>('/api/sessions');
 export const appendSession = (s: Session) => jsonFetch<Session[]>('/api/sessions', { method: 'POST', headers: jsonHeaders, body: JSON.stringify(s) });
+export const putSessions   = (s: Session[]) => jsonFetch<{ ok: true }>('/api/sessions', { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(s) });

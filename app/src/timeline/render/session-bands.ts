@@ -1,19 +1,21 @@
-import type { EventListItem } from '../../data/types.ts';
+import type { EventListItem, Session } from '../../data/types.ts';
 import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
 import { formatCompact } from '../../calendar/format.ts';
 import { type ViewState, type ViewportSize, secondsToX } from '../interactions/zoom.ts';
-import { themeColor } from '../../theme.ts';
+
+// ---- Legacy band computation (from event tags) — kept for tests ----
 
 export interface SessionBand {
   sessionId: string;
   startSeconds: number;
   endSeconds: number;
   eventCount: number;
+  color?: string;
 }
 
 export interface SessionConflict {
   sessionId: string;
-  conflictsWith: string;       // the other session
+  conflictsWith: string;
   conflictingEvents: Array<{ filename: string; title: string; date: string }>;
 }
 
@@ -47,6 +49,34 @@ export function computeSessionBands(events: EventListItem[]): SessionBand[] {
     .sort((a, b) => a.startSeconds - b.startSeconds);
 }
 
+// ---- New: compute bands from explicit Session records ----
+
+export function computeSessionBandsFromSessions(
+  sessions: Session[],
+  events: EventListItem[],
+): SessionBand[] {
+  return sessions
+    .filter(s => s.inGameStart)
+    .map(s => {
+      const startSeconds = toAbsoluteSeconds(parseISOString(s.inGameStart));
+      const endSeconds = s.inGameEnd
+        ? toAbsoluteSeconds(parseISOString(s.inGameEnd))
+        : startSeconds;
+      const eventCount = events.filter(ev => {
+        const secs = toAbsoluteSeconds(parseISOString(ev.date));
+        return secs >= startSeconds && secs <= endSeconds;
+      }).length;
+      return {
+        sessionId: s.id,
+        startSeconds,
+        endSeconds,
+        eventCount,
+        color: s.color,
+      };
+    })
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+}
+
 /**
  * Two sessions overlap when their in-game spans strictly interleave.
  * Sharing an exact endpoint (continuation) is NOT an overlap.
@@ -61,12 +91,10 @@ export function findSessionConflicts(
     for (let j = i + 1; j < bands.length; j++) {
       const a = bands[i];
       const b = bands[j];
-      // Strict overlap: one span starts INSIDE the other
       const overlaps = a.startSeconds < b.endSeconds && b.startSeconds < a.endSeconds
         && !(a.endSeconds === b.startSeconds || b.endSeconds === a.startSeconds);
       if (!overlaps) continue;
 
-      // Events in session A whose dates fall inside session B's span
       const aConflicts = events.filter(ev =>
         (ev.tags ?? []).some(t => t === `session:${a.sessionId}`) &&
         (() => {
@@ -110,85 +138,103 @@ export function findSessionConflicts(
   return conflicts;
 }
 
-const STRIP_H = 14;
-const STRIP_GAP = 2;
-const SECONDS_PER_DAY = 86400;
-const MIN_WIDTH_SECONDS = SECONDS_PER_DAY;
+// ---- Rail rendering ----
 
-export function renderSessionBands(
+const RAIL_H = 24;           // pill height
+const RAIL_OFFSET = 10;      // px below the axis line
+const MIN_PILL_W = 12;       // minimum rendered pill width (px)
+const LABEL_MIN_W = 60;      // show label only if pill is wider than this
+
+function formatRailLabel(isoStart: string): string {
+  try {
+    const d = parseISOString(isoStart);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[(d.month - 1) % 12]} ${d.day}`;
+  } catch {
+    return '';
+  }
+}
+
+export function renderSessionRail(
   container: HTMLElement,
   bands: SessionBand[],
+  sessions: Session[],
   view: ViewState,
   size: ViewportSize,
-  overlappingIds?: Set<string>,
+  sessionMode: boolean,
 ): void {
   container.innerHTML = '';
 
-  const axisY = Math.floor(size.height * 0.8);
+  if (bands.length === 0) return;
 
-  // Sort by start time for greedy row packing
+  const axisY = Math.floor(size.height * 0.8);
+  const railTop = axisY + RAIL_OFFSET;
+
+  // Build a color map from sessionId → color
+  const colorMap = new Map<string, string>(sessions.map(s => [s.id, s.color]));
+
   const sorted = [...bands].sort((a, b) => a.startSeconds - b.startSeconds);
 
-  // Greedy row packing: strips that don't overlap in x can share a row
-  const rows: { left: number; right: number }[][] = [];
-  const rowOf = new Map<string, number>();
+  for (let i = 0; i < sorted.length; i++) {
+    const band = sorted[i];
+    const color = colorMap.get(band.sessionId) ?? '#6b7c5a';
 
-  for (const band of sorted) {
-    const leftX = secondsToX(band.startSeconds, view, size);
-    const rightX = secondsToX(band.endSeconds + MIN_WIDTH_SECONDS, view, size);
-    let row = 0;
-    while (true) {
-      if (!rows[row]) rows[row] = [];
-      const clash = rows[row].some(r => !(rightX + 2 <= r.left || leftX - 2 >= r.right));
-      if (!clash) { rows[row].push({ left: leftX, right: rightX }); break; }
-      row++;
+    const startX = secondsToX(band.startSeconds, view, size);
+    const rawEndX = secondsToX(band.endSeconds, view, size);
+    // Instant sessions get a minimum pill width
+    const endX = band.endSeconds === band.startSeconds
+      ? startX + MIN_PILL_W
+      : Math.max(rawEndX, startX + MIN_PILL_W);
+
+    if (endX < 0 || startX > size.width) continue;
+
+    const clampedLeft = Math.max(startX, -4);
+    const clampedRight = Math.min(endX, size.width + 4);
+    const pillW = clampedRight - clampedLeft;
+    if (pillW <= 0) continue;
+
+    // Determine if adjacent sessions share an endpoint (touching edges)
+    const prevBand = sorted[i - 1];
+    const nextBand = sorted[i + 1];
+    const leftFlat = prevBand && prevBand.endSeconds === band.startSeconds;
+    const rightFlat = nextBand && nextBand.startSeconds === band.endSeconds;
+
+    const pill = document.createElement('div');
+    pill.className = 'session-pill' + (leftFlat ? ' left-flat' : '') + (rightFlat ? ' right-flat' : '');
+    pill.style.left = `${clampedLeft}px`;
+    pill.style.width = `${pillW}px`;
+    pill.style.top = `${railTop}px`;
+    pill.style.height = `${RAIL_H}px`;
+    pill.style.setProperty('--pill-color', color);
+    pill.dataset.sessionId = band.sessionId;
+
+    if (pillW > LABEL_MIN_W) {
+      const label = document.createElement('span');
+      label.className = 'session-pill-label';
+      const session = sessions.find(s => s.id === band.sessionId);
+      label.textContent = session ? formatRailLabel(session.inGameStart) : band.sessionId;
+      pill.appendChild(label);
     }
-    rowOf.set(band.sessionId, row);
-  }
 
-  for (let i = 0; i < bands.length; i++) {
-    const band = bands[i];
-    const start = band.startSeconds;
-    const end = Math.max(band.endSeconds, start + MIN_WIDTH_SECONDS);
-    const leftX = secondsToX(start, view, size);
-    const rightX = secondsToX(end + SECONDS_PER_DAY, view, size);
+    if (leftFlat) {
+      const seam = document.createElement('div');
+      seam.className = 'session-pill-seam';
+      pill.appendChild(seam);
+    }
 
-    if (rightX < 0 || leftX > size.width) continue;
+    container.appendChild(pill);
 
-    const clampedLeft = Math.max(leftX, -20);
-    const clampedRight = Math.min(rightX, size.width + 20);
-    const row = rowOf.get(band.sessionId) ?? 0;
-    const stripTop = axisY - STRIP_H - (row * (STRIP_H + STRIP_GAP));
-    const isOverlap = overlappingIds?.has(band.sessionId) ?? false;
-
-    // Subtle full-height background tint
-    const bg = document.createElement('div');
-    bg.className = 'session-band-bg' + (i % 2 === 0 ? '' : ' is-alt') + (isOverlap ? ' is-overlap' : '');
-    bg.style.left = `${clampedLeft}px`;
-    bg.style.width = `${clampedRight - clampedLeft}px`;
-    bg.style.setProperty('--band-color',
-      i % 2 === 0
-        ? themeColor('session_band_a' as any)
-        : themeColor('session_band_b' as any)
-    );
-    container.appendChild(bg);
-
-    // Labeled strip just above the axis
-    const strip = document.createElement('div');
-    strip.className = 'session-strip' + (isOverlap ? ' is-overlap' : '');
-    strip.style.left = `${clampedLeft}px`;
-    strip.style.width = `${clampedRight - clampedLeft}px`;
-    strip.style.top = `${stripTop}px`;
-    strip.style.background = i % 2 === 0
-      ? themeColor('session_band_a' as any)
-      : themeColor('session_band_b' as any);
-    strip.dataset.sessionId = band.sessionId;
-
-    const label = document.createElement('span');
-    label.className = 'session-strip-label';
-    label.textContent = (isOverlap ? '⚠ ' : '') + band.sessionId;
-    strip.appendChild(label);
-
-    container.appendChild(strip);
+    if (sessionMode) {
+      // Wash: full-height column from top, fading near axis
+      const wash = document.createElement('div');
+      wash.className = 'session-wash';
+      wash.style.left = `${clampedLeft}px`;
+      wash.style.width = `${pillW}px`;
+      wash.style.setProperty('--wash-color', color);
+      container.appendChild(wash);
+    }
   }
 }
+
+// Keep old function name as alias so app.ts compiles during the transition
+export const renderSessionBands = renderSessionRail;

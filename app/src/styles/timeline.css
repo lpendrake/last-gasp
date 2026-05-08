@@ -21,44 +21,164 @@
   cursor: pointer;
 }
 
-/* ===== Session bands ===== */
+/* ===== Session rail ===== */
 
-.session-band-bg {
+.session-pill {
+  position: absolute;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--pill-color, #6b7c5a);
+  opacity: 0.72;
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: opacity 0.12s;
+  box-sizing: border-box;
+}
+.session-pill:hover {
+  opacity: 1;
+}
+.session-pill.left-flat {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.session-pill.right-flat {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.session-pill-label {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: #fff;
+  white-space: nowrap;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 1px seam between touching sessions */
+.session-pill-seam {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--theme-background, #1a1a1a);
+  pointer-events: none;
+}
+
+/* ===== Session mode wash ===== */
+
+.session-wash {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: var(--band-color, rgba(255,255,255,0.02));
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--wash-color, #6b7c5a) 18%, transparent) 100%
+  );
+  opacity: 0.85;
+}
+
+/* ===== Session drag handles ===== */
+
+.session-drag-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--handle-color, #6b7c5a);
   opacity: 0.5;
   pointer-events: none;
 }
-.session-band-bg.is-overlap {
-  background: rgba(180, 80, 40, 0.12);
-  opacity: 1;
-}
 
-.session-strip {
+.session-drag-handle {
   position: absolute;
+  width: 14px;
   height: 14px;
-  border-radius: 2px;
-  opacity: 0.85;
-  pointer-events: none;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-}
-.session-strip.is-overlap {
-  outline: 1px solid var(--theme-danger, #c06040);
-  opacity: 1;
+  border-radius: 50%;
+  background: var(--theme-surface, #242420);
+  border: 2px solid var(--handle-color, #6b7c5a);
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 5;
 }
 
-.session-strip-label {
-  font-size: 11px;
+/* ===== Two-click creation guide ===== */
+
+.session-creation-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--theme-accent-gold, #c9a860);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ===== Session exit chip ===== */
+
+.session-exit-chip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-secondary, #a89a80);
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+/* ===== Session hover tooltip ===== */
+
+.session-tooltip {
+  position: fixed;
+  z-index: 200;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--tooltip-border, #5a4530);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-family: ui-monospace, 'Consolas', monospace;
   color: var(--theme-text-primary, #d8d0b8);
-  white-space: nowrap;
-  padding: 0 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  min-width: 260px;
+}
+
+.session-tooltip-header {
+  font-weight: 600;
+  color: var(--theme-accent-gold, #c9a860);
+  margin-bottom: 5px;
+}
+
+.session-tooltip-row {
+  line-height: 1.7;
+}
+
+.session-tooltip-key {
+  color: var(--theme-text-muted, #7a6f58);
+  margin-right: 4px;
+}
+
+/* ===== Session mode — fade events ===== */
+
+.timeline-cards-layer.is-session-mode .event-card {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.2s;
 }
 
 /* ===== Axis ===== */
