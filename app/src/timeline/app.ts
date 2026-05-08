@@ -230,8 +230,16 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   const pan = createPan(container, {
     getView: () => appState.view,
     setView: (v) => { appState.view = v; renderTimeline(); },
-    shouldIgnore: (target) =>
-      !!(target as HTMLElement | null)?.closest?.('.event-modal, .modal-overlay, .search-overlay, .session-drag-handle'),
+    shouldIgnore: (e) => {
+      if ((e.target as HTMLElement | null)?.closest?.('.event-modal, .modal-overlay, .search-overlay, .session-drag-handle')) return true;
+      if (appState.sessionMode) {
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const axisY = Math.floor(container.clientHeight * 0.8);
+        if (y > axisY + 4 && y < axisY + 90) return true;
+      }
+      return false;
+    },
     isOtherDragActive: () => reschedule.isActive() || sessionModeCtrl.isHandleDragging(),
   });
 
@@ -275,11 +283,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     onCreateSession: async (inGameStart: string, inGameEnd: string) => {
       const result = await openSessionEditModal(null, { inGameStart, inGameEnd }, appState.sessions);
       if (result.status === 'saved' && result.session) {
-        // Replace if same ID exists, otherwise append
-        const exists = appState.sessions.some(s => s.id === result.session!.id);
-        const newSessions = exists
-          ? appState.sessions.map(s => s.id === result.session!.id ? result.session! : s)
-          : [...appState.sessions, result.session!];
+        const newSessions = [...appState.sessions, result.session];
         await putSessions(newSessions);
         appState.sessions = newSessions;
         renderTimeline();

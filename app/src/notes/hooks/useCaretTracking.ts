@@ -3,7 +3,7 @@ import { saveCaret, restoreCaret, getCaretLineIndex, readAllText } from '../edit
 import { lineHtml, type LineCtx } from '../editor/markdown/line.ts';
 
 export interface UseCaretTrackingDeps {
-  rootRef: RefObject<HTMLDivElement>;
+  rootRef: RefObject<HTMLDivElement | null>;
   ctx: LineCtx;
   /** Called whenever the caret moves to a new position (selectionchange,
    * after input). Use this to drive the link picker. */

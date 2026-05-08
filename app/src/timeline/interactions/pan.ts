@@ -6,7 +6,7 @@ export interface PanDeps {
   getView(): ViewState;
   setView(next: ViewState): void;
   /** Pan must yield to interactions inside modals/overlays. */
-  shouldIgnore(target: EventTarget | null): boolean;
+  shouldIgnore(e: MouseEvent): boolean;
   /** Pan defers to a higher-priority interaction (e.g. reschedule) that
    * claimed the same mousedown. */
   isOtherDragActive(): boolean;
@@ -31,7 +31,7 @@ export function createPan(container: HTMLElement, deps: PanDeps): PanController 
     // Reset for the new gesture. Cleared whether or not pan claims this
     // mousedown — keeps the click-suppression flag fresh per-gesture.
     dragMoved = false;
-    if (deps.shouldIgnore(e.target)) return;
+    if (deps.shouldIgnore(e)) return;
     if (deps.isOtherDragActive()) return;
     dragging = true;
     dragStartX = e.clientX;

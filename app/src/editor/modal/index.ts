@@ -20,7 +20,7 @@ import { attachLinkPicker } from '../link-picker.ts';
 import { attachFormatToolbar } from '../format-toolbar.ts';
 import { type Mode, editorHtml, promptRestoreDraft } from './view.ts';
 import {
-  getColor, setColor, readBuffer, updatePreview, updateColorSwatch,
+  setColor, readBuffer, updatePreview, updateColorSwatch,
 } from './fields.ts';
 import {
   type SaveState, type EditorResult, type SaveCtx,

@@ -9,6 +9,7 @@ import type { Session } from '../../data/types.ts';
 const SNAP_SECS = 900;
 const HANDLE_R = 7;          // radius of circular drag handle knob
 const HANDLE_ZONE = 12;      // px detection zone around handle centre
+const CREATION_DRAG_THRESHOLD = 8; // px before mousedown is treated as a drag
 
 export interface SessionModeDeps {
   getSessions(): Session[];
@@ -31,6 +32,7 @@ interface HandleDrag {
   which: 'start' | 'end';
   originalSecs: number;
   currentSecs: number;
+  anchorSecs: number;
 }
 
 interface WholeDrag {
@@ -64,14 +66,83 @@ export function createSessionMode(
   dragLabel.style.display = 'none';
   container.appendChild(dragLabel);
 
-  // Two-click creation state
+  // Creation state (two-click or drag)
   let pendingClickSecs: number | null = null;
-  let pendingGuide: HTMLElement | null = null;
+  let pendingCurrentSecs: number = 0;
+  let pendingPill: HTMLElement | null = null;
+  let pendingGuideEl: HTMLElement | null = null;
+  let pendingWashEl: HTMLElement | null = null;
+  let creationMouseDown = false;  // true while the initiating button is held
+  let creationDragMoved = false;  // true once movement exceeded threshold
+  let creationStartX = 0;         // client X at creation mousedown
 
   function clearPendingCreation() {
     pendingClickSecs = null;
-    pendingGuide?.remove();
-    pendingGuide = null;
+    creationMouseDown = false;
+    creationDragMoved = false;
+    pendingPill?.remove();
+    pendingPill = null;
+    pendingGuideEl?.remove();
+    pendingGuideEl = null;
+    pendingWashEl?.remove();
+    pendingWashEl = null;
+  }
+
+  // Clamp the moving end of a span so it never overlaps an existing session.
+  // "Touching" (shared endpoint) is allowed.
+  function clampCreationEnd(anchorSecs: number, rawSecs: number, sessions: Session[]): number {
+    if (rawSecs === anchorSecs) return rawSecs;
+    const movingRight = rawSecs > anchorSecs;
+    let clamped = rawSecs;
+    for (const s of sessions) {
+      if (!s.inGameStart) continue;
+      try {
+        const sStart = toAbsoluteSeconds(parseISOString(s.inGameStart));
+        const sEnd = s.inGameEnd ? toAbsoluteSeconds(parseISOString(s.inGameEnd)) : sStart;
+        if (sStart === sEnd) continue;
+        if (movingRight) {
+          if (sStart >= anchorSecs && sStart < clamped) clamped = sStart;
+          if (sStart < anchorSecs && anchorSecs < sEnd) clamped = anchorSecs;
+        } else {
+          if (sEnd < anchorSecs && sEnd > clamped) clamped = sEnd;
+          if (sStart < anchorSecs && anchorSecs < sEnd) clamped = anchorSecs;
+        }
+      } catch { /* ignore parse errors */ }
+    }
+    return clamped;
+  }
+
+  // Clamp a whole-session shift delta so the moved session doesn't overlap any other.
+  function clampWholeDragDelta(
+    originalStart: number,
+    originalEnd: number,
+    delta: number,
+    sessions: Session[],
+    excludeId: string,
+  ): number {
+    if (delta === 0) return 0;
+    const movingRight = delta > 0;
+    let clamped = delta;
+    for (const s of sessions) {
+      if (s.id === excludeId || !s.inGameStart) continue;
+      try {
+        const sStart = toAbsoluteSeconds(parseISOString(s.inGameStart));
+        const sEnd = s.inGameEnd ? toAbsoluteSeconds(parseISOString(s.inGameEnd)) : sStart;
+        if (sStart === sEnd) continue;
+        if (movingRight) {
+          // Our end approaches session's start from the left
+          if (sStart >= originalEnd && sStart - originalEnd < clamped) {
+            clamped = sStart - originalEnd;
+          }
+        } else {
+          // Our start approaches session's end from the right
+          if (sEnd <= originalStart && sEnd - originalStart > clamped) {
+            clamped = sEnd - originalStart;
+          }
+        }
+      } catch { /* ignore parse errors */ }
+    }
+    return clamped;
   }
 
   function onMouseDown(e: MouseEvent) {
@@ -90,10 +161,13 @@ export function createSessionMode(
       const session = deps.getSessions().find(s => s.id === sessionId);
       if (!session) return;
       e.stopPropagation();
-      const secs = which === 'start'
-        ? toAbsoluteSeconds(parseISOString(session.inGameStart))
-        : toAbsoluteSeconds(parseISOString(session.inGameEnd));
-      drag = { sessionId, which, originalSecs: secs, currentSecs: secs };
+      const startSecs = toAbsoluteSeconds(parseISOString(session.inGameStart));
+      const endSecs = session.inGameEnd
+        ? toAbsoluteSeconds(parseISOString(session.inGameEnd))
+        : startSecs;
+      const secs = which === 'start' ? startSecs : endSecs;
+      const anchorSecs = which === 'start' ? endSecs : startSecs;
+      drag = { sessionId, which, originalSecs: secs, currentSecs: secs, anchorSecs };
       dragLabel.style.display = '';
       return;
     }
@@ -128,23 +202,54 @@ export function createSessionMode(
     const rawSecs = xToSeconds(x, view, size);
     const snapped = Math.round(rawSecs / SNAP_SECS) * SNAP_SECS;
 
-    if (pendingClickSecs === null) {
-      pendingClickSecs = snapped;
-      // Show a guide line at the first click
-      const guide = document.createElement('div');
-      guide.className = 'session-creation-guide';
-      guide.style.left = `${secondsToX(snapped, view, size)}px`;
-      container.appendChild(guide);
-      pendingGuide = guide;
-    } else {
-      const start = Math.min(pendingClickSecs, snapped);
-      const end = Math.max(pendingClickSecs, snapped);
+    // Second click (anchor already set, not currently dragging): commit
+    if (pendingClickSecs !== null && !creationMouseDown) {
+      const finalStart = Math.min(pendingClickSecs, pendingCurrentSecs);
+      const finalEnd = Math.max(pendingClickSecs, pendingCurrentSecs);
       clearPendingCreation();
       deps.onCreateSession(
-        toISOString(fromAbsoluteSeconds(start)),
-        toISOString(fromAbsoluteSeconds(end)),
+        toISOString(fromAbsoluteSeconds(finalStart)),
+        toISOString(fromAbsoluteSeconds(finalEnd)),
       );
+      return;
     }
+    if (pendingClickSecs !== null) return; // button held, ignore re-entry
+
+    e.preventDefault(); // prevent text selection during drag
+    creationMouseDown = true;
+    creationDragMoved = false;
+    creationStartX = e.clientX;
+    const clamped = clampCreationEnd(snapped, snapped, deps.getSessions());
+    pendingClickSecs = clamped;
+    pendingCurrentSecs = clamped;
+    const anchorX = secondsToX(clamped, view, size);
+    const pillTop = axisY + 34;
+
+    // Wash (behind everything, expands with the preview pill)
+    const wash = document.createElement('div');
+    wash.className = 'session-wash';
+    wash.style.left = `${anchorX}px`;
+    wash.style.width = '0px';
+    wash.style.setProperty('--wash-color', 'var(--theme-accent-gold, #c9a860)');
+    container.appendChild(wash);
+    pendingWashEl = wash;
+
+    // Anchor guide line (visible immediately on mousedown)
+    const guide = document.createElement('div');
+    guide.className = 'session-drag-guide';
+    guide.style.left = `${anchorX}px`;
+    guide.style.setProperty('--handle-color', 'var(--theme-accent-gold, #c9a860)');
+    container.appendChild(guide);
+    pendingGuideEl = guide;
+
+    // Preview pill
+    const pill = document.createElement('div');
+    pill.className = 'session-creation-pill';
+    pill.style.top = `${pillTop}px`;
+    pill.style.left = `${anchorX}px`;
+    pill.style.width = '0px';
+    container.appendChild(pill);
+    pendingPill = pill;
   }
 
   function y_inRailZone(y: number, axisY: number): boolean {
@@ -181,7 +286,14 @@ export function createSessionMode(
       const size = deps.getViewport();
       const axisY = Math.floor(container.clientHeight * 0.8);
       const rawSecs = xToSeconds(x, view, size);
-      const delta = Math.round((rawSecs - wholeDrag.anchorSecs) / SNAP_SECS) * SNAP_SECS;
+      const rawDelta = Math.round((rawSecs - wholeDrag.anchorSecs) / SNAP_SECS) * SNAP_SECS;
+      const delta = clampWholeDragDelta(
+        wholeDrag.originalStart,
+        wholeDrag.originalEnd,
+        rawDelta,
+        deps.getSessions(),
+        wholeDrag.sessionId,
+      );
       wholeDrag.currentDelta = delta;
 
       const newStart = wholeDrag.originalStart + delta;
@@ -212,6 +324,44 @@ export function createSessionMode(
       return;
     }
 
+    if (pendingClickSecs !== null && creationMouseDown && !creationDragMoved) {
+      if (Math.abs(e.clientX - creationStartX) >= CREATION_DRAG_THRESHOLD) {
+        creationDragMoved = true;
+      }
+    }
+
+    if (pendingClickSecs !== null && pendingPill) {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const view = deps.getView();
+      const size = deps.getViewport();
+      const rawSecs = xToSeconds(x, view, size);
+      const snappedRaw = Math.round(rawSecs / SNAP_SECS) * SNAP_SECS;
+      const clamped = clampCreationEnd(pendingClickSecs, snappedRaw, deps.getSessions());
+      pendingCurrentSecs = clamped;
+
+      const previewStart = Math.min(pendingClickSecs, clamped);
+      const previewEnd = Math.max(pendingClickSecs, clamped);
+      const startX = secondsToX(previewStart, view, size);
+      const endX = secondsToX(previewEnd, view, size);
+      const pillW = Math.max(endX - startX, 2);
+
+      pendingPill.style.left = `${startX}px`;
+      pendingPill.style.width = `${pillW}px`;
+
+      if (pendingWashEl) {
+        pendingWashEl.style.left = `${startX}px`;
+        pendingWashEl.style.width = `${pillW}px`;
+      }
+
+      // Flat side when the moving end is smushed against an existing session
+      const isClamped = clamped !== snappedRaw;
+      const movingEndIsLeft = clamped <= pendingClickSecs;
+      pendingPill.classList.toggle('left-flat', isClamped && movingEndIsLeft);
+      pendingPill.classList.toggle('right-flat', isClamped && !movingEndIsLeft);
+      return;
+    }
+
     if (!drag) return;
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -222,31 +372,49 @@ export function createSessionMode(
     const snapped = e.ctrlKey
       ? snapToSessionEndpoints(rawSecs, drag.sessionId, drag.which)
       : Math.round(rawSecs / SNAP_SECS) * SNAP_SECS;
-    drag.currentSecs = snapped;
+    const otherSessions = deps.getSessions().filter(s => s.id !== drag!.sessionId);
+    const finalSecs = clampCreationEnd(drag.anchorSecs, snapped, otherSessions);
+    drag.currentSecs = finalSecs;
 
     // Update handle position live
-    const snappedX = secondsToX(snapped, view, size);
+    const finalX = secondsToX(finalSecs, view, size);
     const handleEl = sessionLayer.querySelector<HTMLElement>(
       `.session-drag-handle[data-session-id="${CSS.escape(drag.sessionId)}"][data-which="${drag.which}"]`
     );
     if (handleEl) {
-      handleEl.style.left = `${snappedX - HANDLE_R}px`;
+      handleEl.style.left = `${finalX - HANDLE_R}px`;
     }
     const guideEl = sessionLayer.querySelector<HTMLElement>(
       `.session-drag-guide[data-session-id="${CSS.escape(drag.sessionId)}"][data-which="${drag.which}"]`
     );
     if (guideEl) {
-      guideEl.style.left = `${snappedX}px`;
+      guideEl.style.left = `${finalX}px`;
     }
 
-    const date = fromAbsoluteSeconds(snapped);
+    const date = fromAbsoluteSeconds(finalSecs);
     dragLabel.textContent = formatAxisDay(date) + ' ' + formatAxisHour(date);
-    dragLabel.style.left = `${snappedX}px`;
+    dragLabel.style.left = `${finalX}px`;
     dragLabel.style.top = `${axisY + 8}px`;
   }
 
   async function onMouseUp() {
     if (!active) return;
+
+    if (pendingClickSecs !== null && creationMouseDown) {
+      creationMouseDown = false;
+      if (creationDragMoved) {
+        // Drag-to-create: commit on mouseup
+        const finalStart = Math.min(pendingClickSecs, pendingCurrentSecs);
+        const finalEnd = Math.max(pendingClickSecs, pendingCurrentSecs);
+        clearPendingCreation();
+        deps.onCreateSession(
+          toISOString(fromAbsoluteSeconds(finalStart)),
+          toISOString(fromAbsoluteSeconds(finalEnd)),
+        );
+      }
+      // else: click without dragging — anchor stays set, wait for second click
+      return;
+    }
 
     if (wholeDrag) {
       const { sessionId, originalStart, originalEnd, currentDelta, ghostEl } = wholeDrag;
@@ -312,7 +480,11 @@ export function createSessionMode(
         dragLabel.style.display = 'none';
         return;
       }
-      clearPendingCreation();
+      if (pendingClickSecs !== null) {
+        clearPendingCreation();
+        return;
+      }
+      if (document.querySelector('.modal-overlay')) return;
       deps.onExitSessionMode();
     }
   }
@@ -387,6 +559,6 @@ export function createSessionMode(
       sessionLayer.querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill').forEach(el => el.remove());
     },
     renderHandles,
-    isHandleDragging: () => drag !== null || wholeDrag !== null,
+    isHandleDragging: () => drag !== null || wholeDrag !== null || creationMouseDown,
   };
 }

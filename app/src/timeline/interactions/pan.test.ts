@@ -20,7 +20,7 @@ interface Captured {
 }
 
 function setup(opts: {
-  shouldIgnore?: (t: EventTarget | null) => boolean;
+  shouldIgnore?: (e: MouseEvent) => boolean;
   isOtherDragActive?: () => boolean;
 } = {}) {
   const container = makeContainer();

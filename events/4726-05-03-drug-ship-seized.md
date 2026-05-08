@@ -1,4 +1,4 @@
-﻿---
+---
 title: Drug Ship Seized
 date: 4726-05-04
 tags:
@@ -6,6 +6,7 @@ tags:
   - faction:house-of-storms
   - faction:free-sails
   - location:boat
+  - sesh:May 8 (2)
 ---
 
 The next shipment is that night. Party ambushes the drug delivery at a concealed dock in the northern docks, forces the delivery crew to row the dinghy back to the main ship up the coast, boards, and takes the vessel. [Aella Stormcaller](../npcs/aella-stormcaller.md) escapes unnoticed during the chaos.

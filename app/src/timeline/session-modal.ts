@@ -26,6 +26,13 @@ function fromDatetimeLocal(val: string): string {
   return val.length === 16 ? val + ':00' : val;
 }
 
+function randomSessionId(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < 4; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
 function validateGolarian(val: string): boolean {
   try {
     parseISOString(val);
@@ -33,6 +40,19 @@ function validateGolarian(val: string): boolean {
   } catch {
     return false;
   }
+}
+
+const COLOR_STORAGE_KEY = 'last-gasp:session-color-idx';
+
+function nextDefaultColor(): string {
+  const stored = localStorage.getItem(COLOR_STORAGE_KEY);
+  const last = stored !== null ? parseInt(stored, 10) : -1;
+  return SESSION_COLORS[(last + 1) % SESSION_COLORS.length];
+}
+
+function recordColorUsed(color: string): void {
+  const idx = SESSION_COLORS.indexOf(color);
+  if (idx >= 0) localStorage.setItem(COLOR_STORAGE_KEY, String(idx));
 }
 
 function colorSwatch(color: string, selected: boolean): string {
@@ -53,15 +73,15 @@ export async function openSessionEditModal(
 ): Promise<SessionModalResult> {
   const isNew = session === null;
   const today = new Date().toISOString().slice(0, 10);
-  const defaultRealStart = `${today}T19:00:00`;
-  const defaultRealEnd = `${today}T23:00:00`;
+  const defaultRealStart = `${today}T12:00:00`;
+  const defaultRealEnd = `${today}T16:00:00`;
 
   const src: Partial<Session> = session ?? {};
   const inGameStart = src.inGameStart ?? prefill?.inGameStart ?? '';
   const inGameEnd = src.inGameEnd ?? prefill?.inGameEnd ?? inGameStart;
   const realStart = src.realStart ?? defaultRealStart;
   const realEnd = src.realEnd ?? defaultRealEnd;
-  const currentColor = src.color ?? SESSION_COLORS[0];
+  const currentColor = src.color ?? nextDefaultColor();
   const currentId = src.id ?? today;
 
   const overlay = document.createElement('div');
@@ -147,7 +167,12 @@ export async function openSessionEditModal(
       const realEndVal = fromDatetimeLocal((modal.querySelector<HTMLInputElement>('#sm-real-end')!).value);
       const gameStartVal = (modal.querySelector<HTMLInputElement>('#sm-game-start')!).value.trim();
       const gameEndVal = (modal.querySelector<HTMLInputElement>('#sm-game-end')!).value.trim();
-      const idVal = isNew ? realStartVal.slice(0, 16) : currentId;
+      let idVal: string;
+      if (isNew) {
+        do { idVal = randomSessionId(); } while (existingSessions.some(s => s.id === idVal));
+      } else {
+        idVal = currentId;
+      }
       const selectedColor = (modal.querySelector<HTMLInputElement>('input[name="session-color"]:checked')!).value;
 
       // Validate
@@ -194,12 +219,13 @@ export async function openSessionEditModal(
         realEnd: realEndVal,
         color: selectedColor,
         notes: session?.notes ?? '',
-        real_date: idVal,
+        real_date: realStartVal.slice(0, 10),
         in_game_start: gameStartVal,
       }, 0);
       // Override color (normalizeSession would cycle if missing, but we have it)
       saved.color = selectedColor;
 
+      recordColorUsed(selectedColor);
       close({ status: 'saved', session: saved });
     });
   });
