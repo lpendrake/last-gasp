@@ -132,8 +132,8 @@ describe('createQuickAddZones', () => {
     click(container);
     expect(onQuickAdd).toHaveBeenCalledTimes(1);
     const secs = onQuickAdd.mock.calls[0][0];
-    // 15-minute snap (900s)
-    expect(Math.abs(secs % 900)).toBe(0);
+    // 10-minute snap (600s)
+    expect(Math.abs(secs % 600)).toBe(0);
   });
 
   it('ctrl held during hover snaps to whole days', () => {

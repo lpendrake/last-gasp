@@ -5,7 +5,7 @@ import {
 import { fromAbsoluteSeconds } from '../../calendar/golarian.ts';
 import { formatAxisDay, formatAxisHour, formatNowMarker } from '../../calendar/format.ts';
 
-const SNAP_SECS = 900;
+const SNAP_SECS = 600;
 const QUICK_ADD_ZONE_TOP = 4;     // px below axisY where the indicator activates
 const QUICK_ADD_ZONE_BOTTOM = 68; // px below axisY where it stops
 
