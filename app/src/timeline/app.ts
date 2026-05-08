@@ -3,8 +3,8 @@ import { listEvents, getEvent, deleteEvent, updateEvent } from '../data/http/eve
 import { getState, putState, getTags, getSessions, putSessions } from '../data/http/state.http.ts';
 import { ApiError } from '../data/http/client.ts';
 import { parseISOString, toAbsoluteSeconds, fromAbsoluteSeconds, toISOString } from '../calendar/golarian.ts';
-import { formatNowMarker, formatAxisDay } from '../calendar/format.ts';
-import { openAdvanceTimePopover, openSessionManagerPopover } from '../panels/toolbar.ts';
+import { formatNowMarker } from '../calendar/format.ts';
+import { openAdvanceTimePopover } from '../panels/toolbar.ts';
 import {
   type ViewState, type ViewportSize,
   DEFAULT_SECONDS_PER_PIXEL, zoomAbout, panByPixels,
@@ -18,7 +18,6 @@ import { renderAxis } from './render/axis.ts';
 import { layoutCards, renderCards, type CardExpansion } from './render/cards.ts';
 import {
   computeSessionBandsFromSessions,
-  findSessionConflicts,
   renderSessionRail,
 } from './render/session-bands.ts';
 import { openCreateEditor, openEditEditor } from '../editor/modal/index.ts';
@@ -30,8 +29,7 @@ import { loadPinnedFilters, savePinnedFilters } from '../panels/filters/persiste
 import { createSearchOverlay } from '../panels/search.ts';
 import { initPeek } from '../peek/stack.ts';
 import type { EventListItem, TagsRegistry, State, Session } from '../data/types.ts';
-import type { DraftBuffer } from '../editor/drafts.ts';
-import { normalizeSessions, normalizeSession } from '../data/session-normalize.ts';
+import { normalizeSessions, computeSessionLabel } from '../data/session-normalize.ts';
 
 interface AppState {
   events: EventListItem[];
@@ -107,7 +105,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   }
 
   function visibleEvents(): EventListItem[] {
-    return applyFilters(appState.events, appState.filter);
+    return applyFilters(appState.events, appState.filter, appState.sessions);
   }
 
   let cardExpansion: CardExpansion | undefined;
@@ -116,17 +114,16 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     const size = viewportSize();
     const filtered = visibleEvents();
     const sessionBands = computeSessionBandsFromSessions(appState.sessions, filtered);
-    const sessionConflicts = findSessionConflicts(sessionBands, filtered);
-    const overlappingIds = new Set(sessionConflicts.map(c => c.sessionId));
-    void overlappingIds; // available for future conflict indicators
 
     renderSessionRail(sessionLayer, sessionBands, appState.sessions, appState.view, size, appState.sessionMode);
+    sessionModeCtrl.renderHandles();
     renderAxis(axisLayer, appState.view, size);
 
     const laidOut = layoutCards(filtered, appState.view, size, appState.inGameNowSeconds);
     renderCards(cardsLayer, laidOut, size, cardExpansion);
 
     cardsLayer.classList.toggle('is-session-mode', appState.sessionMode);
+    container.classList.toggle('is-session-mode', appState.sessionMode);
 
     const existing = container.querySelector('.now-marker');
     if (existing) existing.remove();
@@ -216,10 +213,13 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     saveReschedule: async (filename, newSeconds) => {
       const full = await getEvent(filename);
       const newDate = toISOString(fromAbsoluteSeconds(newSeconds));
+      const nonSessionTags = (full.tags ?? []).filter(t => !t.startsWith('sesh:'));
+      const newSessionTags = sessionTagsForDate(newSeconds);
+      const updatedTags = [...nonSessionTags, ...newSessionTags];
       await updateEvent(filename, {
         title: full.title,
         date: newDate,
-        ...(full.tags ? { tags: full.tags } : {}),
+        ...(updatedTags.length > 0 ? { tags: updatedTags } : {}),
         ...(full.color ? { color: full.color } : {}),
         ...(full.status ? { status: full.status } : {}),
       }, full.body, full.lastModified);
@@ -231,7 +231,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     getView: () => appState.view,
     setView: (v) => { appState.view = v; renderTimeline(); },
     shouldIgnore: (target) =>
-      !!(target as HTMLElement | null)?.closest?.('.event-modal, .modal-overlay, .search-overlay'),
+      !!(target as HTMLElement | null)?.closest?.('.event-modal, .modal-overlay, .search-overlay, .session-drag-handle'),
     isOtherDragActive: () => reschedule.isActive() || sessionModeCtrl.isHandleDragging(),
   });
 
@@ -241,11 +241,10 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     isInteractionActive: () => pan.isDragging() || reschedule.isActive() || appState.sessionMode,
     shouldSuppressClick: () => pan.wasMoved() || reschedule.wasActivated(),
     onQuickAdd: async (secs) => {
-      const sessionTag = appState.state.current_session ? `session:${appState.state.current_session}` : undefined;
+      const autoTags = sessionTagsForDate(secs);
       const result = await openCreateEditor({
         initialDate: toISOString(fromAbsoluteSeconds(secs)),
-        initialTags: sessionTag,
-        extraValidate: makeSessionValidator(),
+        initialTags: autoTags.length > 0 ? autoTags.join(', ') : undefined,
       });
       await handleEditorResult(result);
     },
@@ -271,18 +270,25 @@ export async function createTimelineApp(): Promise<TimelineApp> {
       await putSessions(newSessions);
       appState.sessions = newSessions;
       renderTimeline();
+      await applySessionTagsToAllEvents();
     },
     onCreateSession: async (inGameStart: string, inGameEnd: string) => {
-      const result = await openSessionEditModal(null, { inGameStart, inGameEnd });
+      const result = await openSessionEditModal(null, { inGameStart, inGameEnd }, appState.sessions);
       if (result.status === 'saved' && result.session) {
-        const newSessions = [...appState.sessions, result.session];
+        // Replace if same ID exists, otherwise append
+        const exists = appState.sessions.some(s => s.id === result.session!.id);
+        const newSessions = exists
+          ? appState.sessions.map(s => s.id === result.session!.id ? result.session! : s)
+          : [...appState.sessions, result.session!];
         await putSessions(newSessions);
         appState.sessions = newSessions;
         renderTimeline();
+        await applySessionTagsToAllEvents();
       }
     },
     onExitSessionMode: () => {
       appState.sessionMode = false;
+      sessionModeCtrl.exit();
       renderTimeline();
       updateSessionBtn();
     },
@@ -297,6 +303,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   // ---- Session rail pill click (open edit modal) ----
 
   sessionLayer.addEventListener('click', async (e) => {
+    if (!appState.sessionMode) return;
     const pill = (e.target as HTMLElement).closest('.session-pill') as HTMLElement | null;
     if (!pill) return;
     const sessionId = pill.dataset.sessionId;
@@ -304,12 +311,13 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     const session = appState.sessions.find(s => s.id === sessionId);
     if (!session) return;
 
-    const result = await openSessionEditModal(session, null);
+    const result = await openSessionEditModal(session, null, appState.sessions);
     if (result.status === 'saved' && result.session) {
       const newSessions = appState.sessions.map(s => s.id === result.session!.id ? result.session! : s);
       await putSessions(newSessions);
       appState.sessions = newSessions;
       renderTimeline();
+      await applySessionTagsToAllEvents();
     } else if (result.status === 'deleted') {
       const newSessions = appState.sessions.filter(s => s.id !== sessionId);
       await putSessions(newSessions);
@@ -317,31 +325,6 @@ export async function createTimelineApp(): Promise<TimelineApp> {
       renderTimeline();
     }
   });
-
-  function makeSessionValidator(skipFilename?: string): (buf: DraftBuffer) => string | null {
-    return (buf: DraftBuffer): string | null => {
-      const sessionTag = buf.tagsText.split(',').map(t => t.trim()).find(t => t.startsWith('session:'));
-      if (!sessionTag) return null;
-      const sessionId = sessionTag.slice('session:'.length);
-
-      let eventSecs: number;
-      try { eventSecs = toAbsoluteSeconds(parseISOString(buf.date)); } catch { return null; }
-
-      const otherEvents = appState.events.filter(ev => ev.filename !== skipFilename);
-      const bands = computeSessionBandsFromSessions(appState.sessions, otherEvents);
-
-      for (const band of bands) {
-        if (band.sessionId === sessionId) continue;
-        if (eventSecs > band.startSeconds && eventSecs < band.endSeconds) {
-          const fmt = (s: number) => formatAxisDay(fromAbsoluteSeconds(s));
-          return `This date falls inside session ${band.sessionId}'s in-game span `
-            + `(${fmt(band.startSeconds)} – ${fmt(band.endSeconds)}). `
-            + `Sessions cannot overlap. Use session:${band.sessionId} or choose a date outside that range.`;
-        }
-      }
-      return null;
-    };
-  }
 
   async function refreshEvents() {
     const fresh = await listEvents();
@@ -357,10 +340,67 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   }
   void refreshSessions; // available for future use
 
+  function sessionTagsForDate(secs: number): string[] {
+    return appState.sessions
+      .filter(s => {
+        if (!s.inGameStart) return false;
+        try {
+          const start = toAbsoluteSeconds(parseISOString(s.inGameStart));
+          const end = s.inGameEnd ? toAbsoluteSeconds(parseISOString(s.inGameEnd)) : start;
+          return secs >= start && secs <= end;
+        } catch { return false; }
+      })
+      .map(s => `sesh:${computeSessionLabel(s, appState.sessions)}`);
+  }
+
+  async function applySessionTagsToEvent(filename: string): Promise<boolean> {
+    const ev = appState.events.find(e => e.filename === filename);
+    if (!ev) return false;
+    let secs: number;
+    try { secs = toAbsoluteSeconds(parseISOString(ev.date)); } catch { return false; }
+
+    const computed = sessionTagsForDate(secs);
+    const existing = (ev.tags ?? []).filter(t => t.startsWith('sesh:'));
+    const matches = computed.length === existing.length && computed.every(t => existing.includes(t));
+    if (matches) return false;
+
+    const nonSeshTags = (ev.tags ?? []).filter(t => !t.startsWith('sesh:'));
+    const updatedTags = [...nonSeshTags, ...computed];
+    const full = await getEvent(filename);
+    await updateEvent(filename, {
+      title: full.title,
+      date: full.date,
+      ...(updatedTags.length > 0 ? { tags: updatedTags } : {}),
+      ...(full.color ? { color: full.color } : {}),
+      ...(full.status ? { status: full.status } : {}),
+    }, full.body, full.lastModified);
+    return true;
+  }
+
+  async function applySessionTagsToAllEvents(): Promise<void> {
+    const toUpdate: string[] = [];
+    for (const ev of appState.events) {
+      let secs: number;
+      try { secs = toAbsoluteSeconds(parseISOString(ev.date)); } catch { continue; }
+      const computed = sessionTagsForDate(secs);
+      const existing = (ev.tags ?? []).filter(t => t.startsWith('sesh:'));
+      const matches = computed.length === existing.length && computed.every(t => existing.includes(t));
+      if (matches) continue;
+      if (computed.length > 0 || existing.length > 0) toUpdate.push(ev.filename);
+    }
+    if (toUpdate.length === 0) return;
+    for (const filename of toUpdate) {
+      await applySessionTagsToEvent(filename);
+    }
+    await refreshEvents();
+  }
+
   async function handleEditorResult(result: { status: 'saved' | 'deleted' | 'cancelled'; filename?: string }) {
     if (result.status === 'saved' || result.status === 'deleted') {
       await refreshEvents();
       if (result.status === 'saved' && result.filename) {
+        const patched = await applySessionTagsToEvent(result.filename);
+        if (patched) await refreshEvents();
         const ev = appState.events.find(e => e.filename === result.filename);
         if (ev) jumpToEvent(ev);
       }
@@ -403,7 +443,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
       if (actionBtn.dataset.action === 'edit') {
         cardExpansion = undefined;
         renderTimeline();
-        const result = await openEditEditor(filename, { extraValidate: makeSessionValidator(filename) });
+        const result = await openEditEditor(filename);
         await handleEditorResult(result);
       } else if (actionBtn.dataset.action === 'delete') {
         const ev = appState.events.find(ev => ev.filename === filename);
@@ -424,7 +464,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     if (isDoubleClick) {
       cardExpansion = undefined;
       renderTimeline();
-      const result = await openEditEditor(filename, { extraValidate: makeSessionValidator(filename) });
+      const result = await openEditEditor(filename);
       await handleEditorResult(result);
       return;
     }
@@ -444,11 +484,10 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   });
 
   document.getElementById('btn-new-event')!.addEventListener('click', async () => {
-    const sessionTag = appState.state.current_session ? `session:${appState.state.current_session}` : undefined;
+    const autoTags = sessionTagsForDate(appState.inGameNowSeconds);
     const result = await openCreateEditor({
       initialDate: appState.inGameNow,
-      initialTags: sessionTag,
-      extraValidate: makeSessionValidator(),
+      initialTags: autoTags.length > 0 ? autoTags.join(', ') : undefined,
     });
     await handleEditorResult(result);
   });
@@ -477,7 +516,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
   }
   updateSessionBtn();
 
-  sessionBtn.addEventListener('click', async (e) => {
+  sessionBtn.addEventListener('click', async () => {
     if (appState.sessionMode) {
       // Toggle off
       appState.sessionMode = false;
@@ -492,50 +531,6 @@ export async function createTimelineApp(): Promise<TimelineApp> {
     sessionModeCtrl.enter();
     renderTimeline();
     updateSessionBtn();
-
-    // Also open legacy session manager popover for managing current_session
-    const btn = e.currentTarget as HTMLButtonElement;
-    const today = new Date().toISOString().slice(0, 10);
-    const knownIds = new Set(appState.sessions.map(s => s.id));
-    const legacyDerived = appState.events
-      .flatMap(ev => (ev.tags ?? [])
-        .filter(t => t.startsWith('session:'))
-        .map(t => t.slice('session:'.length)))
-      .filter(d => d && !knownIds.has(d))
-      .filter((d, i, arr) => arr.indexOf(d) === i)
-      .sort()
-      .map(d => ({ real_date: d, in_game_start: '', notes: '' }));
-    const legacySessions = [
-      ...appState.sessions.map(s => ({ real_date: s.id, in_game_start: s.inGameStart, notes: s.notes ?? '' })),
-      ...legacyDerived,
-    ];
-    openSessionManagerPopover(
-      btn,
-      appState.state.current_session,
-      legacySessions,
-      appState.inGameNow,
-      today,
-      {
-        onActivate: async (realDate) => {
-          const newState: State = { ...appState.state, current_session: realDate };
-          await putState(newState);
-          appState.state = newState;
-        },
-        onNew: async (session, realDate) => {
-          const newSession = normalizeSession({
-            id: realDate,
-            real_date: realDate,
-            in_game_start: session.in_game_start,
-            notes: session.notes,
-          }, appState.sessions.length);
-          await putSessions([...appState.sessions, newSession]);
-          await refreshSessions();
-          const newState: State = { ...appState.state, current_session: realDate };
-          await putState(newState);
-          appState.state = newState;
-        },
-      },
-    );
   });
 
   document.getElementById('btn-now')!.addEventListener('click', () => {

@@ -1,6 +1,6 @@
 import {
   type ViewState, type ViewportSize,
-  SECONDS_PER_DAY, xToSeconds, secondsToX,
+  xToSeconds, secondsToX,
 } from './zoom.ts';
 import { parseISOString, toAbsoluteSeconds, fromAbsoluteSeconds, toISOString } from '../../calendar/golarian.ts';
 import { formatAxisDay, formatAxisHour } from '../../calendar/format.ts';
@@ -22,6 +22,7 @@ export interface SessionModeDeps {
 export interface SessionModeController {
   enter(): void;
   exit(): void;
+  renderHandles(): void;
   isHandleDragging(): boolean;
 }
 
@@ -32,6 +33,15 @@ interface HandleDrag {
   currentSecs: number;
 }
 
+interface WholeDrag {
+  sessionId: string;
+  originalStart: number;
+  originalEnd: number;
+  anchorSecs: number;
+  currentDelta: number;
+  ghostEl: HTMLElement | null;
+}
+
 export function createSessionMode(
   container: HTMLElement,
   sessionLayer: HTMLElement,
@@ -39,6 +49,7 @@ export function createSessionMode(
 ): SessionModeController {
   let active = false;
   let drag: HandleDrag | null = null;
+  let wholeDrag: WholeDrag | null = null;
 
   // Exit chip shown at top of container
   const exitChip = document.createElement('div');
@@ -87,12 +98,30 @@ export function createSessionMode(
       return;
     }
 
-    // Two-click session creation — only below the axis in the rail zone
-    if (y_inRailZone(e.clientY - rect.top, axisY)) return;
+    // Shift+click on a pill: start whole-session drag
+    const pillEl = (e.target as HTMLElement).closest('.session-pill') as HTMLElement | null;
+    if (pillEl && e.shiftKey) {
+      const sessionId = pillEl.dataset.sessionId!;
+      const session = deps.getSessions().find(s => s.id === sessionId);
+      if (session) {
+        e.stopPropagation();
+        const rect = container.getBoundingClientRect();
+        const anchorSecs = xToSeconds(e.clientX - rect.left, deps.getView(), deps.getViewport());
+        const originalStart = toAbsoluteSeconds(parseISOString(session.inGameStart));
+        const originalEnd = session.inGameEnd
+          ? toAbsoluteSeconds(parseISOString(session.inGameEnd))
+          : originalStart;
+        wholeDrag = { sessionId, originalStart, originalEnd, anchorSecs, currentDelta: 0, ghostEl: null };
+        dragLabel.style.display = '';
+        return;
+      }
+    }
 
-    // Must be in the event area (above axis) for two-click creation
+    // Two-click session creation — only in the rail zone below the axis
+    // (clicking a pill opens the edit modal instead, handled in app.ts)
+    if (pillEl) return;
     const y = e.clientY - rect.top;
-    if (y > axisY) return;
+    if (!y_inRailZone(y, axisY)) return;
 
     const view = deps.getView();
     const size = deps.getViewport();
@@ -119,19 +148,80 @@ export function createSessionMode(
   }
 
   function y_inRailZone(y: number, axisY: number): boolean {
-    return y > axisY + 6 && y < axisY + 50;
+    return y > axisY + 4 && y < axisY + 90;
+  }
+
+  function snapToSessionEndpoints(rawSecs: number, excludeSessionId: string, excludeWhich: 'start' | 'end'): number {
+    let best = rawSecs;
+    let bestDist = Infinity;
+    for (const s of deps.getSessions()) {
+      if (!s.inGameStart) continue;
+      const pts: Array<[number, 'start' | 'end']> = [
+        [toAbsoluteSeconds(parseISOString(s.inGameStart)), 'start'],
+      ];
+      if (s.inGameEnd && s.inGameEnd !== s.inGameStart) {
+        pts.push([toAbsoluteSeconds(parseISOString(s.inGameEnd)), 'end']);
+      }
+      for (const [secs, which] of pts) {
+        if (s.id === excludeSessionId && which === excludeWhich) continue;
+        const d = Math.abs(secs - rawSecs);
+        if (d < bestDist) { bestDist = d; best = secs; }
+      }
+    }
+    return best;
   }
 
   function onMouseMove(e: MouseEvent) {
-    if (!active || !drag) return;
+    if (!active) return;
+
+    if (wholeDrag) {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const view = deps.getView();
+      const size = deps.getViewport();
+      const axisY = Math.floor(container.clientHeight * 0.8);
+      const rawSecs = xToSeconds(x, view, size);
+      const delta = Math.round((rawSecs - wholeDrag.anchorSecs) / SNAP_SECS) * SNAP_SECS;
+      wholeDrag.currentDelta = delta;
+
+      const newStart = wholeDrag.originalStart + delta;
+      const newEnd = wholeDrag.originalEnd + delta;
+      const startX = secondsToX(newStart, view, size);
+      const endX = secondsToX(newEnd, view, size);
+      const pillW = Math.max(endX - startX, 12);
+
+      // Create or reposition ghost pill
+      if (!wholeDrag.ghostEl) {
+        const ghost = document.createElement('div');
+        ghost.className = 'session-ghost-pill';
+        const session = deps.getSessions().find(s => s.id === wholeDrag!.sessionId);
+        ghost.style.setProperty('--pill-color', session?.color ?? '#6b7c5a');
+        ghost.style.height = '24px';
+        ghost.style.borderRadius = '12px';
+        ghost.style.top = `${axisY + 34}px`;
+        sessionLayer.appendChild(ghost);
+        wholeDrag.ghostEl = ghost;
+      }
+      wholeDrag.ghostEl.style.left = `${startX}px`;
+      wholeDrag.ghostEl.style.width = `${pillW}px`;
+
+      const date = fromAbsoluteSeconds(newStart);
+      dragLabel.textContent = formatAxisDay(date) + ' ' + formatAxisHour(date);
+      dragLabel.style.left = `${startX}px`;
+      dragLabel.style.top = `${axisY + 8}px`;
+      return;
+    }
+
+    if (!drag) return;
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const view = deps.getView();
     const size = deps.getViewport();
     const axisY = Math.floor(container.clientHeight * 0.8);
     const rawSecs = xToSeconds(x, view, size);
-    const snapUnit = e.ctrlKey ? SECONDS_PER_DAY : SNAP_SECS;
-    const snapped = Math.round(rawSecs / snapUnit) * snapUnit;
+    const snapped = e.ctrlKey
+      ? snapToSessionEndpoints(rawSecs, drag.sessionId, drag.which)
+      : Math.round(rawSecs / SNAP_SECS) * SNAP_SECS;
     drag.currentSecs = snapped;
 
     // Update handle position live
@@ -156,7 +246,32 @@ export function createSessionMode(
   }
 
   async function onMouseUp() {
-    if (!active || !drag) return;
+    if (!active) return;
+
+    if (wholeDrag) {
+      const { sessionId, originalStart, originalEnd, currentDelta, ghostEl } = wholeDrag;
+      wholeDrag = null;
+      ghostEl?.remove();
+      dragLabel.style.display = 'none';
+
+      if (currentDelta === 0) return;
+      const session = deps.getSessions().find(s => s.id === sessionId);
+      if (!session) return;
+
+      const updated: Session = {
+        ...session,
+        inGameStart: toISOString(fromAbsoluteSeconds(originalStart + currentDelta)),
+        inGameEnd: toISOString(fromAbsoluteSeconds(originalEnd + currentDelta)),
+      };
+      try {
+        await deps.onSaveSession(updated);
+      } catch (err) {
+        console.error('Session whole-drag save failed', err);
+      }
+      return;
+    }
+
+    if (!drag) return;
     const { sessionId, which, originalSecs, currentSecs } = drag;
     drag = null;
     dragLabel.style.display = 'none';
@@ -168,12 +283,10 @@ export function createSessionMode(
     const updated: Session = { ...session };
     if (which === 'start') {
       updated.inGameStart = toISOString(fromAbsoluteSeconds(currentSecs));
-      // Don't let start exceed end
       const endSecs = toAbsoluteSeconds(parseISOString(session.inGameEnd));
       if (currentSecs > endSecs) updated.inGameEnd = updated.inGameStart;
     } else {
       updated.inGameEnd = toISOString(fromAbsoluteSeconds(currentSecs));
-      // Don't let end precede start
       const startSecs = toAbsoluteSeconds(parseISOString(session.inGameStart));
       if (currentSecs < startSecs) updated.inGameStart = updated.inGameEnd;
     }
@@ -193,6 +306,12 @@ export function createSessionMode(
         dragLabel.style.display = 'none';
         return;
       }
+      if (wholeDrag) {
+        wholeDrag.ghostEl?.remove();
+        wholeDrag = null;
+        dragLabel.style.display = 'none';
+        return;
+      }
       clearPendingCreation();
       deps.onExitSessionMode();
     }
@@ -200,14 +319,14 @@ export function createSessionMode(
 
   function renderHandles() {
     // Remove existing handles from the session layer (they're rebuilt each render)
-    sessionLayer.querySelectorAll('.session-drag-handle, .session-drag-guide').forEach(el => el.remove());
+    sessionLayer.querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill').forEach(el => el.remove());
 
     if (!active) return;
 
     const view = deps.getView();
     const size = deps.getViewport();
     const axisY = Math.floor(container.clientHeight * 0.8);
-    const railTop = axisY + 10;
+    const railTop = axisY + 46; // center of the pill (RAIL_OFFSET=34 + half pill height 12)
 
     for (const session of deps.getSessions()) {
       if (!session.inGameStart) continue;
@@ -261,11 +380,13 @@ export function createSessionMode(
     exit() {
       active = false;
       drag = null;
+      if (wholeDrag) { wholeDrag.ghostEl?.remove(); wholeDrag = null; }
       dragLabel.style.display = 'none';
       exitChip.style.display = 'none';
       clearPendingCreation();
-      sessionLayer.querySelectorAll('.session-drag-handle, .session-drag-guide').forEach(el => el.remove());
+      sessionLayer.querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill').forEach(el => el.remove());
     },
-    isHandleDragging: () => drag !== null,
+    renderHandles,
+    isHandleDragging: () => drag !== null || wholeDrag !== null,
   };
 }

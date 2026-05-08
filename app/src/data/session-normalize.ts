@@ -1,5 +1,26 @@
 import type { Session } from './types.ts';
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+export function computeSessionLabel(session: Session, allSessions: Session[]): string {
+  const day = session.realStart.slice(0, 10);
+  const parts = day.split('-');
+  const month = MONTHS[parseInt(parts[1], 10) - 1] ?? parts[1];
+  const dayNum = parseInt(parts[2], 10);
+  const base = `${month} ${dayNum}`;
+
+  const sameDaySessions = allSessions
+    .filter(s => s.realStart.slice(0, 10) === day)
+    .sort((a, b) =>
+      a.inGameStart < b.inGameStart ? -1 : a.inGameStart > b.inGameStart ? 1 :
+      a.id < b.id ? -1 : 1
+    );
+
+  if (sameDaySessions.length <= 1) return base;
+  const idx = sameDaySessions.findIndex(s => s.id === session.id);
+  return idx <= 0 ? base : `${base} (${idx + 1})`;
+}
+
 export const SESSION_COLORS = [
   '#6b7c5a',  // sage
   '#7a5c7a',  // plum

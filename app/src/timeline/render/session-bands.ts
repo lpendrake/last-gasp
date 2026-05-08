@@ -1,7 +1,7 @@
 import type { EventListItem, Session } from '../../data/types.ts';
 import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
-import { formatCompact } from '../../calendar/format.ts';
 import { type ViewState, type ViewportSize, secondsToX } from '../interactions/zoom.ts';
+import { computeSessionLabel } from '../../data/session-normalize.ts';
 
 // ---- Legacy band computation (from event tags) — kept for tests ----
 
@@ -13,12 +13,6 @@ export interface SessionBand {
   color?: string;
 }
 
-export interface SessionConflict {
-  sessionId: string;
-  conflictsWith: string;
-  conflictingEvents: Array<{ filename: string; title: string; date: string }>;
-}
-
 export function computeSessionBands(events: EventListItem[]): SessionBand[] {
   const byId = new Map<string, { min: number; max: number; count: number }>();
 
@@ -26,8 +20,8 @@ export function computeSessionBands(events: EventListItem[]): SessionBand[] {
     const tags = ev.tags ?? [];
     const seconds = toAbsoluteSeconds(parseISOString(ev.date));
     for (const tag of tags) {
-      if (!tag.startsWith('session:')) continue;
-      const id = tag.slice('session:'.length);
+      if (!tag.startsWith('sesh:')) continue;
+      const id = tag.slice('sesh:'.length);
       const existing = byId.get(id);
       if (!existing) {
         byId.set(id, { min: seconds, max: seconds, count: 1 });
@@ -77,83 +71,14 @@ export function computeSessionBandsFromSessions(
     .sort((a, b) => a.startSeconds - b.startSeconds);
 }
 
-/**
- * Two sessions overlap when their in-game spans strictly interleave.
- * Sharing an exact endpoint (continuation) is NOT an overlap.
- */
-export function findSessionConflicts(
-  bands: SessionBand[],
-  events: EventListItem[],
-): SessionConflict[] {
-  const conflicts: SessionConflict[] = [];
-
-  for (let i = 0; i < bands.length; i++) {
-    for (let j = i + 1; j < bands.length; j++) {
-      const a = bands[i];
-      const b = bands[j];
-      const overlaps = a.startSeconds < b.endSeconds && b.startSeconds < a.endSeconds
-        && !(a.endSeconds === b.startSeconds || b.endSeconds === a.startSeconds);
-      if (!overlaps) continue;
-
-      const aConflicts = events.filter(ev =>
-        (ev.tags ?? []).some(t => t === `session:${a.sessionId}`) &&
-        (() => {
-          const s = toAbsoluteSeconds(parseISOString(ev.date));
-          return s >= b.startSeconds && s <= b.endSeconds;
-        })()
-      );
-      const bConflicts = events.filter(ev =>
-        (ev.tags ?? []).some(t => t === `session:${b.sessionId}`) &&
-        (() => {
-          const s = toAbsoluteSeconds(parseISOString(ev.date));
-          return s >= a.startSeconds && s <= a.endSeconds;
-        })()
-      );
-
-      if (aConflicts.length) {
-        conflicts.push({
-          sessionId: a.sessionId,
-          conflictsWith: b.sessionId,
-          conflictingEvents: aConflicts.map(ev => ({
-            filename: ev.filename,
-            title: ev.title,
-            date: formatCompact(parseISOString(ev.date)),
-          })),
-        });
-      }
-      if (bConflicts.length) {
-        conflicts.push({
-          sessionId: b.sessionId,
-          conflictsWith: a.sessionId,
-          conflictingEvents: bConflicts.map(ev => ({
-            filename: ev.filename,
-            title: ev.title,
-            date: formatCompact(parseISOString(ev.date)),
-          })),
-        });
-      }
-    }
-  }
-
-  return conflicts;
-}
 
 // ---- Rail rendering ----
 
 const RAIL_H = 24;           // pill height
-const RAIL_OFFSET = 10;      // px below the axis line
+const RAIL_OFFSET = 34;      // px below the axis line (slots between day labels and month name)
 const MIN_PILL_W = 12;       // minimum rendered pill width (px)
 const LABEL_MIN_W = 60;      // show label only if pill is wider than this
 
-function formatRailLabel(isoStart: string): string {
-  try {
-    const d = parseISOString(isoStart);
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return `${months[(d.month - 1) % 12]} ${d.day}`;
-  } catch {
-    return '';
-  }
-}
 
 export function renderSessionRail(
   container: HTMLElement,
@@ -212,7 +137,7 @@ export function renderSessionRail(
       const label = document.createElement('span');
       label.className = 'session-pill-label';
       const session = sessions.find(s => s.id === band.sessionId);
-      label.textContent = session ? formatRailLabel(session.inGameStart) : band.sessionId;
+      label.textContent = session ? computeSessionLabel(session, sessions) : band.sessionId;
       pill.appendChild(label);
     }
 
@@ -236,5 +161,3 @@ export function renderSessionRail(
   }
 }
 
-// Keep old function name as alias so app.ts compiles during the transition
-export const renderSessionBands = renderSessionRail;

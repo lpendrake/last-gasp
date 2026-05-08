@@ -2,7 +2,7 @@
 title: Drug Ship Trial
 date: 4726-05-04T11:15:00
 tags:
-  - session:2026-04-26
+  - sesh:May 3
 ---
 Justice swiftly dispensed at the request of the abadarian inquisitor.
 

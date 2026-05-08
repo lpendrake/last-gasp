@@ -1,11 +1,10 @@
----
+﻿---
 title: Portal Research Day
 date: 4726-04-29T00:00:00
 tags:
   - plot:mine-portal
   - faction:smokers
   - location:stormhaven
-  - session:2026-03-01
 ---
 
 [Gronk Stonefist](../npcs/gronk-stonefist.md) asks the party to deal with the portal quietly — if other factions find out, they'll use it against the Smokers. Party splits up:

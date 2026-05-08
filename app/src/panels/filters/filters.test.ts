@@ -4,7 +4,7 @@ import {
   makeInitialFilterState, newFilterId,
 } from './logic.ts';
 import type { Filter, TagFilter, DateFilter } from './types.ts';
-import type { EventListItem } from '../../data/types.ts';
+import type { EventListItem, Session } from '../../data/types.ts';
 
 function ev(overrides: Partial<EventListItem>): EventListItem {
   return {
@@ -28,6 +28,20 @@ function dateF(
   enabled = true,
 ): DateFilter {
   return { id: newFilterId(), type: 'date', enabled, pinned: false, field, from, to };
+}
+
+function sess(realStart: string): Session {
+  return {
+    id: realStart,
+    inGameStart: '4726-05-01T00:00:00',
+    inGameEnd: '4726-05-01T00:00:00',
+    realStart: `${realStart}T19:00:00`,
+    realEnd: `${realStart}T23:00:00`,
+    color: '#6b7c5a',
+    notes: '',
+    real_date: realStart,
+    in_game_start: '4726-05-01T00:00:00',
+  };
 }
 
 describe('applyFilters — empty state', () => {
@@ -103,24 +117,27 @@ describe('applyFilters — date filter: in-game', () => {
 
 describe('applyFilters — date filter: session', () => {
   it('matches events whose session tag falls in the range', () => {
+    const sessions = [sess('2026-02-01'), sess('2026-03-01')];
     const events = [
-      ev({ filename: 'a.md', tags: ['session:2026-02-01'] }),
-      ev({ filename: 'b.md', tags: ['session:2026-03-01'] }),
+      ev({ filename: 'a.md', tags: ['sesh:Feb 1'] }),
+      ev({ filename: 'b.md', tags: ['sesh:Mar 1'] }),
     ];
     const state = { filters: [dateF('session', '2026-02-01', '2026-02-28')] };
-    expect(applyFilters(events, state).map(e => e.filename)).toEqual(['a.md']);
+    expect(applyFilters(events, state, sessions).map(e => e.filename)).toEqual(['a.md']);
   });
 
   it('excludes events with no session tag', () => {
+    const sessions = [sess('2026-01-01')];
     const events = [ev({ tags: ['gm-notes'] })];
     const state = { filters: [dateF('session', '2026-01-01', '2027-01-01')] };
-    expect(applyFilters(events, state)).toHaveLength(0);
+    expect(applyFilters(events, state, sessions)).toHaveLength(0);
   });
 
   it('matches when any of multiple session tags falls in range', () => {
-    const events = [ev({ tags: ['session:2026-01-01', 'session:2026-03-15'] })];
+    const sessions = [sess('2026-01-01'), sess('2026-03-15')];
+    const events = [ev({ tags: ['sesh:Jan 1', 'sesh:Mar 15'] })];
     const state = { filters: [dateF('session', '2026-03-01', '2026-03-31')] };
-    expect(applyFilters(events, state)).toHaveLength(1);
+    expect(applyFilters(events, state, sessions)).toHaveLength(1);
   });
 });
 

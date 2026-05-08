@@ -1,5 +1,5 @@
 import type { Session } from '../data/types.ts';
-import { parseISOString } from '../calendar/golarian.ts';
+import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian.ts';
 import { SESSION_COLORS, normalizeSession } from '../data/session-normalize.ts';
 
 export interface SessionModalResult {
@@ -49,6 +49,7 @@ function colorSwatch(color: string, selected: boolean): string {
 export async function openSessionEditModal(
   session: Session | null,
   prefill: Prefill | null,
+  existingSessions: Session[] = [],
 ): Promise<SessionModalResult> {
   const isNew = session === null;
   const today = new Date().toISOString().slice(0, 10);
@@ -93,10 +94,6 @@ export async function openSessionEditModal(
           <label class="session-modal-label">In-game end <span class="session-modal-hint">(Golarian ISO)</span></label>
           <input type="text" class="session-modal-input" id="sm-game-end" value="${inGameEnd}" placeholder="4726-05-04T18:00">
         </div>
-        ${isNew ? `<div class="session-modal-row">
-          <label class="session-modal-label">Session ID (real-world date)</label>
-          <input type="text" class="session-modal-input" id="sm-id" value="${currentId}" placeholder="2026-04-26">
-        </div>` : ''}
       </div>
 
       <div class="session-modal-color-row">
@@ -150,9 +147,7 @@ export async function openSessionEditModal(
       const realEndVal = fromDatetimeLocal((modal.querySelector<HTMLInputElement>('#sm-real-end')!).value);
       const gameStartVal = (modal.querySelector<HTMLInputElement>('#sm-game-start')!).value.trim();
       const gameEndVal = (modal.querySelector<HTMLInputElement>('#sm-game-end')!).value.trim();
-      const idVal = isNew
-        ? (modal.querySelector<HTMLInputElement>('#sm-id')!).value.trim()
-        : currentId;
+      const idVal = isNew ? realStartVal.slice(0, 16) : currentId;
       const selectedColor = (modal.querySelector<HTMLInputElement>('input[name="session-color"]:checked')!).value;
 
       // Validate
@@ -165,6 +160,30 @@ export async function openSessionEditModal(
         errorEl.textContent = 'Invalid in-game end date.';
         errorEl.hidden = false;
         return;
+      }
+
+      // Validate same-day in-game overlap (requirement 4)
+      if (existingSessions.length > 0) {
+        const realDay = realStartVal.slice(0, 10);
+        const editingId = isNew ? idVal : currentId;
+        const sameDaySessions = existingSessions.filter(s =>
+          s.id !== editingId && s.realStart.slice(0, 10) === realDay
+        );
+        try {
+          const newStart = toAbsoluteSeconds(parseISOString(gameStartVal));
+          const newEnd = toAbsoluteSeconds(parseISOString(gameEndVal));
+          for (const s of sameDaySessions) {
+            const existStart = toAbsoluteSeconds(parseISOString(s.inGameStart));
+            const existEnd = toAbsoluteSeconds(parseISOString(s.inGameEnd));
+            const overlaps = newStart < existEnd && existStart < newEnd
+              && !(newEnd === existStart || existEnd === newStart);
+            if (overlaps) {
+              errorEl.textContent = 'In-game time overlaps another session on the same real-world day.';
+              errorEl.hidden = false;
+              return;
+            }
+          }
+        } catch { /* parse errors already caught above */ }
       }
 
       const saved: Session = normalizeSession({

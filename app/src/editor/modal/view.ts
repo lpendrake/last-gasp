@@ -53,7 +53,7 @@ export function editorHtml(mode: Mode): string {
           <input type="text" name="date" class="editor-input" placeholder="4726-05-04T09:30" autocomplete="off">
         </label>
         <label class="editor-label">Tags (comma-separated)
-          <input type="text" name="tags" class="editor-input" placeholder="plot:beast, location:fort, session:2026-04-22" autocomplete="off">
+          <input type="text" name="tags" class="editor-input" placeholder="plot:beast, location:fort, sesh:May 8" autocomplete="off">
         </label>
         <label class="editor-label">Colour
           <span class="editor-color-row">

@@ -29,13 +29,17 @@
   border-radius: 12px;
   background: var(--pill-color, #6b7c5a);
   opacity: 0.72;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  cursor: default;
   display: flex;
   align-items: center;
   overflow: hidden;
   transition: opacity 0.12s;
   box-sizing: border-box;
+}
+.is-session-mode .session-pill {
+  pointer-events: auto;
+  cursor: pointer;
 }
 .session-pill:hover {
   opacity: 1;
@@ -84,6 +88,17 @@
     color-mix(in srgb, var(--wash-color, #6b7c5a) 18%, transparent) 100%
   );
   opacity: 0.85;
+}
+
+/* ===== Shift-drag ghost pill ===== */
+
+.session-ghost-pill {
+  position: absolute;
+  background: var(--pill-color, #6b7c5a);
+  opacity: 0.4;
+  pointer-events: none;
+  border: 2px dashed var(--pill-color, #6b7c5a);
+  box-sizing: border-box;
 }
 
 /* ===== Session drag handles ===== */

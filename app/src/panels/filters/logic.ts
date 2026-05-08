@@ -1,5 +1,6 @@
-import type { EventListItem } from '../../data/types.ts';
+import type { EventListItem, Session } from '../../data/types.ts';
 import { parseISOString, toAbsoluteSeconds } from '../../calendar/golarian.ts';
+import { computeSessionLabel } from '../../data/session-normalize.ts';
 import type {
   DateField, TagFilter, DateFilter, Filter, FilterState,
 } from './types.ts';
@@ -11,15 +12,15 @@ export function makeInitialFilterState(): FilterState {
 // ---- Pure filtering ----
 
 /** Events match iff every enabled filter matches. Empty state matches all. */
-export function applyFilters(events: EventListItem[], state: FilterState): EventListItem[] {
+export function applyFilters(events: EventListItem[], state: FilterState, sessions: Session[] = []): EventListItem[] {
   const active = state.filters.filter(f => f.enabled);
   if (active.length === 0) return events.slice();
-  return events.filter(ev => active.every(f => matchesFilter(ev, f)));
+  return events.filter(ev => active.every(f => matchesFilter(ev, f, sessions)));
 }
 
-export function matchesFilter(event: EventListItem, filter: Filter): boolean {
+export function matchesFilter(event: EventListItem, filter: Filter, sessions: Session[] = []): boolean {
   if (filter.type === 'tag') return matchesTagFilter(event, filter);
-  return matchesDateFilter(event, filter);
+  return matchesDateFilter(event, filter, sessions);
 }
 
 function matchesTagFilter(event: EventListItem, filter: TagFilter): boolean {
@@ -28,7 +29,7 @@ function matchesTagFilter(event: EventListItem, filter: TagFilter): boolean {
   return filter.tags.some(t => eventTags.has(t));
 }
 
-function matchesDateFilter(event: EventListItem, filter: DateFilter): boolean {
+function matchesDateFilter(event: EventListItem, filter: DateFilter, sessions: Session[]): boolean {
   if (!filter.from && !filter.to) return true;
 
   if (filter.field === 'in-game') {
@@ -41,12 +42,15 @@ function matchesDateFilter(event: EventListItem, filter: DateFilter): boolean {
   }
 
   if (filter.field === 'session') {
-    // Parse session tags: "session:YYYY-MM-DD" → real-world day string.
-    const sessionDates = (event.tags ?? [])
-      .filter(t => t.startsWith('session:'))
-      .map(t => t.slice('session:'.length));
-    if (sessionDates.length === 0) return false;
-    return sessionDates.some(d => withinDayRange(d, filter.from, filter.to));
+    const seshTags = new Set((event.tags ?? []).filter(t => t.startsWith('sesh:')));
+    if (seshTags.size === 0) return false;
+    for (const session of sessions) {
+      const label = computeSessionLabel(session, sessions);
+      if (!seshTags.has(`sesh:${label}`)) continue;
+      const realDate = session.realStart.slice(0, 10);
+      if (withinDayRange(realDate, filter.from, filter.to)) return true;
+    }
+    return false;
   }
 
   // creation — real-world mtime
