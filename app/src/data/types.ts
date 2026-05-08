@@ -34,9 +34,18 @@ export interface TagInfo {
 export type TagsRegistry = Record<string, TagInfo>;
 
 export interface Session {
-  real_date: string;       // real-world ISO date
-  in_game_start: string;   // Golarian ISO
-  notes: string;
+  // Canonical fields (new schema)
+  id: string;              // real-world date, e.g. "2026-04-26"
+  inGameStart: string;     // Golarian ISO datetime
+  inGameEnd: string;       // Golarian ISO datetime; equals inGameStart for instant sessions
+  realStart: string;       // real-world ISO datetime, e.g. "2026-04-26T19:00:00"
+  realEnd: string;         // real-world ISO datetime, e.g. "2026-04-26T23:00:00"
+  color: string;           // hex string
+
+  // Legacy fields (kept for raw JSON backward compat)
+  real_date?: string;
+  in_game_start?: string;
+  notes?: string;
 }
 
 export interface Palette {

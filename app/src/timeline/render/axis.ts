@@ -54,7 +54,7 @@ export function renderAxis(
 
   // Month bands + labels
   const BAND_TOP = axisY - 2;
-  const BAND_HEIGHT = 64; // covers tick marks + labels + month label
+  const BAND_HEIGHT = 100; // covers tick marks + labels + session pills + month label
   const LABEL_MIN_BAND_PX = 60; // don't draw label if the visible slice is too narrow
 
   const startDate = fromAbsoluteDays(Math.max(0, Math.floor(startSec / SECONDS_PER_DAY)));
@@ -87,7 +87,7 @@ export function renderAxis(
       const lbl = document.createElement('div');
       lbl.className = 'axis-month-label';
       lbl.style.left = `${labelX}px`;
-      lbl.style.top = `${axisY + 32}px`;
+      lbl.style.top = `${axisY + 64}px`;
       lbl.innerHTML = `<div class="axis-month-name">${monthName(md.month)}</div><div class="axis-month-year">${md.year} AR</div>`;
       container.appendChild(lbl);
     }

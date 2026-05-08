@@ -162,7 +162,7 @@ describe('createReschedule', () => {
   });
 
   it('destroy removes listeners', () => {
-    const { container, cardsLayer, reschedule } = setup([makeEvent('a.md', '4726-05-04')]);
+    const { cardsLayer, reschedule } = setup([makeEvent('a.md', '4726-05-04')]);
     reschedule.destroy();
     const card = cardsLayer.querySelector('.event-card') as HTMLElement;
     md(card, { shift: true });

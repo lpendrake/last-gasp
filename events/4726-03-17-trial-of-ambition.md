@@ -1,10 +1,9 @@
----
+﻿---
 title: Trial of Ambition
 date: 4726-03-17T09:00:00
 tags:
   - faction:asmodeus
   - location:stormhaven
-  - session:2025-09-28
 ---
 
 [Cato](../party.md) competes in the Asmodean Trial of Ambition and wins all three tests. The party accuses Acolyte [Valencia](../npcs/acolyte-valencia.md) of stealing gold from the temple — it's unclear if they were right.

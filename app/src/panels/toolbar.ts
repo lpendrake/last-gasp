@@ -2,7 +2,8 @@ import {
   parseISOString, toISOString, toAbsoluteSeconds, fromAbsoluteSeconds,
 } from '../calendar/golarian.ts';
 import { formatExpanded } from '../calendar/format.ts';
-import type { Session } from '../data/types.ts';
+/** Legacy session shape used only for the toolbar popover form. */
+interface LegacySession { real_date: string; in_game_start: string; notes: string; }
 
 function positionAbove(popover: HTMLElement, anchor: HTMLElement) {
   const r = anchor.getBoundingClientRect();
@@ -122,13 +123,13 @@ export function openAdvanceTimePopover(
 
 export interface SessionManagerCallbacks {
   onActivate: (realDate: string | null) => void;
-  onNew: (session: Session, realDate: string) => void;
+  onNew: (session: LegacySession, realDate: string) => void;
 }
 
 export function openSessionManagerPopover(
   anchor: HTMLButtonElement,
   currentSession: string | null,
-  sessions: Session[],
+  sessions: LegacySession[],
   currentNow: string,
   today: string,
   cb: SessionManagerCallbacks,

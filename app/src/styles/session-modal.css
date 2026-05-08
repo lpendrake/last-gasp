@@ -1,0 +1,134 @@
+/* ===== Session edit modal ===== */
+
+.session-modal {
+  position: relative;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  width: min(520px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.session-modal-header {
+  height: 5px;
+  flex: 0 0 5px;
+}
+
+.session-modal-content {
+  padding: 24px 28px 24px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.session-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--theme-accent-gold, #c9a860);
+  margin-bottom: 4px;
+}
+
+.session-modal-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.session-modal-label {
+  font-size: 12px;
+  color: var(--theme-text-secondary, #a89a80);
+}
+
+.session-modal-hint {
+  font-size: 11px;
+  color: var(--theme-text-muted, #7a6f58);
+}
+
+.session-modal-input {
+  background: var(--theme-background, #1a1a1a);
+  color: var(--theme-text-primary, #d8d0b8);
+  border: 1px solid var(--theme-border, #3a3a30);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  border-radius: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.session-modal-input:focus {
+  outline: none;
+  border-color: var(--theme-accent-gold, #c9a860);
+}
+
+/* Color swatches */
+
+.session-modal-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.session-color-swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.session-color-swatch {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.session-color-swatch input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.session-color-swatch span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--swatch);
+  border: 2px solid transparent;
+  transition: border-color 0.1s;
+}
+
+.session-color-swatch.is-selected span,
+.session-color-swatch input:checked ~ span {
+  border-color: var(--theme-text-primary, #d8d0b8);
+}
+
+.session-color-swatch:hover span {
+  border-color: var(--theme-text-secondary, #a89a80);
+}
+
+/* Error message */
+
+.session-modal-error {
+  font-size: 13px;
+  color: #c06040;
+  background: rgba(180, 80, 40, 0.1);
+  border: 1px solid #5a2820;
+  border-radius: 2px;
+  padding: 6px 10px;
+}
+
+.session-modal-error[hidden] {
+  display: none;
+}

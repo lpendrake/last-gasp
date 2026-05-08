@@ -37,7 +37,7 @@ export function QuickAdd({ open, folders, initialText, initialFolder, onClose, o
 
   // Build ordered kind list: known kinds first, then any extra folders not in the list
   const allKinds = useMemo<KindRow[]>(() => {
-    const knownFolders = new Set(KNOWN_KINDS.map(k => k.folder));
+    const knownFolders = new Set<string>(KNOWN_KINDS.map(k => k.folder));
     const extras = folders
       .filter(f => !knownFolders.has(f))
       .map(f => ({ folder: f, label: f }));

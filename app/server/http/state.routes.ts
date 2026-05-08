@@ -34,6 +34,7 @@ export function stateRoutes(deps: Deps): Route[] {
     defineRoute('GET', '/api/palette',  jsonFileGet(deps.state, 'palette')),
     defineRoute('PUT', '/api/palette',  jsonFilePut(deps.state, 'palette')),
     defineRoute('GET', '/api/sessions', jsonFileGet(deps.state, 'sessions')),
+    defineRoute('PUT', '/api/sessions', jsonFilePut(deps.state, 'sessions')),
     defineRoute('POST', '/api/sessions', async (req, res) => {
       const newSession = await readBody(req);
       try {

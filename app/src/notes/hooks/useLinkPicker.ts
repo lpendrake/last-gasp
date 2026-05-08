@@ -18,7 +18,7 @@ export interface LinkPickerHandle {
 }
 
 export interface UseLinkPickerDeps {
-  rootRef: RefObject<HTMLDivElement>;
+  rootRef: RefObject<HTMLDivElement | null>;
   valueRef: RefObject<string>;
   currentFolder: string;
   linkIndex: LinkIndexEntry[];
@@ -31,7 +31,7 @@ export interface UseLinkPickerDeps {
 export interface UseLinkPickerResult {
   linkPicker: LinkPickerState | null;
   setLinkPicker: (s: LinkPickerState | null) => void;
-  linkPickerRef: RefObject<LinkPickerHandle>;
+  linkPickerRef: RefObject<LinkPickerHandle | null>;
   /** Inspect current caret; show or hide the picker accordingly. */
   maybeShowLinkPicker: () => void;
   /** Top 8 entries matching the current query (assets first). */

@@ -1,4 +1,3 @@
-import React from 'react';
 import type { LinkIndexEntry } from '../../data/types.ts';
 import { tabKey, type FileState, type NoteEntry, type OpenTab } from '../types.ts';
 import { LiveEditor } from '../editor/LiveEditor.tsx';
