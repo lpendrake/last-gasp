@@ -11,6 +11,8 @@ export interface ShortcutsDeps {
   jumpToNow(): void;
   /** Collapse any expanded card; returns true if something was collapsed. */
   collapseExpansion(): boolean;
+  /** Exit session mode if active; returns true if it was active. */
+  exitSessionMode(): boolean;
 }
 
 /** Wire global keyboard shortcuts to the timeline. Suppresses while a
@@ -44,7 +46,7 @@ export function attachGlobalShortcuts(deps: ShortcutsDeps): void {
     } else if (e.key === 'ArrowRight') {
       deps.panBy(-50);
     } else if (e.key === 'Escape') {
-      deps.collapseExpansion();
+      if (!deps.exitSessionMode()) deps.collapseExpansion();
     }
   });
 }
