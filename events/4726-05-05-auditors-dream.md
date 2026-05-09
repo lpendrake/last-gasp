@@ -3,7 +3,6 @@ title: Auditor's Dream
 date: 4726-05-05
 tags:
   - pc:cato
-  - sesh:May 3
 ---
 [Player Characters](../party.md) Cato has a dream next time he rests: 
 

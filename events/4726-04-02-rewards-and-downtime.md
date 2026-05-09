@@ -1,4 +1,4 @@
-﻿---
+---
 title: Gozran 2 Rewards and Two-Week Downtime
 date: 4726-04-02T00:00:00
 tags:

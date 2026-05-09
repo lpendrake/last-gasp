@@ -1,4 +1,4 @@
-﻿---
+---
 title: Murder Mystery Begins
 date: 4726-04-30T00:00:00
 tags:

@@ -1,4 +1,4 @@
-﻿---
+---
 title: Spider Mine Expedition
 date: 4726-03-09T14:00:00
 tags:

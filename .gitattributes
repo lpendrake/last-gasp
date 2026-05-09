@@ -1,0 +1,2 @@
+# Force all text files to LF on check-in and check-out
+* text=auto eol=lf

@@ -1,4 +1,4 @@
-﻿---
+---
 title: Keep Planning and Werefolk Rescue
 date: 4726-04-01T00:00:00
 tags:

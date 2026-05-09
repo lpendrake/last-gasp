@@ -1,4 +1,4 @@
-﻿---
+---
 title: Trial of Ambition
 date: 4726-03-17T09:00:00
 tags:
