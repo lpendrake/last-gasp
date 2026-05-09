@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { LinkIndexEntry } from '../../data/types.ts';
 import { folderColor } from '../types.ts';
 import type { LinkPickerHandle } from '../hooks/useLinkPicker.ts';
@@ -18,7 +18,12 @@ interface LinkPickerDropdownProps {
 export const LinkPickerDropdown = forwardRef<LinkPickerHandle, LinkPickerDropdownProps>(
   function LinkPickerDropdown({ x, y, items, onPick, onClose: _onClose }, ref) {
     const [selected, setSelected] = useState(0);
+    const listRef = useRef<HTMLDivElement>(null);
     useEffect(() => { setSelected(0); }, [items]);
+    useEffect(() => {
+      const row = listRef.current?.children[selected] as HTMLElement | undefined;
+      row?.scrollIntoView({ block: 'nearest' });
+    }, [selected]);
     useImperativeHandle(ref, () => ({
       handleKey(key: string): boolean {
         if (key === 'ArrowDown') { setSelected(s => Math.min(s + 1, items.length - 1)); return true; }
@@ -36,7 +41,7 @@ export const LinkPickerDropdown = forwardRef<LinkPickerHandle, LinkPickerDropdow
       );
     }
     return (
-      <div className="link-picker" style={{ left: x, top: y }}>
+      <div ref={listRef} className="link-picker" style={{ left: x, top: y }}>
         {items.map((it, i) => {
           const folder = it.path.split('/')[0];
           return (
