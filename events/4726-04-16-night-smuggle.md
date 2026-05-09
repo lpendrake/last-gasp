@@ -1,4 +1,4 @@
-﻿---
+---
 title: Night Smuggle from Stormhaven
 date: 4726-04-16T20:00:00
 tags:

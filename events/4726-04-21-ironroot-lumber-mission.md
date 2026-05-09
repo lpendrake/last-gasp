@@ -1,4 +1,4 @@
-﻿---
+---
 title: Ironroot Timber Co. — Bug Hunt Accepted
 date: 4726-04-21T00:00:00
 tags:

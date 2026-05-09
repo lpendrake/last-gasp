@@ -1,4 +1,4 @@
-﻿---
+---
 title: Fort Assault
 date: 4726-03-27T00:00:00
 tags:

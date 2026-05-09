@@ -1,4 +1,4 @@
-﻿---
+---
 title: Search for the Foreman's Kid
 date: 4726-04-23T10:00:00
 tags:

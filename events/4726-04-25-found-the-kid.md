@@ -1,4 +1,4 @@
-﻿---
+---
 title: Found the Foreman's Kid
 date: 4726-04-25T00:00:00
 tags:

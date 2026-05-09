@@ -3,7 +3,6 @@ title: A random story
 date: 4726-05-06T11:00:00
 tags:
   - plot:random
-  - sesh:May 3
 color: '#783888'
 ---
 # 12 days ago, in  sweaty tavern by the docks

@@ -6,7 +6,6 @@ tags:
   - faction:pharasma
   - faction:abadar
   - location:boat
-  - sesh:May 8 (2)
 ---
 
 After resting, the party consults their sponsor and chooses to take the ship. They make a deal with the Abadarian inquisitor — no pay, but he pulls strings to get the ship assigned to the [Pharasma](../factions/pharasma.md)-sponsored team as a tool for investigating the barrier.

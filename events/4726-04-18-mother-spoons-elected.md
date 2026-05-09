@@ -1,4 +1,4 @@
-﻿---
+---
 title: Mother Spoons Elected
 date: 4726-04-18T00:00:00
 tags:

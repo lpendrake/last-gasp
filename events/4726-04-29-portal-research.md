@@ -1,4 +1,4 @@
-﻿---
+---
 title: Portal Research Day
 date: 4726-04-29T00:00:00
 tags:
