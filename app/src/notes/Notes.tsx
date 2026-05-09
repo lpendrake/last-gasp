@@ -77,29 +77,40 @@ export function NotesApp() {
     openFiles, setOpenFiles, setFolderFiles, pushToast,
   });
 
+  const ensureLoaded = useCallback((folder: string, path: string) => {
+    const key = `${folder}/${path}`;
+    setOpenFiles(prev => {
+      if (prev[key] && (prev[key].content !== null || prev[key].loading)) return prev;
+      void getNote(folder, path).then(({ content, mtime }) => {
+        setOpenFiles(p => ({ ...p, [key]: { content, mtime, dirty: false, loading: false } }));
+      }).catch(err => {
+        pushToast(`Failed to load ${key}: ${String(err)}`);
+        setOpenFiles(p => ({ ...p, [key]: { content: '', mtime: '', dirty: false, loading: false } }));
+      });
+      return { ...prev, [key]: { content: null, mtime: '', dirty: false, loading: true } };
+    });
+  }, [pushToast]);
+
   const activeTabRef = useRef<OpenTab | null>(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   // ---- Bootstrap ----
   useEffect(() => {
-    // Load content for any tab that was active when we last left
     if (activeTab && activeTab.fileKind !== 'asset') {
-      const key = tabKey(activeTab);
-      setOpenFiles(prev => {
-        if (prev[key]?.content !== undefined) return prev;
-        void getNote(activeTab.folder, activeTab.path).then(({ content, mtime }) => {
-          setOpenFiles(p => ({ ...p, [key]: { content, mtime, dirty: false, loading: false } }));
-        }).catch(() => {
-          setOpenFiles(p => ({ ...p, [key]: { content: '', mtime: '', dirty: false, loading: false } }));
-        });
-        return { ...prev, [key]: { content: null, mtime: '', dirty: false, loading: true } };
-      });
+      ensureLoaded(activeTab.folder, activeTab.path);
     }
     Promise.all([
       listNoteFolders().then(fs => setFolders(fs.map(f => f.name))),
       getLinkIndex().then(setLinkIndex),
     ]).catch(err => pushToast(`Failed to load: ${String(err)}`));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load content whenever the active tab changes to a file not yet fetched.
+  // Covers the case where closing a tab reveals a tab whose file was never loaded.
+  useEffect(() => {
+    if (!activeTab || activeTab.fileKind === 'asset') return;
+    ensureLoaded(activeTab.folder, activeTab.path);
+  }, [activeTab?.folder, activeTab?.path, ensureLoaded]);
 
   // ---- Persist tabs to localStorage ----
   useEffect(() => {
@@ -175,20 +186,9 @@ export function NotesApp() {
 
   // ---- File operations ----
   async function openFile(folder: string, path: string, fileKind?: 'note' | 'asset') {
-    const key = `${folder}/${path}`;
     setTabs(prev => prev.some(t => t.folder === folder && t.path === path) ? prev : [...prev, { folder, path, fileKind }]);
     setActiveTab({ folder, path, fileKind });
-    if (fileKind === 'asset') return;
-    setOpenFiles(prev => {
-      if (prev[key] && (prev[key].content !== null || prev[key].loading)) return prev;
-      void getNote(folder, path).then(({ content, mtime }) => {
-        setOpenFiles(p => ({ ...p, [key]: { content, mtime, dirty: false, loading: false } }));
-      }).catch(err => {
-        pushToast(`Failed to load ${key}: ${String(err)}`);
-        setOpenFiles(p => ({ ...p, [key]: { content: '', mtime: '', dirty: false, loading: false } }));
-      });
-      return { ...prev, [key]: { content: null, mtime: '', dirty: false, loading: true } };
-    });
+    if (fileKind !== 'asset') ensureLoaded(folder, path);
   }
 
   function handleContentChange(folder: string, path: string, content: string) {
