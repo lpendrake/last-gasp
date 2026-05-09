@@ -1,6 +1,6 @@
 import { type ViewState, type ViewportSize, xToSeconds, secondsToX, SECONDS_PER_DAY } from '../interactions/zoom.ts';
 import { fromAbsoluteDays, toAbsoluteDays, daysInMonth, monthName, fromAbsoluteSeconds } from '../../calendar/golarian.ts';
-import { formatAxisDay, formatAxisHour } from '../../calendar/format.ts';
+import { formatAxisDayTick, formatAxisHour } from '../../calendar/format.ts';
 
 /**
  * Render axis major tick marks and labels for the visible range.
@@ -44,12 +44,31 @@ export function renderAxis(
     mark.className = 'axis-tick-mark';
     tick.appendChild(mark);
 
+    const pxPerTick = pixelsPerDay * dayStep;
+    const dayLabelLevel = pxPerTick >= 55 ? 'full' : 'short';
+
     const label = document.createElement('div');
     label.className = 'axis-tick-label';
-    label.textContent = formatAxisDay(date);
+    label.textContent = formatAxisDayTick(date, dayLabelLevel);
     tick.appendChild(label);
 
     container.appendChild(tick);
+  }
+
+  // Pinned day label: when zoomed to hours the midnight tick is off-screen left,
+  // so pin the current day's label at the left edge (mirrors the month-label pin).
+  if (dayStep === 1) {
+    const leftDay = Math.floor(startSec / SECONDS_PER_DAY);
+    const leftDayX = secondsToX(leftDay * SECONDS_PER_DAY, view, size);
+    if (leftDayX < 0) {
+      const date = fromAbsoluteDays(leftDay);
+      const pin = document.createElement('div');
+      pin.className = 'axis-day-pin';
+      pin.style.left = '8px';
+      pin.style.top = `${axisY + 17}px`;
+      pin.textContent = formatAxisDayTick(date, 'full');
+      container.appendChild(pin);
+    }
   }
 
   // Month bands + labels
@@ -195,7 +214,7 @@ function renderTimeTicks(
       const date = fromAbsoluteSeconds(t);
       const lbl = document.createElement('div');
       lbl.className = 'axis-time-label';
-      lbl.textContent = formatAxisHour(date);
+      lbl.textContent = formatAxisHour(date, true);
       el.appendChild(lbl);
     }
 

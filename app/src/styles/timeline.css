@@ -211,7 +211,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
   background: var(--theme-border-strong, #5a4530);
 }
 
@@ -221,18 +221,26 @@
 }
 
 .axis-tick-mark {
-  width: 1px;
-  height: 8px;
+  width: 2px;
+  height: 21px;
   background: var(--theme-border-strong, #5a4530);
   margin-top: -4px;
 }
 
 .axis-tick-label {
-  margin-top: 6px;
   font-size: 15px;
   color: var(--theme-text-secondary, #a89a80);
   font-family: ui-monospace, 'Consolas', monospace;
   white-space: nowrap;
+}
+
+.axis-day-pin {
+  position: absolute;
+  font-size: 15px;
+  color: var(--theme-text-secondary, #a89a80);
+  font-family: ui-monospace, 'Consolas', monospace;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .axis-month-band {
@@ -278,6 +286,7 @@
   font-family: ui-monospace, 'Consolas', monospace;
   white-space: nowrap;
   margin-top: 2px;
+  transform: translateX(-50%);
 }
 
 
