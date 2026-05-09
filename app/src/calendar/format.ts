@@ -53,14 +53,22 @@ export function formatCardFace(date: GolarianDate): string {
   return s;
 }
 
-/** "Wed 4 Desnus" — axis major tick */
+/** "Wed 4 Desnus" — axis major tick (used by tooltips/labels outside the axis) */
 export function formatAxisDay(date: GolarianDate): string {
   return `${weekday(date).slice(0, 3)} ${date.day} ${monthName(date.month)}`;
 }
 
+/** "Wed 4" / "4" — axis tick label, detail level driven by zoom */
+export function formatAxisDayTick(date: GolarianDate, level: 'full' | 'short'): string {
+  if (level === 'short') return `${date.day}`;
+  return `${weekday(date).slice(0, 3)} ${date.day}`;
+}
+
 /** "09:00" — axis minor tick */
-export function formatAxisHour(date: GolarianDate): string {
-  return `${String(date.hour).padStart(2, '0')}:${String(date.minute).padStart(2, '0')}`;
+export function formatAxisHour(date: GolarianDate, shorten: boolean = false): string {
+  const hour = String(date.hour).padStart(2, '0');
+  if (shorten && date.minute == 0) return hour;
+  return `${hour}:${String(date.minute).padStart(2, '0')}`;
 }
 
 /** "Desnus 4th, Wednesday, 4726 AR" — floating header (day) */
