@@ -327,6 +327,7 @@ export async function createTimelineApp(): Promise<TimelineApp> {
       await putSessions(newSessions);
       appState.sessions = newSessions;
       renderTimeline();
+      await applySessionTagsToAllEvents();
     }
   });
 
