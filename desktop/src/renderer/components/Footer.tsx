@@ -13,21 +13,23 @@ export function Footer({ currentView, onChangeView }: FooterProps) {
   const viewNames: Record<ViewType, string> = {
     notes: 'Notes',
     timeline: 'Timeline',
-    relationships: 'Relationships'
+    relationships: 'Relationships',
   };
 
   return (
-    <div style={{
-      height: '50px',
-      backgroundColor: '#18181b',
-      borderTop: '1px solid #27272a',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 20px',
-      position: 'relative'
-    }}>
+    <div
+      style={{
+        height: '50px',
+        backgroundColor: '#18181b',
+        borderTop: '1px solid #27272a',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 20px',
+        position: 'relative',
+      }}
+    >
       {/* Burger & View Switcher */}
-      <div 
+      <div
         onClick={() => setMenuOpen(!menuOpen)}
         style={{
           display: 'flex',
@@ -39,38 +41,44 @@ export function Footer({ currentView, onChangeView }: FooterProps) {
           backgroundColor: menuOpen ? '#27272a' : 'transparent',
           color: '#e0e0e0',
           transition: 'background 0.2s',
-          position: 'relative'
+          position: 'relative',
         }}
-        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#27272a'}
-        onMouseOut={(e) => { if (!menuOpen) e.currentTarget.style.backgroundColor = 'transparent' }}
+        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+        onMouseOut={(e) => {
+          if (!menuOpen) e.currentTarget.style.backgroundColor = 'transparent';
+        }}
       >
         <div style={{ fontSize: '18px' }}>☰</div>
-        <div style={{ fontWeight: 600, fontSize: '14px', minWidth: '80px' }}>{viewNames[currentView]}</div>
+        <div style={{ fontWeight: 600, fontSize: '14px', minWidth: '80px' }}>
+          {viewNames[currentView]}
+        </div>
       </div>
 
       {/* View Selection Menu */}
       {menuOpen && (
         <>
-          <div 
-            style={{ position: 'fixed', inset: 0, zIndex: 9 }} 
-            onClick={() => setMenuOpen(false)} 
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9 }}
+            onClick={() => setMenuOpen(false)}
           />
-          <div style={{
-            position: 'absolute',
-            bottom: '60px',
-            left: '20px',
-            backgroundColor: '#18181b',
-            border: '1px solid #27272a',
-            borderRadius: '8px',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-            zIndex: 10,
-            width: '200px'
-          }}>
-            {(Object.keys(viewNames) as ViewType[]).map(v => (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '60px',
+              left: '20px',
+              backgroundColor: '#18181b',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+              zIndex: 10,
+              width: '200px',
+            }}
+          >
+            {(Object.keys(viewNames) as ViewType[]).map((v) => (
               <button
                 key={v}
                 onClick={() => {
@@ -87,10 +95,14 @@ export function Footer({ currentView, onChangeView }: FooterProps) {
                   cursor: 'pointer',
                   fontWeight: 500,
                   fontSize: '14px',
-                  transition: 'background 0.1s'
+                  transition: 'background 0.1s',
                 }}
-                onMouseOver={(e) => { if (currentView !== v) e.currentTarget.style.background = '#1f1f22'; }}
-                onMouseOut={(e) => { if (currentView !== v) e.currentTarget.style.background = 'transparent'; }}
+                onMouseOver={(e) => {
+                  if (currentView !== v) e.currentTarget.style.background = '#1f1f22';
+                }}
+                onMouseOut={(e) => {
+                  if (currentView !== v) e.currentTarget.style.background = 'transparent';
+                }}
               >
                 {viewNames[v]}
               </button>
@@ -100,14 +112,17 @@ export function Footer({ currentView, onChangeView }: FooterProps) {
       )}
 
       {/* Dynamic Content Portal Target */}
-      <div id="footer-portal-target" style={{ 
-        flex: 1, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'flex-end',
-        paddingLeft: '20px',
-        gap: '10px'
-      }}></div>
+      <div
+        id="footer-portal-target"
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingLeft: '20px',
+          gap: '10px',
+        }}
+      ></div>
     </div>
   );
 }

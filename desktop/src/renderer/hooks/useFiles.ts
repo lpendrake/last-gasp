@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const TARGET_DIR = "C:\\Users\\lauri\\Google Drive\\tabletop-timeline";
+const TARGET_DIR = 'C:\\Users\\lauri\\Google Drive\\tabletop-timeline';
 
 export interface FileEntry {
   name: string;
@@ -17,10 +17,10 @@ export function useFiles() {
   const fetchDir = useCallback(async () => {
     try {
       const dirContents = await window.fsApi.readDir(TARGET_DIR);
-      const mdFiles = dirContents.filter(f => !f.isDirectory && f.name.endsWith('.md'));
+      const mdFiles = dirContents.filter((f) => !f.isDirectory && f.name.endsWith('.md'));
       setFiles(mdFiles);
     } catch (error) {
-      console.error("Error reading directory:", error);
+      console.error('Error reading directory:', error);
     }
   }, []);
 
@@ -31,7 +31,7 @@ export function useFiles() {
       setContent(data || '');
       setActiveFile(filePath);
     } catch (error) {
-      console.error("Error reading file:", error);
+      console.error('Error reading file:', error);
       setContent('');
     } finally {
       setIsLoading(false);
@@ -45,16 +45,24 @@ export function useFiles() {
   useEffect(() => {
     const unsubscribe = window.fsApi.onFileChange(({ event, path }) => {
       console.log(`File event detected: ${event} on ${path}`);
-      
+
       if (event === 'add' || event === 'unlink') {
         fetchDir();
       }
-      
-      if (event === 'change' && activeFile && path.replace(/\\/g, '/') === activeFile.replace(/\\/g, '/')) {
-        window.fsApi.readFile(activeFile).then(data => setContent(data || ''));
+
+      if (
+        event === 'change' &&
+        activeFile &&
+        path.replace(/\\/g, '/') === activeFile.replace(/\\/g, '/')
+      ) {
+        window.fsApi.readFile(activeFile).then((data) => setContent(data || ''));
       }
 
-      if (event === 'unlink' && activeFile && path.replace(/\\/g, '/') === activeFile.replace(/\\/g, '/')) {
+      if (
+        event === 'unlink' &&
+        activeFile &&
+        path.replace(/\\/g, '/') === activeFile.replace(/\\/g, '/')
+      ) {
         setActiveFile(null);
         setContent('');
       }
@@ -77,7 +85,7 @@ export function useFiles() {
     const lineNumber = lineCount > 0 ? lineCount + 1 : 1;
     const newLine = `[Line ${lineNumber}] Entry added at ${new Date().toLocaleTimeString()}\n`;
     const newContent = content ? `${content}\n${newLine}` : newLine;
-    
+
     setContent(newContent);
     await window.fsApi.writeFile(activeFile, newContent);
   };
@@ -95,6 +103,6 @@ export function useFiles() {
     fetchFile,
     handleCreateNew,
     handleAddLine,
-    handleDelete
+    handleDelete,
   };
 }

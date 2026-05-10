@@ -10,17 +10,19 @@ interface SidebarProps {
 
 export function Sidebar({ files, activeFile, onSelectFile, onCreateNew }: SidebarProps) {
   return (
-    <div style={{
-      width: '280px',
-      backgroundColor: '#18181b',
-      borderRight: '1px solid #27272a',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '20px 0'
-    }}>
+    <div
+      style={{
+        width: '280px',
+        backgroundColor: '#18181b',
+        borderRight: '1px solid #27272a',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '20px 0',
+      }}
+    >
       <div style={{ padding: '0 20px', marginBottom: '20px' }}>
         <h2 style={{ fontSize: '18px', margin: '0 0 10px 0', color: '#fff' }}>Campaign Notes</h2>
-        <button 
+        <button
           onClick={onCreateNew}
           style={{
             width: '100%',
@@ -33,16 +35,16 @@ export function Sidebar({ files, activeFile, onSelectFile, onCreateNew }: Sideba
             fontWeight: 500,
             transition: 'background 0.2s',
           }}
-          onMouseOver={(e) => e.currentTarget.style.background = '#52525b'}
-          onMouseOut={(e) => e.currentTarget.style.background = '#3f3f46'}
+          onMouseOver={(e) => (e.currentTarget.style.background = '#52525b')}
+          onMouseOut={(e) => (e.currentTarget.style.background = '#3f3f46')}
         >
           + New Note
         </button>
       </div>
-      
+
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {files.map(file => (
-          <div 
+        {files.map((file) => (
+          <div
             key={file.path}
             onClick={() => onSelectFile(file.path)}
             style={{
@@ -51,7 +53,7 @@ export function Sidebar({ files, activeFile, onSelectFile, onCreateNew }: Sideba
               backgroundColor: activeFile === file.path ? '#27272a' : 'transparent',
               borderLeft: activeFile === file.path ? '3px solid #6366f1' : '3px solid transparent',
               color: activeFile === file.path ? '#fff' : '#a1a1aa',
-              transition: 'all 0.1s'
+              transition: 'all 0.1s',
             }}
             onMouseOver={(e) => {
               if (activeFile !== file.path) e.currentTarget.style.backgroundColor = '#1f1f22';
@@ -64,7 +66,9 @@ export function Sidebar({ files, activeFile, onSelectFile, onCreateNew }: Sideba
           </div>
         ))}
         {files.length === 0 && (
-          <div style={{ padding: '0 20px', color: '#71717a', fontSize: '14px', fontStyle: 'italic' }}>
+          <div
+            style={{ padding: '0 20px', color: '#71717a', fontSize: '14px', fontStyle: 'italic' }}
+          >
             No markdown files found.
           </div>
         )}

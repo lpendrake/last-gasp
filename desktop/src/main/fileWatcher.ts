@@ -18,16 +18,21 @@ export class FileWatcher {
     }
 
     this.watcher = chokidar.watch(this.targetDir, {
-      ignored: /(^|[\/\\])\../,
+      ignored: /(^|[/\\])\../,
       persistent: true,
-      ignoreInitial: true
+      ignoreInitial: true,
     });
 
-    this.watcher!
-      .on('add', (filePath: string) => mainWindow.webContents.send('fs:changed', { event: 'add', path: filePath }))
-      .on('change', (filePath: string) => mainWindow.webContents.send('fs:changed', { event: 'change', path: filePath }))
-      .on('unlink', (filePath: string) => mainWindow.webContents.send('fs:changed', { event: 'unlink', path: filePath }));
-      
+    this.watcher!.on('add', (filePath: string) =>
+      mainWindow.webContents.send('fs:changed', { event: 'add', path: filePath }),
+    )
+      .on('change', (filePath: string) =>
+        mainWindow.webContents.send('fs:changed', { event: 'change', path: filePath }),
+      )
+      .on('unlink', (filePath: string) =>
+        mainWindow.webContents.send('fs:changed', { event: 'unlink', path: filePath }),
+      );
+
     console.log(`[FileWatcher] Started watching ${this.targetDir}`);
   }
 

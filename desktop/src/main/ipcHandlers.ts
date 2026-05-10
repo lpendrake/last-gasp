@@ -7,10 +7,10 @@ export function registerIpcHandlers() {
     try {
       if (!fs.existsSync(dirPath)) return [];
       const files = fs.readdirSync(dirPath, { withFileTypes: true });
-      return files.map(file => ({
+      return files.map((file) => ({
         name: file.name,
         isDirectory: file.isDirectory(),
-        path: path.join(dirPath, file.name)
+        path: path.join(dirPath, file.name),
       }));
     } catch (error) {
       console.error('Failed to read directory:', error);

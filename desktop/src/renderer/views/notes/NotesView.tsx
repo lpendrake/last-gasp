@@ -13,23 +13,30 @@ export function NotesView() {
     fetchFile,
     handleCreateNew,
     handleAddLine,
-    handleDelete
+    handleDelete,
   } = useFiles();
 
   const [bgColor, setBgColor] = useState('transparent');
 
   return (
     <div style={{ display: 'flex', height: '100%', width: '100%' }}>
-      <Sidebar 
-        files={files} 
-        activeFile={activeFile} 
-        onSelectFile={fetchFile} 
-        onCreateNew={handleCreateNew} 
+      <Sidebar
+        files={files}
+        activeFile={activeFile}
+        onSelectFile={fetchFile}
+        onCreateNew={handleCreateNew}
       />
-      
+
       {/* Wrap the Editor to apply our dynamic color for the PoC */}
-      <div style={{ flex: 1, display: 'flex', backgroundColor: bgColor, transition: 'background-color 0.3s' }}>
-        <Editor 
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          backgroundColor: bgColor,
+          transition: 'background-color 0.3s',
+        }}
+      >
+        <Editor
           activeFile={activeFile}
           files={files}
           content={content}
@@ -41,7 +48,11 @@ export function NotesView() {
 
       <FooterPortal>
         <button
-          onClick={() => setBgColor(prev => prev === 'transparent' ? 'rgba(239, 68, 68, 0.1)' : 'transparent')}
+          onClick={() =>
+            setBgColor((prev) =>
+              prev === 'transparent' ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+            )
+          }
           style={{
             background: 'rgba(239, 68, 68, 0.1)',
             color: '#ef4444',
@@ -50,7 +61,7 @@ export function NotesView() {
             borderRadius: '4px',
             cursor: 'pointer',
             fontWeight: 600,
-            fontSize: '13px'
+            fontSize: '13px',
           }}
         >
           Toggle Red Background
