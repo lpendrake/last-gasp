@@ -11,6 +11,8 @@
     "build": "npm run build:renderer && npm run build:main",
     "package": "npm run build && electron-builder build -mwl",
     "package:win": "npm run build && electron-builder build -w",
+    "package:test": "npm run build && electron-builder build -w --publish never",
+    "package:publish": "npm run build && electron-builder build -w --publish always",
     "rebuild:win": "taskkill /F /IM \"Last Gasp.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/Last Gasp Setup 1.0.0.exe\""
   },
   "build": {
@@ -38,22 +40,22 @@
     }
   },
   "dependencies": {
-    "chokidar": "^5.0.0",
-    "electron-updater": "^6.8.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "chokidar": "4.0.1",
+    "electron-updater": "6.3.9",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
-    "@types/react": "^18.2.79",
-    "@types/react-dom": "^18.2.25",
-    "@vitejs/plugin-react": "^4.2.1",
-    "concurrently": "^8.2.2",
-    "electron": "^30.0.1",
-    "electron-builder": "^24.13.3",
-    "tsx": "^4.7.2",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.8",
-    "wait-on": "^7.2.0"
+    "@types/node": "20.19.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "6.0.1",
+    "concurrently": "9.1.0",
+    "electron": "42.0.1",
+    "electron-builder": "26.8.1",
+    "tsx": "4.21.0",
+    "typescript": "5.7.2",
+    "vite": "8.0.11",
+    "wait-on": "8.0.1"
   }
 }

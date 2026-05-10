@@ -34,7 +34,7 @@ jobs:
 
       - name: Build (Dev / PR)
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        run: npm run build && npx electron-builder build -w --publish never
+        run: npm run package:test
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,7 +48,7 @@ jobs:
 
       - name: Build and Publish Release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        run: npm run build && npx electron-builder build -w --publish always
+        run: npm run package:publish
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
