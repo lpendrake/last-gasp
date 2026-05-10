@@ -1,6 +1,8 @@
 ---
 title: Talked with Zephyr Swiftwind
 date: 4726-05-09T12:00:00
+tags:
+  - sesh:May 3
 ---
 Upon returning to port after being intercepted by [The Free Sails](../factions/free-sails.md) the party was met by [Captain Zephyr Swiftwind](../npcs/zephyr-swiftwind.md).
 
