@@ -102,27 +102,54 @@ export function LiveEditor({
   }, [ctx, onChange, rebuild, maybeShowLinkPicker]);
 
   const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
-    if (!Array.from(e.clipboardData.items).some(it => it.type.startsWith('image/'))) return;
     e.preventDefault();
     const root = rootRef.current;
     const caret = root ? saveCaret(root) : null;
-    try {
-      const result = await uploadPastedImage(e.clipboardData, currentFolder);
-      if (!result || !root) return;
-      const lines = readAllText(root).split('\n');
-      const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
-      const offset = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
-      lines[lineIdx] = (lines[lineIdx] ?? '').slice(0, offset) + result.markdown + (lines[lineIdx] ?? '').slice(offset);
-      const newText = lines.join('\n');
-      valueRef.current = newText;
-      onChange(newText);
-      rebuild(newText, lineIdx);
-      requestAnimationFrame(() => {
-        restoreCaret(root, { lineIndex: lineIdx, offset: offset + result.advance });
-      });
-    } catch (err) {
-      console.error('Image paste failed', err);
+
+    if (Array.from(e.clipboardData.items).some(it => it.type.startsWith('image/'))) {
+      try {
+        const result = await uploadPastedImage(e.clipboardData, currentFolder);
+        if (!result || !root) return;
+        const lines = readAllText(root).split('\n');
+        const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
+        const offset = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
+        lines[lineIdx] = (lines[lineIdx] ?? '').slice(0, offset) + result.markdown + (lines[lineIdx] ?? '').slice(offset);
+        const newText = lines.join('\n');
+        valueRef.current = newText;
+        onChange(newText);
+        rebuild(newText, lineIdx);
+        requestAnimationFrame(() => {
+          restoreCaret(root, { lineIndex: lineIdx, offset: offset + result.advance });
+        });
+      } catch (err) {
+        console.error('Image paste failed', err);
+      }
+      return;
     }
+
+    const pastedText = e.clipboardData.getData('text/plain');
+    if (!pastedText || !root) return;
+    const currentText = readAllText(root);
+    const lines = currentText.split('\n');
+    const lineIdx = caret?.lineIndex ?? Math.max(0, lines.length - 1);
+    const offset = caret?.offset ?? (lines[lineIdx]?.length ?? 0);
+    const caretPos = lines.slice(0, lineIdx).reduce((acc, l) => acc + l.length + 1, 0) + offset;
+    const newText = currentText.slice(0, caretPos) + pastedText + currentText.slice(caretPos);
+    const newCaretCharPos = caretPos + pastedText.length;
+    const newLines = newText.split('\n');
+    let remaining = newCaretCharPos;
+    let newLineIdx = newLines.length - 1;
+    let newOffset = newLines[newLineIdx]?.length ?? 0;
+    for (let i = 0; i < newLines.length; i++) {
+      if (remaining <= newLines[i].length) { newLineIdx = i; newOffset = remaining; break; }
+      remaining -= newLines[i].length + 1;
+    }
+    valueRef.current = newText;
+    onChange(newText);
+    rebuild(newText, newLineIdx);
+    requestAnimationFrame(() => {
+      restoreCaret(root, { lineIndex: newLineIdx, offset: newOffset });
+    });
   }, [currentFolder, onChange, rebuild]);
 
   function caretAtPoint(x: number, y: number): { node: Node; offset: number } | null {
