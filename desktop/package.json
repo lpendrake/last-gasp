@@ -1,0 +1,76 @@
+{
+  "name": "tabletop-timeline",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TableTop Timeline Desktop App",
+  "author": "lpendrake",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "npm run build:main && concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "build": "npm run build:renderer && npm run build:main",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "package": "npm run build && electron-builder build -mwl",
+    "package:win": "npm run build && electron-builder build -w",
+    "package:test": "npm run build && electron-builder build -w --publish never",
+    "package:publish": "npm run build && electron-builder build -w --publish always",
+    "rebuild:win": "taskkill /F /IM \"TableTop Timeline.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/TableTop Timeline Setup 1.0.0.exe\""
+  },
+  "build": {
+    "appId": "com.tabletop-timeline.desktop",
+    "productName": "TableTop Timeline",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "lpendrake",
+        "repo": "last-gasp"
+      }
+    ],
+    "icon": "src/assets/images/icon",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/assets/images/icon.ico",
+      "src/assets/images/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "src/assets/images/icon.ico"
+    }
+  },
+  "dependencies": {
+    "chokidar": "4.0.1",
+    "electron-updater": "6.3.9",
+    "gray-matter": "4.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@typescript-eslint/eslint-plugin": "8.18.1",
+    "@typescript-eslint/parser": "8.18.1",
+    "@vitejs/plugin-react": "6.0.1",
+    "concurrently": "9.1.0",
+    "electron": "42.0.1",
+    "electron-builder": "26.8.1",
+    "eslint": "9.17.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-prettier": "5.2.1",
+    "eslint-plugin-react": "7.37.2",
+    "eslint-plugin-react-hooks": "5.1.0",
+    "eslint-plugin-react-refresh": "0.4.16",
+    "globals": "15.14.0",
+    "prettier": "3.4.2",
+    "tsx": "4.21.0",
+    "typescript": "5.7.2",
+    "typescript-eslint": "8.18.1",
+    "vite": "8.0.11",
+    "wait-on": "8.0.1"
+  }
+}

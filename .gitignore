@@ -12,3 +12,8 @@ app/dist/
 # Claude Code — ignore local session/project state, but ship skills with the repo
 .claude/*
 !.claude/skills/
+node_modules
+
+# desktop build artifacts
+desktop/dist/
+desktop/release/
