@@ -1,17 +1,13 @@
 import { app, BrowserWindow } from 'electron';
-import * as path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import * as path from 'node:path';
 
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null;
 
   public createMainWindow(): BrowserWindow {
     this.mainWindow = new BrowserWindow({
-      fullscreen: true,
-      autoHideMenuBar: false, // Temporary: show menu so we can open DevTools if it's blank
+      show: false, // Create hidden to avoid a "flicker" while maximizing
+      autoHideMenuBar: true, // Clean "App" look, press Alt to show it
       icon: path.join(app.getAppPath(), 'src/assets/images/icon.ico'),
       webPreferences: {
         nodeIntegration: false,
@@ -19,6 +15,9 @@ export class WindowManager {
         preload: path.join(app.getAppPath(), 'dist/preload/index.cjs'),
       },
     });
+
+    this.mainWindow.maximize();
+    this.mainWindow.show();
 
     const isDev = !app.isPackaged;
 

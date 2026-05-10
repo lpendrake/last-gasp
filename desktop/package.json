@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Last Gasp Desktop App",
+  "author": "lpendrake",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "npm run build:main && concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",

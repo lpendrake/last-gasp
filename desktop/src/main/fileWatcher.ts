@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { BrowserWindow } from 'electron';
 import * as chokidar from 'chokidar';
 
