@@ -60,13 +60,13 @@ export default function App() {
   const renderView = () => {
     switch (currentView) {
       case 'notes':
-        return <NotesView campaignPath={activeCampaign.path} />;
+        return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
       case 'timeline':
         return <TimelineView />;
       case 'relationships':
         return <RelationshipsView />;
       default:
-        return <NotesView campaignPath={activeCampaign.path} />;
+        return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
     }
   };
 
@@ -74,8 +74,8 @@ export default function App() {
     <div
       style={{
         height: '100vh',
-        backgroundColor: '#121214',
-        color: '#e0e0e0',
+        backgroundColor: 'var(--theme-background)',
+        color: 'var(--theme-text-primary)',
         fontFamily: '"Inter", "Segoe UI", sans-serif',
         display: 'flex',
         flexDirection: 'column',
