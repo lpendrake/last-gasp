@@ -7,9 +7,7 @@
  */
 
 /** Asset file extensions (lowercase, with leading dot). */
-export const ASSET_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg',
-]);
+export const ASSET_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']);
 
 /** Derive a simple extension from a filename or path (lowercase, with dot). */
 function extOf(name: string): string {

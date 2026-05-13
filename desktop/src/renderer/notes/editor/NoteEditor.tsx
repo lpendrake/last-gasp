@@ -1,8 +1,22 @@
 import React, { useEffect, useRef } from 'react';
-import { EditorView, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, keymap } from '@codemirror/view';
+import {
+  EditorView,
+  highlightSpecialChars,
+  drawSelection,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+  highlightActiveLine,
+  keymap,
+} from '@codemirror/view';
 import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
 import { history, historyKeymap, defaultKeymap, indentWithTab } from '@codemirror/commands';
-import { indentOnInput, bracketMatching, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import {
+  indentOnInput,
+  bracketMatching,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+} from '@codemirror/language';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { lintKeymap } from '@codemirror/lint';
@@ -54,7 +68,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   campaignPath,
   viewRef,
 }) => {
-  const editorRef      = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const internalViewRef = useRef<EditorView | null>(null);
 
   // Stable refs so effects/callbacks always call the latest version.
@@ -147,7 +161,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     if (savedInstance) {
       // The saved state has the compartment set to whatever mode was active
       // when the tab was last in the foreground. Sync it to the current mode.
-      view.dispatch({ effects: compartment.reconfigure(buildModeExtensions(isSourceModeRef.current)) });
+      view.dispatch({
+        effects: compartment.reconfigure(buildModeExtensions(isSourceModeRef.current)),
+      });
     }
 
     return () => {
@@ -166,7 +182,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       effects: modeCompartmentRef.current.reconfigure(buildModeExtensions(isSourceMode)),
     });
     view.focus();
-  }, [isSourceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSourceMode]);
 
   // External content update (e.g. file reloaded from disk).
   useEffect(() => {

@@ -9,10 +9,10 @@ interface BreadcrumbNavProps {
 }
 
 const STATUS_TEXT: Record<SaveStatus, (savedAt?: string) => string> = {
-  clean: (at) => at ? `saved ${at}` : 'saved',
+  clean: (at) => (at ? `saved ${at}` : 'saved'),
   dirty: () => 'unsaved',
   saving: () => 'saving…',
-  saved: (at) => at ? `saved ${at}` : 'saved ✓',
+  saved: (at) => (at ? `saved ${at}` : 'saved ✓'),
 };
 
 /** Path breadcrumbs above the editor with a save-status indicator

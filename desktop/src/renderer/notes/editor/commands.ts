@@ -14,9 +14,24 @@
 
 import { type Extension } from '@codemirror/state';
 import { type Command, EditorView, keymap } from '@codemirror/view';
-import { toggleBold, toggleItalic, toggleCode, toggleStrike } from '../domain/markdown/toggleInline';
-import { toggleHeading, toggleBulletList, toggleOrderedList, toggleBlockquote } from '../domain/markdown/toggleBlock';
-import { linkTemplate, imageTemplate, tableTemplate, codeBlockTemplate } from '../domain/markdown/insertTemplates';
+import {
+  toggleBold,
+  toggleItalic,
+  toggleCode,
+  toggleStrike,
+} from '../domain/markdown/toggleInline';
+import {
+  toggleHeading,
+  toggleBulletList,
+  toggleOrderedList,
+  toggleBlockquote,
+} from '../domain/markdown/toggleBlock';
+import {
+  linkTemplate,
+  imageTemplate,
+  tableTemplate,
+  codeBlockTemplate,
+} from '../domain/markdown/insertTemplates';
 import type { TemplateResult } from '../domain/markdown/insertTemplates';
 
 // ---- Helpers -------------------------------------------------------------
@@ -39,14 +54,18 @@ function minimalChange(oldText: string, newText: string) {
   return { from, to: oldTo, insert: newText.slice(from, newTo) };
 }
 
-type FormatFn = (text: string, from: number, to: number) => { text: string; from: number; to: number };
+type FormatFn = (
+  text: string,
+  from: number,
+  to: number,
+) => { text: string; from: number; to: number };
 
 function makeToggleCommand(fn: FormatFn): Command {
   return (view: EditorView) => {
-    const text      = view.state.doc.toString();
+    const text = view.state.doc.toString();
     const { from, to } = view.state.selection.main;
-    const result    = fn(text, from, to);
-    const change    = minimalChange(text, result.text);
+    const result = fn(text, from, to);
+    const change = minimalChange(text, result.text);
     view.dispatch({
       changes: change,
       selection: { anchor: result.from, head: result.to },
@@ -71,17 +90,17 @@ function makeInsertCommand(templateFn: () => TemplateResult): Command {
 
 // ---- Inline commands -----------------------------------------------------
 
-export const boldCommand   = makeToggleCommand(toggleBold);
+export const boldCommand = makeToggleCommand(toggleBold);
 export const italicCommand = makeToggleCommand(toggleItalic);
-export const codeCommand   = makeToggleCommand(toggleCode);
+export const codeCommand = makeToggleCommand(toggleCode);
 export const strikeCommand = makeToggleCommand(toggleStrike);
 
 // ---- Block commands ------------------------------------------------------
 
-export const headingCommand     = makeToggleCommand(toggleHeading);
-export const bulletListCommand  = makeToggleCommand(toggleBulletList);
+export const headingCommand = makeToggleCommand(toggleHeading);
+export const bulletListCommand = makeToggleCommand(toggleBulletList);
 export const orderedListCommand = makeToggleCommand(toggleOrderedList);
-export const blockquoteCommand  = makeToggleCommand(toggleBlockquote);
+export const blockquoteCommand = makeToggleCommand(toggleBlockquote);
 
 // ---- Insert commands -----------------------------------------------------
 
@@ -108,18 +127,18 @@ export const insertLinkCommand: Command = (view: EditorView) => {
   }
   return true;
 };
-export const insertImageCommand     = makeInsertCommand(imageTemplate);
-export const insertTableCommand     = makeInsertCommand(tableTemplate);
+export const insertImageCommand = makeInsertCommand(imageTemplate);
+export const insertTableCommand = makeInsertCommand(tableTemplate);
 export const insertCodeBlockCommand = makeInsertCommand(() => codeBlockTemplate());
 
 // ---- Keymap extension ----------------------------------------------------
 
 export const formattingKeymap: Extension = keymap.of([
-  { key: 'Ctrl-b',       mac: 'Cmd-b',       run: boldCommand        },
-  { key: 'Ctrl-i',       mac: 'Cmd-i',       run: italicCommand      },
-  { key: 'Ctrl-`',                            run: codeCommand        },
-  { key: 'Ctrl-Shift-s', mac: 'Cmd-Shift-s', run: strikeCommand      },
-  { key: 'Ctrl-Shift-8', mac: 'Cmd-Shift-8', run: bulletListCommand  },
+  { key: 'Ctrl-b', mac: 'Cmd-b', run: boldCommand },
+  { key: 'Ctrl-i', mac: 'Cmd-i', run: italicCommand },
+  { key: 'Ctrl-`', run: codeCommand },
+  { key: 'Ctrl-Shift-s', mac: 'Cmd-Shift-s', run: strikeCommand },
+  { key: 'Ctrl-Shift-8', mac: 'Cmd-Shift-8', run: bulletListCommand },
   { key: 'Ctrl-Shift-7', mac: 'Cmd-Shift-7', run: orderedListCommand },
-  { key: 'Ctrl-Shift-.', mac: 'Cmd-Shift-.', run: blockquoteCommand  },
+  { key: 'Ctrl-Shift-.', mac: 'Cmd-Shift-.', run: blockquoteCommand },
 ]);

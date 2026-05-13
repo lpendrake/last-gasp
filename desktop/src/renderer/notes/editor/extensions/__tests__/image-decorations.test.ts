@@ -35,8 +35,8 @@ describe('findImagesInText', () => {
     const text = '![x](notes-asset://current/x.png)';
     const imgs = findImagesInText(text, 20);
     expect(imgs[0].from).toBe(20);
-    expect(imgs[0].altFrom).toBe(22);  // 20 + 2 (skip `![`)
-    expect(imgs[0].altTo).toBe(23);    // 22 + 1 (length of 'x')
+    expect(imgs[0].altFrom).toBe(22); // 20 + 2 (skip `![`)
+    expect(imgs[0].altTo).toBe(23); // 22 + 1 (length of 'x')
     expect(imgs[0].to).toBe(20 + text.length);
   });
 

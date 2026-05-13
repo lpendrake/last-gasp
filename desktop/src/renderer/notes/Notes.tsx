@@ -29,15 +29,16 @@ interface NotesAppProps {
 
 export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
   const ctrl = useNotesController({ campaignId, campaignPath });
-  const knownIds = useMemo(() => new Set(ctrl.linkIndex.map(e => e.id)), [ctrl.linkIndex]);
+  const knownIds = useMemo(() => new Set(ctrl.linkIndex.map((e) => e.id)), [ctrl.linkIndex]);
 
   const editorStateCache = useRef(new Map<string, SavedEditorInstance>());
-  const editorViewRef    = useRef<EditorView | null>(null);
+  const editorViewRef = useRef<EditorView | null>(null);
 
   const [metaOpen, setMetaOpen] = useState(false);
 
-  const activeTabKey    = ctrl.activeTab ? `${ctrl.activeTab.folder}/${ctrl.activeTab.path}` : null;
-  const isEditableNote  = ctrl.activeTab?.fileKind !== 'asset' && ctrl.activeTab?.fileKind !== 'unsupported';
+  const activeTabKey = ctrl.activeTab ? `${ctrl.activeTab.folder}/${ctrl.activeTab.path}` : null;
+  const isEditableNote =
+    ctrl.activeTab?.fileKind !== 'asset' && ctrl.activeTab?.fileKind !== 'unsupported';
 
   function handleFrontmatterChange(value: string) {
     if (!ctrl.activeTab) return;
@@ -88,7 +89,11 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
           />
 
           {ctrl.activeTab && (
-            <BreadcrumbNav activeTab={ctrl.activeTab} savingState={ctrl.savingState} savedAt={ctrl.savedAt} />
+            <BreadcrumbNav
+              activeTab={ctrl.activeTab}
+              savingState={ctrl.savingState}
+              savedAt={ctrl.savedAt}
+            />
           )}
 
           <div className="editor-surface">
@@ -104,7 +109,9 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
               <NoteEditor
                 key={activeTabKey}
                 content={ctrl.activeFile.content}
-                onChange={(val) => ctrl.handleContentChange(ctrl.activeTab!.folder, ctrl.activeTab!.path, val)}
+                onChange={(val) =>
+                  ctrl.handleContentChange(ctrl.activeTab!.folder, ctrl.activeTab!.path, val)
+                }
                 onOpenNote={ctrl.handleOpenLink}
                 suggestLinks={ctrl.suggestLinks}
                 isSourceMode={ctrl.renderMode === 'source'}
@@ -129,9 +136,11 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
           viewRef={editorViewRef}
           isEditable={!!isEditableNote && !!ctrl.activeTab}
           renderMode={ctrl.renderMode}
-          onToggleMode={() => ctrl.handleSetRenderMode(ctrl.renderMode === 'live' ? 'source' : 'live')}
+          onToggleMode={() =>
+            ctrl.handleSetRenderMode(ctrl.renderMode === 'live' ? 'source' : 'live')
+          }
           metaOpen={metaOpen}
-          onToggleMeta={() => setMetaOpen(v => !v)}
+          onToggleMeta={() => setMetaOpen((v) => !v)}
         />
       </FooterPortal>
 
@@ -140,21 +149,33 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
         folders={ctrl.folders}
         initialText={ctrl.quickAddSeed}
         initialFolder={ctrl.quickAddFolder}
-        onClose={() => { ctrl.setQuickAddOpen(false); ctrl.setQuickAddFolder(undefined); }}
+        onClose={() => {
+          ctrl.setQuickAddOpen(false);
+          ctrl.setQuickAddFolder(undefined);
+        }}
         onCreate={ctrl.handleQuickAddCreate}
       />
 
       <div className="notes-toasts">
-        {ctrl.toasts.map(t => (
+        {ctrl.toasts.map((t) => (
           <div key={t.id} className={`notes-toast${t.isError ? ' is-error' : ''}`}>
             {t.message}
-            {t.isError && <button className="toast-dismiss" onClick={() => ctrl.dismissToast(t.id)}>×</button>}
+            {t.isError && (
+              <button className="toast-dismiss" onClick={() => ctrl.dismissToast(t.id)}>
+                ×
+              </button>
+            )}
           </div>
         ))}
       </div>
 
       {ctrl.confirm && (
-        <div className="confirm-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) ctrl.setConfirm(null); }}>
+        <div
+          className="confirm-overlay"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) ctrl.setConfirm(null);
+          }}
+        >
           <div className="confirm-panel">
             <div className="confirm-title">{ctrl.confirm.title}</div>
             <div className="confirm-msg">{ctrl.confirm.message}</div>
@@ -162,8 +183,13 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
               <button onClick={() => ctrl.setConfirm(null)}>Cancel</button>
               <button
                 className={ctrl.confirm.danger ? 'is-danger' : 'is-primary'}
-                onClick={() => { ctrl.confirm!.onConfirm(); ctrl.setConfirm(null); }}
-              >{ctrl.confirm.confirmLabel}</button>
+                onClick={() => {
+                  ctrl.confirm!.onConfirm();
+                  ctrl.setConfirm(null);
+                }}
+              >
+                {ctrl.confirm.confirmLabel}
+              </button>
             </div>
           </div>
         </div>
@@ -176,13 +202,15 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
           onNewFile={(folder, subdir) => {
             ctrl.setContextMenu(null);
             ctrl.setCreatingIn({ folder, subdir });
-            if (subdir) ctrl.setOpenFolderPaths(prev => new Set([...prev, folder, `${folder}/${subdir}`]));
+            if (subdir)
+              ctrl.setOpenFolderPaths((prev) => new Set([...prev, folder, `${folder}/${subdir}`]));
             else if (!ctrl.openFolderPaths.has(folder)) ctrl.toggleFolder(folder, folder);
           }}
           onNewFolder={(folder, subdir) => {
             ctrl.setContextMenu(null);
             ctrl.setCreatingDirIn({ folder, subdir });
-            if (subdir) ctrl.setOpenFolderPaths(prev => new Set([...prev, folder, `${folder}/${subdir}`]));
+            if (subdir)
+              ctrl.setOpenFolderPaths((prev) => new Set([...prev, folder, `${folder}/${subdir}`]));
             else if (!ctrl.openFolderPaths.has(folder)) ctrl.toggleFolder(folder, folder);
           }}
           onRename={(folder, path) => {

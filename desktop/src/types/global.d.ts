@@ -25,10 +25,14 @@ declare global {
       getRootDir: () => Promise<string | null>;
       setRootDir: (path: string) => Promise<void>;
       scanCampaigns: (rootDir: string) => Promise<Campaign[]>;
-      createCampaign: (rootDir: string, name: string, description: string) => Promise<{ success: boolean; path?: string; error?: string }>;
+      createCampaign: (
+        rootDir: string,
+        name: string,
+        description: string,
+      ) => Promise<{ success: boolean; path?: string; error?: string }>;
       openCampaign: (path: string) => Promise<boolean>;
       closeCampaign: () => Promise<void>;
-      
+
       // File System
       mkdir: (path: string) => Promise<boolean>;
       readDir: (path: string) => Promise<{ name: string; isDirectory: boolean; path: string }[]>;

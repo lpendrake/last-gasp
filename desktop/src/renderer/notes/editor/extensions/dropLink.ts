@@ -38,7 +38,11 @@ export function dropLink({ campaignPath: _campaignPath }: DropLinkConfig): Exten
       if (!raw) return false;
 
       let payload: DropPayload;
-      try { payload = JSON.parse(raw); } catch { return false; }
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return false;
+      }
 
       // Only handle file nodes that have an id or are assets.
       if (payload.kind !== 'file') return false;

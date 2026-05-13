@@ -7,9 +7,9 @@ describe('isCursorNear', () => {
   const to = 10;
 
   it('returns true when cursor is inside the element', () => {
-    expect(isCursorNear(5, from, to)).toBe(true);  // at start
-    expect(isCursorNear(7, from, to)).toBe(true);  // middle
-    expect(isCursorNear(9, from, to)).toBe(true);  // at last char
+    expect(isCursorNear(5, from, to)).toBe(true); // at start
+    expect(isCursorNear(7, from, to)).toBe(true); // middle
+    expect(isCursorNear(9, from, to)).toBe(true); // at last char
   });
 
   it('returns true when cursor is at the exclusive end (adjacent after)', () => {

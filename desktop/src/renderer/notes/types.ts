@@ -13,11 +13,16 @@ export interface OpenTab {
   fileKind?: 'note' | 'asset' | 'unsupported';
 }
 
-export { ASSET_EXTENSIONS, classifyByExt, isEditableNote, isFileKind } from '../../shared/fileKinds';
+export {
+  ASSET_EXTENSIONS,
+  classifyByExt,
+  isEditableNote,
+  isFileKind,
+} from '../../shared/fileKinds';
 
 export interface FileState {
   content: string | null; // null while loading; body only (no frontmatter)
-  frontmatter: string;    // raw YAML without --- delimiters; '' when none
+  frontmatter: string; // raw YAML without --- delimiters; '' when none
   dirty: boolean;
   loading: boolean;
 }
@@ -83,10 +88,15 @@ export function buildTree(entries: NoteEntry[]): TreeNode[] {
     for (let i = 0; i < parts.length - 1; i++) {
       current = ensureDir(current, parts, i);
     }
-    const fileKind = (entry.kind === 'asset' || entry.kind === 'unsupported')
-      ? entry.kind
-      : 'note';
-    current.push({ kind: 'file', name: parts[parts.length - 1], path: entry.path, title: entry.title, id: entry.id, fileKind });
+    const fileKind = entry.kind === 'asset' || entry.kind === 'unsupported' ? entry.kind : 'note';
+    current.push({
+      kind: 'file',
+      name: parts[parts.length - 1],
+      path: entry.path,
+      title: entry.title,
+      id: entry.id,
+      fileKind,
+    });
   }
   return root;
 }
@@ -94,11 +104,11 @@ export function buildTree(entries: NoteEntry[]): TreeNode[] {
 /** Derive a display color from a folder name (falls back to misc). */
 export const KNOWN_FOLDER_COLORS: Record<string, string> = {
   'player characters': 'var(--kind-pc)',
-  factions:          'var(--kind-faction)',
-  locations:         'var(--kind-location)',
-  npcs:              'var(--kind-npc)',
-  plots:             'var(--kind-plot)',
-  misc:              'var(--kind-misc)',
+  factions: 'var(--kind-faction)',
+  locations: 'var(--kind-location)',
+  npcs: 'var(--kind-npc)',
+  plots: 'var(--kind-plot)',
+  misc: 'var(--kind-misc)',
 };
 
 export function folderColor(name: string): string {

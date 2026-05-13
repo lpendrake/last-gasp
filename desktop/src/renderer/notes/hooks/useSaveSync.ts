@@ -1,4 +1,11 @@
-import { type Dispatch, type SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { notesData } from '../data';
 import { joinFrontmatter } from '../../../shared/frontmatter';
 import type { FileState, NoteEntry } from '../types.ts';
@@ -37,44 +44,47 @@ export function useSaveSync(deps: UseSaveSyncDeps): UseSaveSyncResult {
   const openFilesRef = useRef(openFiles);
   openFilesRef.current = openFiles;
 
-  const persistFile = useCallback(async (key: string) => {
-    const file = openFilesRef.current[key];
-    if (!file || file.content === null || !file.dirty) return;
+  const persistFile = useCallback(
+    async (key: string) => {
+      const file = openFilesRef.current[key];
+      if (!file || file.content === null || !file.dirty) return;
 
-    const slashIdx = key.indexOf('/');
-    const folder = key.slice(0, slashIdx);
-    const path = key.slice(slashIdx + 1);
+      const slashIdx = key.indexOf('/');
+      const folder = key.slice(0, slashIdx);
+      const path = key.slice(slashIdx + 1);
 
-    setSavingState(prev => ({ ...prev, [key]: 'saving' }));
+      setSavingState((prev) => ({ ...prev, [key]: 'saving' }));
 
-    try {
-      const fullPath = `${campaignPath}/notes/${folder}/${path}`;
-      const raw = joinFrontmatter(file.frontmatter ?? '', file.content);
-      const success = await notesData.saveNote(fullPath, raw);
+      try {
+        const fullPath = `${campaignPath}/notes/${folder}/${path}`;
+        const raw = joinFrontmatter(file.frontmatter ?? '', file.content);
+        const success = await notesData.saveNote(fullPath, raw);
 
-      if (!success) throw new Error('Write returned false');
+        if (!success) throw new Error('Write returned false');
 
-      setOpenFiles(prev => ({ ...prev, [key]: { ...prev[key], dirty: false } }));
-      setSavingState(prev => ({ ...prev, [key]: 'saved' }));
-      setSavedAt(prev => ({ ...prev, [key]: new Date().toLocaleTimeString() }));
-      setTimeout(() => {
-        setSavingState(prev => prev[key] === 'saved' ? { ...prev, [key]: 'clean' } : prev);
-      }, 1100);
+        setOpenFiles((prev) => ({ ...prev, [key]: { ...prev[key], dirty: false } }));
+        setSavingState((prev) => ({ ...prev, [key]: 'saved' }));
+        setSavedAt((prev) => ({ ...prev, [key]: new Date().toLocaleTimeString() }));
+        setTimeout(() => {
+          setSavingState((prev) => (prev[key] === 'saved' ? { ...prev, [key]: 'clean' } : prev));
+        }, 1100);
 
-      // Refresh title in folder index — body is body-only so H1 is still here
-      const m = /^#\s+(.+)$/m.exec(file.content);
-      const title = m ? m[1].trim() : path.replace(/\.md$/, '');
-      setFolderFiles(prev => {
-        const entries = prev[folder];
-        if (!entries) return prev;
-        return { ...prev, [folder]: entries.map(e => e.path === path ? { ...e, title } : e) };
-      });
-    } catch (err) {
-      console.error('Save failed', err);
-      pushToast(`Failed to save ${key}`);
-      setSavingState(prev => ({ ...prev, [key]: 'dirty' }));
-    }
-  }, [campaignPath, setOpenFiles, setFolderFiles, pushToast]);
+        // Refresh title in folder index — body is body-only so H1 is still here
+        const m = /^#\s+(.+)$/m.exec(file.content);
+        const title = m ? m[1].trim() : path.replace(/\.md$/, '');
+        setFolderFiles((prev) => {
+          const entries = prev[folder];
+          if (!entries) return prev;
+          return { ...prev, [folder]: entries.map((e) => (e.path === path ? { ...e, title } : e)) };
+        });
+      } catch (err) {
+        console.error('Save failed', err);
+        pushToast(`Failed to save ${key}`);
+        setSavingState((prev) => ({ ...prev, [key]: 'dirty' }));
+      }
+    },
+    [campaignPath, setOpenFiles, setFolderFiles, pushToast],
+  );
 
   // 2 s debounced auto-save for any dirty file.
   useEffect(() => {

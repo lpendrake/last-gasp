@@ -3,10 +3,10 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemir
 import { isCursorNear } from './decorations';
 
 export interface ParsedImage {
-  from: number;    // position of `!`
-  to: number;      // position after `)`
+  from: number; // position of `!`
+  to: number; // position after `)`
   altFrom: number; // position of first alt char (after `![`)
-  altTo: number;   // position after last alt char (before `]`)
+  altTo: number; // position after last alt char (before `]`)
   alt: string;
   src: string;
 }
@@ -70,19 +70,23 @@ function buildImageDecorations(state: EditorState): DecorationSet {
   for (const img of images) {
     // Always render the image — block widget appears above the label line.
     // side: -1 places it before the character at img.from.
-    builder.add(img.from, img.from, Decoration.widget({
-      widget: new ImageWidget(img.src, img.alt),
-      side: -1,
-    }));
+    builder.add(
+      img.from,
+      img.from,
+      Decoration.widget({
+        widget: new ImageWidget(img.src, img.alt),
+        side: -1,
+      }),
+    );
 
     if (isCursorNear(cursorHead, img.from, img.to)) {
       // Cursor inside: show full raw markdown, muted
       builder.add(img.from, img.to, Decoration.mark({ class: 'cm-image-raw' }));
     } else {
       // Cursor elsewhere: collapse to just the alt name, like a link label
-      builder.add(img.from, img.altFrom, Decoration.replace({}));           // hide `![`
+      builder.add(img.from, img.altFrom, Decoration.replace({})); // hide `![`
       builder.add(img.altFrom, img.altTo, Decoration.mark({ class: 'cm-image-label' })); // show alt
-      builder.add(img.altTo, img.to, Decoration.replace({}));               // hide `](url)`
+      builder.add(img.altTo, img.to, Decoration.replace({})); // hide `](url)`
     }
   }
 

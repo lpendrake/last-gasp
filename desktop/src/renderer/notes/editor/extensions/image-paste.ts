@@ -15,7 +15,7 @@ export function assetLocation(folder: string, filename: string): { relPath: stri
 
 /** Extracts the first image item from a DataTransferItemList, or null. */
 export function findImageItem(items: DataTransferItemList): DataTransferItem | null {
-  return Array.from(items).find(item => item.type.startsWith('image/')) ?? null;
+  return Array.from(items).find((item) => item.type.startsWith('image/')) ?? null;
 }
 
 export function imagePaste(config: ImagePasteConfig): Extension {

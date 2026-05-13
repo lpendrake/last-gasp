@@ -34,9 +34,9 @@ export function toggleInline(
 
 // ---- Convenience wrappers ------------------------------------------------
 
-export const toggleBold   = (t: string, f: number, to: number) => toggleInline(t, f, to, '**');
+export const toggleBold = (t: string, f: number, to: number) => toggleInline(t, f, to, '**');
 export const toggleItalic = (t: string, f: number, to: number) => toggleInline(t, f, to, '*');
-export const toggleCode   = (t: string, f: number, to: number) => toggleInline(t, f, to, '`');
+export const toggleCode = (t: string, f: number, to: number) => toggleInline(t, f, to, '`');
 export const toggleStrike = (t: string, f: number, to: number) => toggleInline(t, f, to, '~~');
 
 // ---- Internals -----------------------------------------------------------
@@ -44,14 +44,20 @@ export const toggleStrike = (t: string, f: number, to: number) => toggleInline(t
 function countStarsBefore(text: string, pos: number): number {
   let count = 0;
   let i = pos - 1;
-  while (i >= 0 && text[i] === '*') { count++; i--; }
+  while (i >= 0 && text[i] === '*') {
+    count++;
+    i--;
+  }
   return count;
 }
 
 function countStarsAfter(text: string, pos: number): number {
   let count = 0;
   let i = pos;
-  while (i < text.length && text[i] === '*') { count++; i++; }
+  while (i < text.length && text[i] === '*') {
+    count++;
+    i++;
+  }
   return count;
 }
 
@@ -71,7 +77,7 @@ function toggleStars(
   delta: 1 | 2,
 ): { text: string; from: number; to: number } {
   const before = countStarsBefore(text, from);
-  const after  = countStarsAfter(text, to);
+  const after = countStarsAfter(text, to);
 
   if (before !== after) {
     // Asymmetric — just insert without touching existing stars.
@@ -84,21 +90,17 @@ function toggleStars(
     return { text: newText, from: from + delta, to: to + delta };
   }
 
-  const current     = before; // === after
+  const current = before; // === after
   const targetStars = isStarMarkerActive(current, delta)
-    ? current - delta   // unwrap: remove this marker's contribution
-    : current + delta;  // wrap:   add this marker
+    ? current - delta // unwrap: remove this marker's contribution
+    : current + delta; // wrap:   add this marker
 
   const markerStart = from - current;
-  const markerEnd   = to   + current;
-  const content     = text.slice(from, to);
-  const newMarker   = '*'.repeat(targetStars);
-  const newText     =
-    text.slice(0, markerStart) +
-    newMarker +
-    content +
-    newMarker +
-    text.slice(markerEnd);
+  const markerEnd = to + current;
+  const content = text.slice(from, to);
+  const newMarker = '*'.repeat(targetStars);
+  const newText =
+    text.slice(0, markerStart) + newMarker + content + newMarker + text.slice(markerEnd);
 
   const newFrom = markerStart + targetStars;
   return { text: newText, from: newFrom, to: newFrom + content.length };
@@ -110,25 +112,17 @@ function toggleSymmetric(
   to: number,
   marker: string,
 ): { text: string; from: number; to: number } {
-  const len    = marker.length;
+  const len = marker.length;
   const before = from >= len ? text.slice(from - len, from) : '';
-  const after  = text.slice(to, to + len);
+  const after = text.slice(to, to + len);
 
   if (before === marker && after === marker) {
     // Unwrap
-    const newText =
-      text.slice(0, from - len) +
-      text.slice(from, to) +
-      text.slice(to + len);
+    const newText = text.slice(0, from - len) + text.slice(from, to) + text.slice(to + len);
     return { text: newText, from: from - len, to: to - len };
   }
 
   // Wrap
-  const newText =
-    text.slice(0, from) +
-    marker +
-    text.slice(from, to) +
-    marker +
-    text.slice(to);
+  const newText = text.slice(0, from) + marker + text.slice(from, to) + marker + text.slice(to);
   return { text: newText, from: from + len, to: to + len };
 }

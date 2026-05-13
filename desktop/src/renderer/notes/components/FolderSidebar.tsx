@@ -1,6 +1,11 @@
 import React from 'react';
 import {
-  folderColor, isFileKind, type FileState, type NoteEntry, type OpenTab, type TreeNode,
+  folderColor,
+  isFileKind,
+  type FileState,
+  type NoteEntry,
+  type OpenTab,
+  type TreeNode,
 } from '../types.ts';
 import type { ContextMenuTarget } from './NoteContextMenu.tsx';
 
@@ -15,7 +20,10 @@ interface NoteDragPayload {
   fileKind?: 'note' | 'asset' | 'unsupported';
 }
 
-interface CreatingCtx { folder: string; subdir?: string }
+interface CreatingCtx {
+  folder: string;
+  subdir?: string;
+}
 
 interface FolderSidebarProps {
   // Data
@@ -57,12 +65,34 @@ interface FolderSidebarProps {
 
 export function FolderSidebar(props: FolderSidebarProps) {
   const {
-    folders, folderFiles, folderTrees, openFiles, activeTab,
-    filter, openFolderPaths, creatingIn, creatingDirIn, newFolderMode, renamingKey, dragTarget,
-    setFilter, setCreatingIn, setCreatingDirIn, setNewFolderMode, setRenamingKey, setDragTarget,
-    setOpenFolderPaths, setContextMenu,
-    onToggleFolder, onOpenFile, onMove, onCreateFolder, onRenameFolder, onRename,
-    onCommitNewFileInFolder, onCommitNewDirInFolder,
+    folders,
+    folderFiles,
+    folderTrees,
+    openFiles,
+    activeTab,
+    filter,
+    openFolderPaths,
+    creatingIn,
+    creatingDirIn,
+    newFolderMode,
+    renamingKey,
+    dragTarget,
+    setFilter,
+    setCreatingIn,
+    setCreatingDirIn,
+    setNewFolderMode,
+    setRenamingKey,
+    setDragTarget,
+    setOpenFolderPaths,
+    setContextMenu,
+    onToggleFolder,
+    onOpenFile,
+    onMove,
+    onCreateFolder,
+    onRenameFolder,
+    onRename,
+    onCommitNewFileInFolder,
+    onCommitNewDirInFolder,
   } = props;
 
   function renderTreeNode(node: TreeNode, topFolder: string, depth: number): React.ReactNode {
@@ -73,28 +103,69 @@ export function FolderSidebar(props: FolderSidebarProps) {
       const isActive = activeTab?.folder === topFolder && activeTab.path === node.path;
       const file = openFiles[`${topFolder}/${node.path}`];
       const isRenaming = renamingKey === `${topFolder}/${node.path}`;
-      const displayName = (isAsset || isUnsupported) ? node.name : node.name.replace(/\.md$/, '');
-      const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'file', displayName, id: node.id, fileKind: node.fileKind };
+      const displayName = isAsset || isUnsupported ? node.name : node.name.replace(/\.md$/, '');
+      const dragPayload: NoteDragPayload = {
+        folder: topFolder,
+        path: node.path,
+        kind: 'file',
+        displayName,
+        id: node.id,
+        fileKind: node.fileKind,
+      };
       return (
         <button
           key={node.path}
           className={`file-row${isAsset ? ' is-asset' : ''}${isUnsupported ? ' is-unsupported' : ''}${isActive ? ' is-active' : ''}`}
-          style={{ '--kind-color': folderColor(topFolder), paddingLeft: 8 + indent } as React.CSSProperties}
+          style={
+            {
+              '--kind-color': folderColor(topFolder),
+              paddingLeft: 8 + indent,
+            } as React.CSSProperties
+          }
           draggable
           onClick={() => onOpenFile(topFolder, node.path, node.fileKind)}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'file', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', dragPayload.displayName); e.dataTransfer.effectAllowed = 'copyMove'; }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setContextMenu({
+              kind: 'file',
+              folder: topFolder,
+              path: node.path,
+              x: e.clientX,
+              y: e.clientY,
+            });
+          }}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload));
+            e.dataTransfer.setData('text/plain', dragPayload.displayName);
+            e.dataTransfer.effectAllowed = 'copyMove';
+          }}
           onDragEnd={() => setDragTarget(null)}
         >
-          <span className={`file-dot${isAsset ? ' is-asset' : ''}${isUnsupported ? ' is-unsupported' : ''}`} />
+          <span
+            className={`file-dot${isAsset ? ' is-asset' : ''}${isUnsupported ? ' is-unsupported' : ''}`}
+          />
           {isRenaming ? (
             <input
               className="new-file-input"
               autoFocus
               defaultValue={displayName}
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; onRename(topFolder, node.path, e.target.value); }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.currentTarget.dataset.cancelled = '1';
+                  setRenamingKey(null);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.currentTarget.dataset.cancelled) return;
+                onRename(topFolder, node.path, e.target.value);
+              }}
             />
           ) : (
             <span className="file-name">{displayName}</span>
@@ -107,20 +178,60 @@ export function FolderSidebar(props: FolderSidebarProps) {
     const isOpen = openFolderPaths.has(dirKey);
     const isDragOver = dragTarget === dirKey;
     const isRenaming = renamingKey === dirKey;
-    const dragPayload: NoteDragPayload = { folder: topFolder, path: node.path, kind: 'dir', displayName: node.name };
+    const dragPayload: NoteDragPayload = {
+      folder: topFolder,
+      path: node.path,
+      kind: 'dir',
+      displayName: node.name,
+    };
     return (
       <div key={node.path} className="sidebar-folder">
         <button
           className={`folder-row${isOpen ? ' is-open' : ''}${isDragOver ? ' is-drag-over' : ''}`}
           style={{ paddingLeft: 4 + indent } as React.CSSProperties}
           draggable
-          onClick={() => { setOpenFolderPaths(prev => { const next = new Set(prev); if (next.has(dirKey)) next.delete(dirKey); else next.add(dirKey); return next; }); }}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'dir', folder: topFolder, path: node.path, x: e.clientX, y: e.clientY }); }}
-          onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload)); e.dataTransfer.setData('text/plain', node.name); e.dataTransfer.effectAllowed = 'move'; }}
+          onClick={() => {
+            setOpenFolderPaths((prev) => {
+              const next = new Set(prev);
+              if (next.has(dirKey)) next.delete(dirKey);
+              else next.add(dirKey);
+              return next;
+            });
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setContextMenu({
+              kind: 'dir',
+              folder: topFolder,
+              path: node.path,
+              x: e.clientX,
+              y: e.clientY,
+            });
+          }}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(DRAG_MIME, JSON.stringify(dragPayload));
+            e.dataTransfer.setData('text/plain', node.name);
+            e.dataTransfer.effectAllowed = 'move';
+          }}
           onDragEnd={() => setDragTarget(null)}
-          onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(dirKey); }}
-          onDragLeave={() => setDragTarget(prev => prev === dirKey ? null : prev)}
-          onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); onMove(p.folder, p.path, topFolder, node.path); }}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+            setDragTarget(dirKey);
+          }}
+          onDragLeave={() => setDragTarget((prev) => (prev === dirKey ? null : prev))}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragTarget(null);
+            const raw = e.dataTransfer.getData(DRAG_MIME);
+            if (!raw) return;
+            const p: NoteDragPayload = JSON.parse(raw);
+            onMove(p.folder, p.path, topFolder, node.path);
+          }}
         >
           <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
           {isRenaming ? (
@@ -129,8 +240,21 @@ export function FolderSidebar(props: FolderSidebarProps) {
               autoFocus
               defaultValue={node.name}
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-              onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; onRename(topFolder, node.path, e.target.value); }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.currentTarget.dataset.cancelled = '1';
+                  setRenamingKey(null);
+                }
+              }}
+              onBlur={(e) => {
+                if (e.currentTarget.dataset.cancelled) return;
+                onRename(topFolder, node.path, e.target.value);
+              }}
             />
           ) : (
             <span className="folder-name">{node.name}/</span>
@@ -138,27 +262,44 @@ export function FolderSidebar(props: FolderSidebarProps) {
         </button>
         {isOpen && (
           <div className="folder-children">
-            {node.children.map(child => renderTreeNode(child, topFolder, depth + 1))}
+            {node.children.map((child) => renderTreeNode(child, topFolder, depth + 1))}
             {creatingDirIn?.folder === topFolder && creatingDirIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
+              <div
+                className="new-file-row"
+                style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}
+              >
                 <span className="folder-caret">▸</span>
                 <input
                   className="new-file-input"
                   autoFocus
                   placeholder="folder-name"
-                  onKeyDown={(e) => { if (e.key === 'Enter') onCommitNewDirInFolder(creatingDirIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingDirIn(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter')
+                      onCommitNewDirInFolder(creatingDirIn, e.currentTarget.value);
+                    if (e.key === 'Escape') setCreatingDirIn(null);
+                  }}
                   onBlur={(e) => onCommitNewDirInFolder(creatingDirIn!, e.target.value)}
                 />
               </div>
             )}
             {creatingIn?.folder === topFolder && creatingIn.subdir === node.path && (
-              <div className="new-file-row" style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}>
-                <span className="file-dot" style={{ '--kind-color': folderColor(topFolder) } as React.CSSProperties} />
+              <div
+                className="new-file-row"
+                style={{ paddingLeft: 8 + (depth + 1) * 12 } as React.CSSProperties}
+              >
+                <span
+                  className="file-dot"
+                  style={{ '--kind-color': folderColor(topFolder) } as React.CSSProperties}
+                />
                 <input
                   className="new-file-input"
                   autoFocus
                   placeholder="new-note-title"
-                  onKeyDown={(e) => { if (e.key === 'Enter') onCommitNewFileInFolder(creatingIn, e.currentTarget.value); if (e.key === 'Escape') setCreatingIn(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter')
+                      onCommitNewFileInFolder(creatingIn, e.currentTarget.value);
+                    if (e.key === 'Escape') setCreatingIn(null);
+                  }}
                   onBlur={(e) => onCommitNewFileInFolder(creatingIn!, e.target.value)}
                 />
               </div>
@@ -170,11 +311,17 @@ export function FolderSidebar(props: FolderSidebarProps) {
   }
 
   function filterMatchesNode(node: TreeNode, q: string): boolean {
-    if (node.kind === 'file') return node.title.toLowerCase().includes(q) || node.path.toLowerCase().includes(q);
-    return node.children.some(child => filterMatchesNode(child, q));
+    if (node.kind === 'file')
+      return node.title.toLowerCase().includes(q) || node.path.toLowerCase().includes(q);
+    return node.children.some((child) => filterMatchesNode(child, q));
   }
 
-  function renderFilteredNodes(nodes: TreeNode[], topFolder: string, q: string, depth: number): React.ReactNode[] {
+  function renderFilteredNodes(
+    nodes: TreeNode[],
+    topFolder: string,
+    q: string,
+    depth: number,
+  ): React.ReactNode[] {
     const result: React.ReactNode[] = [];
     for (const node of nodes) {
       if (!filterMatchesNode(node, q)) continue;
@@ -186,7 +333,10 @@ export function FolderSidebar(props: FolderSidebarProps) {
           const indent = depth * 12;
           result.push(
             <div key={node.path}>
-              <div className="folder-row is-open" style={{ paddingLeft: 4 + indent } as React.CSSProperties}>
+              <div
+                className="folder-row is-open"
+                style={{ paddingLeft: 4 + indent } as React.CSSProperties}
+              >
                 <span className="folder-caret">▾</span>
                 <span className="folder-name">{node.name}/</span>
               </div>
@@ -213,13 +363,18 @@ export function FolderSidebar(props: FolderSidebarProps) {
         />
       </div>
       <div className="sidebar-tree">
-        {folders.map(folder => {
+        {folders.map((folder) => {
           const isOpen = openFolderPaths.has(folder);
           const entries = folderFiles[folder];
-          const count = entries ? entries.filter(e => isFileKind(e.kind)).length : '…';
+          const count = entries ? entries.filter((e) => isFileKind(e.kind)).length : '…';
           const tree = folderTrees[folder] ?? [];
           const isDragOver = dragTarget === folder;
-          const topDragPayload: NoteDragPayload = { folder, path: '', kind: 'topfolder', displayName: folder };
+          const topDragPayload: NoteDragPayload = {
+            folder,
+            path: '',
+            kind: 'topfolder',
+            displayName: folder,
+          };
           return (
             <div key={folder} className="sidebar-folder">
               <button
@@ -227,12 +382,34 @@ export function FolderSidebar(props: FolderSidebarProps) {
                 style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
                 draggable
                 onClick={() => onToggleFolder(folder, folder)}
-                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ kind: 'topfolder', folder, x: e.clientX, y: e.clientY }); }}
-                onDragStart={(e) => { e.dataTransfer.setData(DRAG_MIME, JSON.stringify(topDragPayload)); e.dataTransfer.setData('text/plain', folder); e.dataTransfer.effectAllowed = 'move'; }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setContextMenu({ kind: 'topfolder', folder, x: e.clientX, y: e.clientY });
+                }}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(DRAG_MIME, JSON.stringify(topDragPayload));
+                  e.dataTransfer.setData('text/plain', folder);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
                 onDragEnd={() => setDragTarget(null)}
-                onDragOver={(e) => { if (!e.dataTransfer.types.includes(DRAG_MIME)) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; setDragTarget(folder); }}
-                onDragLeave={() => setDragTarget(prev => prev === folder ? null : prev)}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragTarget(null); const raw = e.dataTransfer.getData(DRAG_MIME); if (!raw) return; const p: NoteDragPayload = JSON.parse(raw); if (p.kind !== 'topfolder') onMove(p.folder, p.path, folder); }}
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = 'move';
+                  setDragTarget(folder);
+                }}
+                onDragLeave={() => setDragTarget((prev) => (prev === folder ? null : prev))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragTarget(null);
+                  const raw = e.dataTransfer.getData(DRAG_MIME);
+                  if (!raw) return;
+                  const p: NoteDragPayload = JSON.parse(raw);
+                  if (p.kind !== 'topfolder') onMove(p.folder, p.path, folder);
+                }}
               >
                 <span className="folder-caret">{isOpen ? '▾' : '▸'}</span>
                 {renamingKey === folder ? (
@@ -241,8 +418,21 @@ export function FolderSidebar(props: FolderSidebarProps) {
                     autoFocus
                     defaultValue={folder}
                     onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.currentTarget.blur(); return; } if (e.key === 'Escape') { e.currentTarget.dataset.cancelled = '1'; setRenamingKey(null); } }}
-                    onBlur={(e) => { if (e.currentTarget.dataset.cancelled) return; onRenameFolder(folder, e.target.value); }}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                        return;
+                      }
+                      if (e.key === 'Escape') {
+                        e.currentTarget.dataset.cancelled = '1';
+                        setRenamingKey(null);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.currentTarget.dataset.cancelled) return;
+                      onRenameFolder(folder, e.target.value);
+                    }}
                   />
                 ) : (
                   <>
@@ -261,16 +451,27 @@ export function FolderSidebar(props: FolderSidebarProps) {
                       setCreatingIn({ folder });
                     }
                   }}
-                >+</span>
+                >
+                  +
+                </span>
               </button>
               {isOpen && (
                 <div className="folder-children">
                   {entries === null ? (
-                    <div className="file-row" style={{ color: 'var(--theme-text-muted)', fontStyle: 'italic', cursor: 'default' }}>loading…</div>
+                    <div
+                      className="file-row"
+                      style={{
+                        color: 'var(--theme-text-muted)',
+                        fontStyle: 'italic',
+                        cursor: 'default',
+                      }}
+                    >
+                      loading…
+                    </div>
                   ) : q ? (
                     renderFilteredNodes(tree, folder, q, 0)
                   ) : (
-                    tree.map(node => renderTreeNode(node, folder, 0))
+                    tree.map((node) => renderTreeNode(node, folder, 0))
                   )}
                   {creatingDirIn?.folder === folder && !creatingDirIn.subdir && (
                     <div className="new-file-row">
@@ -280,7 +481,8 @@ export function FolderSidebar(props: FolderSidebarProps) {
                         autoFocus
                         placeholder="folder-name"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') onCommitNewDirInFolder(creatingDirIn, e.currentTarget.value);
+                          if (e.key === 'Enter')
+                            onCommitNewDirInFolder(creatingDirIn, e.currentTarget.value);
                           if (e.key === 'Escape') setCreatingDirIn(null);
                         }}
                         onBlur={(e) => onCommitNewDirInFolder(creatingDirIn!, e.target.value)}
@@ -289,13 +491,17 @@ export function FolderSidebar(props: FolderSidebarProps) {
                   )}
                   {creatingIn?.folder === folder && !creatingIn.subdir && (
                     <div className="new-file-row">
-                      <span className="file-dot" style={{ '--kind-color': folderColor(folder) } as React.CSSProperties} />
+                      <span
+                        className="file-dot"
+                        style={{ '--kind-color': folderColor(folder) } as React.CSSProperties}
+                      />
                       <input
                         className="new-file-input"
                         autoFocus
                         placeholder="new-note-title"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') onCommitNewFileInFolder(creatingIn, e.currentTarget.value);
+                          if (e.key === 'Enter')
+                            onCommitNewFileInFolder(creatingIn, e.currentTarget.value);
                           if (e.key === 'Escape') setCreatingIn(null);
                         }}
                         onBlur={(e) => onCommitNewFileInFolder(creatingIn!, e.target.value)}
@@ -321,7 +527,9 @@ export function FolderSidebar(props: FolderSidebarProps) {
             />
           </div>
         ) : (
-          <button className="new-folder-btn" onClick={() => setNewFolderMode(true)}>+ new folder</button>
+          <button className="new-folder-btn" onClick={() => setNewFolderMode(true)}>
+            + new folder
+          </button>
         )}
       </div>
     </aside>

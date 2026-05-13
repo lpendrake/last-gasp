@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export type ContextMenuTarget =
-  | { kind: 'file';      folder: string; path: string; x: number; y: number }
-  | { kind: 'dir';       folder: string; path: string; x: number; y: number }
-  | { kind: 'topfolder'; folder: string;               x: number; y: number };
+  | { kind: 'file'; folder: string; path: string; x: number; y: number }
+  | { kind: 'dir'; folder: string; path: string; x: number; y: number }
+  | { kind: 'topfolder'; folder: string; x: number; y: number };
 
 interface Props {
   target: ContextMenuTarget;
@@ -14,7 +14,14 @@ interface Props {
   onDelete(folder: string, path: string | undefined, kind: ContextMenuTarget['kind']): void;
 }
 
-export function NoteContextMenu({ target, onClose, onNewFile, onNewFolder, onRename, onDelete }: Props) {
+export function NoteContextMenu({
+  target,
+  onClose,
+  onNewFile,
+  onNewFolder,
+  onRename,
+  onDelete,
+}: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: target.x, y: target.y });
 
@@ -57,13 +64,19 @@ export function NoteContextMenu({ target, onClose, onNewFile, onNewFolder, onRen
         <>
           <button
             className="context-menu-item"
-            onClick={() => { onNewFile(target.folder, parentDir); onClose(); }}
+            onClick={() => {
+              onNewFile(target.folder, parentDir);
+              onClose();
+            }}
           >
             New Note
           </button>
           <button
             className="context-menu-item"
-            onClick={() => { onNewFolder(target.folder, parentDir); onClose(); }}
+            onClick={() => {
+              onNewFolder(target.folder, parentDir);
+              onClose();
+            }}
           >
             New Folder
           </button>
@@ -72,13 +85,19 @@ export function NoteContextMenu({ target, onClose, onNewFile, onNewFolder, onRen
       )}
       <button
         className="context-menu-item"
-        onClick={() => { onRename(target.folder, path ?? ''); onClose(); }}
+        onClick={() => {
+          onRename(target.folder, path ?? '');
+          onClose();
+        }}
       >
         Rename
       </button>
       <button
         className="context-menu-item is-danger"
-        onClick={() => { onDelete(target.folder, path, target.kind); onClose(); }}
+        onClick={() => {
+          onDelete(target.folder, path, target.kind);
+          onClose();
+        }}
       >
         {target.kind === 'topfolder' ? 'Delete Folder' : 'Delete'}
       </button>

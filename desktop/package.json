@@ -16,7 +16,7 @@
     "package:win": "npm run build && electron-builder --win",
     "rebuild:win": "taskkill /F /IM \"TableTop Timeline.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/TableTop Timeline Setup 1.0.0.exe\"",
     "test": "vitest",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "preview": "vite preview"
   },
   "build": {

@@ -5,7 +5,7 @@ import { toggleBold, toggleItalic, toggleCode, toggleStrike, toggleInline } from
 // by locating the first occurrence of `content` in `text`.
 function sel(text: string, content: string) {
   const from = text.indexOf(content);
-  const to   = from + content.length;
+  const to = from + content.length;
   return { text, from, to };
 }
 

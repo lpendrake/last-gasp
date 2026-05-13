@@ -20,7 +20,7 @@ export function EditorTabs({ tabs, activeTab, openFiles, onSelect, onClose }: Ed
   if (tabs.length === 0) return null;
   return (
     <div className="tabs-bar">
-      {tabs.map(tab => {
+      {tabs.map((tab) => {
         const isActive = activeTab?.folder === tab.folder && activeTab.path === tab.path;
         const file = openFiles[tabKey(tab)];
         return (
@@ -29,12 +29,26 @@ export function EditorTabs({ tabs, activeTab, openFiles, onSelect, onClose }: Ed
             className={`tab${isActive ? ' is-active' : ''}`}
             style={{ '--kind-color': folderColor(tab.folder) } as React.CSSProperties}
             onClick={() => onSelect(tab)}
-            onMouseDown={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab); } }}
+            onMouseDown={(e) => {
+              if (e.button === 1) {
+                e.preventDefault();
+                onClose(tab);
+              }
+            }}
           >
             <span className="tab-dot" />
             <span className="tab-label">{titleForTab(tab)}</span>
             {file?.dirty && <span className="tab-dirty">●</span>}
-            <button className="tab-close" onClick={(e) => { e.stopPropagation(); onClose(tab); }} title="Close">×</button>
+            <button
+              className="tab-close"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose(tab);
+              }}
+              title="Close"
+            >
+              ×
+            </button>
           </div>
         );
       })}

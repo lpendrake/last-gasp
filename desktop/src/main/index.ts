@@ -8,7 +8,16 @@ import { registerIpcHandlers } from './ipcHandlers.js';
 import { FileWatcher } from './fileWatcher.js';
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'notes-asset', privileges: { standard: true, secure: true, supportFetchAPI: true, bypassCSP: true, stream: true } }
+  {
+    scheme: 'notes-asset',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      stream: true,
+    },
+  },
 ]);
 
 let currentCampaignPath: string | null = null;

@@ -53,7 +53,11 @@ function buildDecorations(state: EditorState): DecorationSet {
       }
       if (node.name.startsWith('ATXHeading')) {
         const level = parseInt(node.name.slice(10));
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: `cm-heading-${level}` }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: `cm-heading-${level}` }),
+        });
       }
 
       // Emphasis / Strong — marks hidden unless cursor is inside the span
@@ -65,12 +69,20 @@ function buildDecorations(state: EditorState): DecorationSet {
 
       // Lists
       if (node.name === 'ListMark') {
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-list-mark' }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: 'cm-list-mark' }),
+        });
       }
 
       // Inline code — always styled; backticks hidden unless cursor is inside the span
       if (node.name === 'InlineCode') {
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-inline-code' }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: 'cm-inline-code' }),
+        });
       }
       if (node.name === 'CodeMark' && parentName === 'InlineCode') {
         if (!nearCursor) {
@@ -80,7 +92,11 @@ function buildDecorations(state: EditorState): DecorationSet {
 
       // Strikethrough (GFM) — always styled; marks hidden unless cursor is inside the span
       if (node.name === 'Strikethrough') {
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-strikethrough' }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: 'cm-strikethrough' }),
+        });
       }
       if (node.name === 'StrikethroughMark') {
         if (!nearCursor) {
@@ -91,15 +107,23 @@ function buildDecorations(state: EditorState): DecorationSet {
       // Blockquote — left-border styling on every line; '>' hidden unless cursor is in the block
       if (node.name === 'Blockquote') {
         const startLine = state.doc.lineAt(node.from);
-        const endLine   = state.doc.lineAt(node.to);
+        const endLine = state.doc.lineAt(node.to);
         for (let ln = startLine.number; ln <= endLine.number; ln++) {
           const lineFrom = state.doc.line(ln).from;
-          decorations.push({ from: lineFrom, to: lineFrom, decoration: Decoration.line({ class: 'cm-blockquote' }) });
+          decorations.push({
+            from: lineFrom,
+            to: lineFrom,
+            decoration: Decoration.line({ class: 'cm-blockquote' }),
+          });
         }
       }
       if (node.name === 'QuoteMark') {
         if (nearCursor) {
-          decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-blockquote-mark' }) });
+          decorations.push({
+            from: node.from,
+            to: node.to,
+            decoration: Decoration.mark({ class: 'cm-blockquote-mark' }),
+          });
         } else {
           // Hide '>' and the single space that follows it
           const hasTrailingSpace = state.doc.sliceString(node.to, node.to + 1) === ' ';
@@ -111,17 +135,29 @@ function buildDecorations(state: EditorState): DecorationSet {
       // Tables — distinct line styles for header, separator, and data rows
       if (node.name === 'TableHeader') {
         const line = state.doc.lineAt(node.from);
-        decorations.push({ from: line.from, to: line.from, decoration: Decoration.line({ class: 'cm-table-header' }) });
+        decorations.push({
+          from: line.from,
+          to: line.from,
+          decoration: Decoration.line({ class: 'cm-table-header' }),
+        });
       }
       if (node.name === 'TableDelimiter' && parentName === 'Table') {
         // The full '| --- |' separator row (pipes within cells also use TableDelimiter,
         // but their parent is TableHeader/TableRow, not Table itself)
         const line = state.doc.lineAt(node.from);
-        decorations.push({ from: line.from, to: line.from, decoration: Decoration.line({ class: 'cm-table-sep' }) });
+        decorations.push({
+          from: line.from,
+          to: line.from,
+          decoration: Decoration.line({ class: 'cm-table-sep' }),
+        });
       }
       if (node.name === 'TableRow') {
         const line = state.doc.lineAt(node.from);
-        decorations.push({ from: line.from, to: line.from, decoration: Decoration.line({ class: 'cm-table-row' }) });
+        decorations.push({
+          from: line.from,
+          to: line.from,
+          decoration: Decoration.line({ class: 'cm-table-row' }),
+        });
       }
 
       // Fenced code — Decoration.line for full-width background (mark would hug text width per line)
@@ -130,11 +166,19 @@ function buildDecorations(state: EditorState): DecorationSet {
         const endLine = state.doc.lineAt(node.to);
         for (let ln = startLine.number; ln <= endLine.number; ln++) {
           const lineStart = state.doc.line(ln).from;
-          decorations.push({ from: lineStart, to: lineStart, decoration: Decoration.line({ class: 'cm-fenced-code' }) });
+          decorations.push({
+            from: lineStart,
+            to: lineStart,
+            decoration: Decoration.line({ class: 'cm-fenced-code' }),
+          });
         }
       }
       if (node.name === 'CodeMark' && parentName === 'FencedCode') {
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-code-fence-mark' }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: 'cm-code-fence-mark' }),
+        });
       }
 
       // Markdown links — always styled; brackets/URL hidden unless cursor is inside the span.
@@ -145,19 +189,23 @@ function buildDecorations(state: EditorState): DecorationSet {
       if (node.name === 'Link') {
         const charBefore = node.from > 0 ? state.doc.sliceString(node.from - 1, node.from) : '';
         if (charBefore === '[') return false;
-        decorations.push({ from: node.from, to: node.to, decoration: Decoration.mark({ class: 'cm-md-link' }) });
+        decorations.push({
+          from: node.from,
+          to: node.to,
+          decoration: Decoration.mark({ class: 'cm-md-link' }),
+        });
       }
       if ((node.name === 'LinkMark' || node.name === 'URL') && parentName === 'Link') {
         if (!nearCursor) {
           decorations.push({ from: node.from, to: node.to, decoration: Decoration.replace({}) });
         }
       }
-    }
+    },
   });
 
   const ranges = decorations
-    .filter(d => d.from <= d.to)
-    .map(d => d.decoration.range(d.from, d.to));
+    .filter((d) => d.from <= d.to)
+    .map((d) => d.decoration.range(d.from, d.to));
 
   return RangeSet.of(ranges, true);
 }

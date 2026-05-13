@@ -16,7 +16,9 @@ describe('assetLocation', () => {
 
 describe('findImageItem', () => {
   function makeItems(types: string[]): DataTransferItemList {
-    const items = types.map(type => ({ type, getAsFile: () => null, kind: 'file' }) as DataTransferItem);
+    const items = types.map(
+      (type) => ({ type, getAsFile: () => null, kind: 'file' }) as DataTransferItem,
+    );
     return Object.assign(items, { length: items.length }) as unknown as DataTransferItemList;
   }
 

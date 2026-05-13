@@ -25,9 +25,7 @@ export function parseNote(content: string, fallbackTitle: string): ParsedNote {
   const hadTitle = Boolean(data.title ?? data.name);
 
   const id = hadId ? String(data.id) : generateShortId();
-  const title = hadTitle
-    ? String(data.title ?? data.name)
-    : (extractH1(body) ?? fallbackTitle);
+  const title = hadTitle ? String(data.title ?? data.name) : (extractH1(body) ?? fallbackTitle);
 
   const frontmatter: NoteFrontmatter = { ...data, id, title };
   return { frontmatter, body, needsWrite: !hadId || !hadTitle };

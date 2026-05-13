@@ -18,13 +18,13 @@ describe('linesInRange', () => {
 
   it('returns all lines overlapping a multi-line selection', () => {
     const lines = linesInRange('foo\nbar\nbaz', 0, 7);
-    expect(lines.map(l => l.text)).toEqual(['foo', 'bar']);
+    expect(lines.map((l) => l.text)).toEqual(['foo', 'bar']);
   });
 
   it('does not include a line when selection ends exactly at its preceding newline', () => {
     // to=3 is the position of '\n' between "foo" and "bar"; "bar" starts at 4
     const lines = linesInRange('foo\nbar', 0, 3);
-    expect(lines.map(l => l.text)).toEqual(['foo']);
+    expect(lines.map((l) => l.text)).toEqual(['foo']);
   });
 
   it('handles a single-line document', () => {
@@ -55,13 +55,13 @@ describe('toggleHeading', () => {
 
   it('cycles para → H1 → H2 → H3 → para', () => {
     let text = 'foo';
-    text = toggleHeading(text, 0, text.length).text;  // → '# foo'
+    text = toggleHeading(text, 0, text.length).text; // → '# foo'
     expect(text).toBe('# foo');
-    text = toggleHeading(text, 0, text.length).text;  // → '## foo'
+    text = toggleHeading(text, 0, text.length).text; // → '## foo'
     expect(text).toBe('## foo');
-    text = toggleHeading(text, 0, text.length).text;  // → '### foo'
+    text = toggleHeading(text, 0, text.length).text; // → '### foo'
     expect(text).toBe('### foo');
-    text = toggleHeading(text, 0, text.length).text;  // → 'foo'
+    text = toggleHeading(text, 0, text.length).text; // → 'foo'
     expect(text).toBe('foo');
   });
 
@@ -135,7 +135,7 @@ describe('toggleBlockquote', () => {
   });
 
   it('stacks: applying twice gives ">> "', () => {
-    const once  = toggleBlockquote('foo', 0, 3);
+    const once = toggleBlockquote('foo', 0, 3);
     const twice = toggleBlockquote(once.text, once.from, once.to);
     expect(twice.text).toBe('>> foo');
   });

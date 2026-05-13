@@ -21,8 +21,8 @@ export interface BlockResult {
 // ---- Line helpers --------------------------------------------------------
 
 interface LineInfo {
-  from: number;   // position of first char on the line
-  to: number;     // position just after last char (exclusive of '\n')
+  from: number; // position of first char on the line
+  to: number; // position just after last char (exclusive of '\n')
   text: string;
 }
 
@@ -32,7 +32,7 @@ export function linesInRange(docText: string, from: number, to: number): LineInf
   let pos = 0;
   for (const lineText of docText.split('\n')) {
     const lineFrom = pos;
-    const lineTo   = pos + lineText.length;
+    const lineTo = pos + lineText.length;
     if (from <= lineTo && to >= lineFrom) {
       result.push({ from: lineFrom, to: lineTo, text: lineText });
     }
@@ -56,10 +56,10 @@ function applyToLines(
   if (lines.length === 0) return { text, from, to };
 
   const blockFrom = lines[0].from;
-  const blockTo   = lines[lines.length - 1].to;
+  const blockTo = lines[lines.length - 1].to;
 
-  const newBlock = lines.map(l => transform(l.text)).join('\n');
-  const newText  = text.slice(0, blockFrom) + newBlock + text.slice(blockTo);
+  const newBlock = lines.map((l) => transform(l.text)).join('\n');
+  const newText = text.slice(0, blockFrom) + newBlock + text.slice(blockTo);
 
   return { text: newText, from: blockFrom, to: blockFrom + newBlock.length };
 }
@@ -75,10 +75,10 @@ export function toggleHeading(text: string, from: number, to: number): BlockResu
 }
 
 function cycleHeadingLine(line: string): string {
-  if (line.startsWith('### ')) return line.slice(4);             // H3 → paragraph
-  if (line.startsWith('## '))  return '### ' + line.slice(3);   // H2 → H3
-  if (line.startsWith('# '))   return '## '  + line.slice(2);   // H1 → H2
-  return '# ' + line;                                            // paragraph → H1
+  if (line.startsWith('### ')) return line.slice(4); // H3 → paragraph
+  if (line.startsWith('## ')) return '### ' + line.slice(3); // H2 → H3
+  if (line.startsWith('# ')) return '## ' + line.slice(2); // H1 → H2
+  return '# ' + line; // paragraph → H1
 }
 
 // ---- Bullet list ---------------------------------------------------------
@@ -88,11 +88,9 @@ function cycleHeadingLine(line: string): string {
  * Otherwise prepends '- ' to every line.
  */
 export function toggleBulletList(text: string, from: number, to: number): BlockResult {
-  const lines      = linesInRange(text, from, to);
-  const allBullet  = lines.length > 0 && lines.every(l => l.text.startsWith('- '));
-  return applyToLines(text, from, to, line =>
-    allBullet ? line.slice(2) : '- ' + line,
-  );
+  const lines = linesInRange(text, from, to);
+  const allBullet = lines.length > 0 && lines.every((l) => l.text.startsWith('- '));
+  return applyToLines(text, from, to, (line) => (allBullet ? line.slice(2) : '- ' + line));
 }
 
 // ---- Ordered list --------------------------------------------------------
@@ -102,15 +100,15 @@ export function toggleBulletList(text: string, from: number, to: number): BlockR
  * Otherwise prepends '1. ', '2. ', '3. ' etc.
  */
 export function toggleOrderedList(text: string, from: number, to: number): BlockResult {
-  const lines      = linesInRange(text, from, to);
-  const allOrdered = lines.length > 0 && lines.every(l => /^\d+\. /.test(l.text));
+  const lines = linesInRange(text, from, to);
+  const allOrdered = lines.length > 0 && lines.every((l) => /^\d+\. /.test(l.text));
 
   if (allOrdered) {
-    return applyToLines(text, from, to, line => line.replace(/^\d+\. /, ''));
+    return applyToLines(text, from, to, (line) => line.replace(/^\d+\. /, ''));
   }
 
   let counter = 1;
-  return applyToLines(text, from, to, line => `${counter++}. ${line}`);
+  return applyToLines(text, from, to, (line) => `${counter++}. ${line}`);
 }
 
 // ---- Blockquote ----------------------------------------------------------
@@ -138,8 +136,13 @@ export function toggleBlockquote(text: string, from: number, to: number): BlockR
 function parseBlockquote(line: string): { depth: number; content: string } {
   let depth = 0;
   let i = 0;
-  while (i < line.length && line[i] === '>') { depth++; i++; }
-  if (i < line.length && line[i] === ' ')    { i++; }
+  while (i < line.length && line[i] === '>') {
+    depth++;
+    i++;
+  }
+  if (i < line.length && line[i] === ' ') {
+    i++;
+  }
   return { depth, content: line.slice(i) };
 }
 
