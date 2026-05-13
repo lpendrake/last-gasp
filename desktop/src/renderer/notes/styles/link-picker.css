@@ -1,0 +1,26 @@
+/* ---- Link picker (inline @-mention) ---- */
+.link-picker {
+  position: absolute;
+  z-index: 60;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.75);
+  width: 320px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.link-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 13px;
+}
+.link-picker-row:hover,
+.link-picker-row.is-selected { background: var(--theme-panel, #2d3d2a); }
+.link-picker-row .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--kind-color, var(--theme-text-muted, #7a6f58)); flex: 0 0 6px; }
+.link-picker-row .ttl { flex: 1 1 auto; color: var(--theme-text-primary, #d8d0b8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link-picker-row .pth { color: var(--theme-text-muted, #7a6f58); font-size: 12px; flex: 0 0 auto; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }

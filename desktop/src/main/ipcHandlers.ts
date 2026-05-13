@@ -1,7 +1,9 @@
-import { ipcMain, dialog, app } from 'electron';
+import { ipcMain, dialog, app, shell } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import matter from 'gray-matter';
+import { generateShortId } from '../shared/ids.js';
+import { buildLinkIndex } from './linkIndex.js';
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -59,8 +61,17 @@ export function registerIpcHandlers() {
 
           if (fs.existsSync(configPath)) {
             const content = fs.readFileSync(configPath, 'utf-8');
-            const { data } = matter(content);
+            const { data, content: body } = matter(content);
+
+            let id = data.id;
+            if (!id) {
+              id = generateShortId();
+              const updatedContent = matter.stringify(body, { ...data, id });
+              fs.writeFileSync(configPath, updatedContent, 'utf-8');
+            }
+
             campaigns.push({
+              id,
               name: data.name || entry.name,
               description: data.description || '',
               folderName: entry.name,
@@ -97,7 +108,9 @@ export function registerIpcHandlers() {
         fs.mkdirSync(path.join(campaignPath, 'relationships'), { recursive: true });
 
         // Create campaign.md with frontmatter
+        const id = generateShortId();
         const configContent = `---
+id: ${id}
 name: ${name}
 description: ${description}
 ---
@@ -145,6 +158,16 @@ ${description}
     }
   });
 
+  ipcMain.handle('fs:mkdir', async (_event, dirPath: string) => {
+    try {
+      fs.mkdirSync(dirPath, { recursive: true });
+      return true;
+    } catch (error) {
+      console.error('Failed to create directory:', error);
+      throw error;
+    }
+  });
+
   ipcMain.handle('fs:write', async (event, filePath: string, content: string) => {
     try {
       const dir = path.dirname(filePath);
@@ -169,6 +192,76 @@ ${description}
     } catch (error) {
       console.error('Failed to delete file:', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('fs:trash', async (event, filePath: string) => {
+    try {
+      const normalized = path.resolve(filePath);
+      if (fs.existsSync(normalized)) {
+        await shell.trashItem(normalized);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to trash item:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('fs:rename', async (event, oldPath: string, newPath: string) => {
+    try {
+      if (fs.existsSync(oldPath)) {
+        const dir = path.dirname(newPath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.renameSync(oldPath, newPath);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to rename:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('fs:writeBuffer', async (event, filePath: string, buffer: Uint8Array) => {
+    try {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, Buffer.from(buffer));
+      return true;
+    } catch (error) {
+      console.error('Failed to write buffer:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('notes:buildIndex', async (event, campaignPath: string) => {
+    try {
+      return buildLinkIndex(campaignPath);
+    } catch (error) {
+      console.error('Failed to build link index:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('notes:ensureDirs', async (event, notesDir: string) => {
+    try {
+      const dirs = ['player characters', 'factions', 'locations', 'npcs', 'plots'];
+      for (const dir of dirs) {
+        const fullPath = path.join(notesDir, dir);
+        if (!fs.existsSync(fullPath)) {
+          fs.mkdirSync(fullPath, { recursive: true });
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to ensure note directories:', error);
+      return false;
     }
   });
 }

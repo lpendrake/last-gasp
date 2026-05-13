@@ -1,58 +1,70 @@
 {
   "name": "tabletop-timeline",
+  "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "TableTop Timeline Desktop App",
-  "author": "lpendrake",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "npm run build:main && concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "build:main": "tsc -p tsconfig.main.json",
-    "build:renderer": "vite build",
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:compile\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:compile": "tsc -p tsconfig.main.json --watch --preserveWatchOutput",
+    "dev:electron": "wait-on http://localhost:5173 dist/main/index.js && nodemon --watch dist/main --watch dist/preload --ext js,cjs --exec electron .",
     "build": "npm run build:renderer && npm run build:main",
-    "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write .",
-    "package": "npm run build && electron-builder build -mwl",
-    "package:win": "npm run build && electron-builder build -w",
-    "package:test": "npm run build && electron-builder build -w --publish never",
-    "package:publish": "npm run build && electron-builder build -w --publish always",
-    "rebuild:win": "taskkill /F /IM \"TableTop Timeline.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/TableTop Timeline Setup 1.0.0.exe\""
+    "build:renderer": "vite build",
+    "build:main": "npx tsc -p tsconfig.main.json",
+    "package": "npm run build && electron-builder",
+    "package:win": "npm run build && electron-builder --win",
+    "rebuild:win": "taskkill /F /IM \"TableTop Timeline.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/TableTop Timeline Setup 1.0.0.exe\"",
+    "test": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "preview": "vite preview"
   },
   "build": {
-    "appId": "com.tabletop-timeline.desktop",
+    "appId": "com.lpendrake.tabletop-timeline",
     "productName": "TableTop Timeline",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "lpendrake",
-        "repo": "last-gasp"
-      }
-    ],
-    "icon": "src/assets/images/icon",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "src/assets/images/icon.ico",
-      "src/assets/images/icon.png",
+      "src/assets/**/*",
       "package.json"
     ],
     "win": {
+      "target": "nsis",
       "icon": "src/assets/images/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
     }
   },
   "dependencies": {
+    "@codemirror/autocomplete": "6.20.2",
+    "@codemirror/commands": "6.10.3",
+    "@codemirror/lang-markdown": "6.5.0",
+    "@codemirror/language": "6.12.3",
+    "@codemirror/language-data": "6.5.2",
+    "@codemirror/lint": "6.9.6",
+    "@codemirror/search": "6.7.0",
+    "@codemirror/state": "6.6.0",
+    "@codemirror/view": "6.42.1",
+    "@lezer/common": "1.5.2",
+    "@lezer/highlight": "1.2.3",
+    "@lezer/markdown": "1.6.3",
     "chokidar": "4.0.1",
     "electron-updater": "6.3.9",
     "gray-matter": "4.0.3",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@types/node": "20.19.0",
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "@typescript-eslint/eslint-plugin": "8.18.1",
     "@typescript-eslint/parser": "8.18.1",
     "@vitejs/plugin-react": "6.0.1",
@@ -66,11 +78,14 @@
     "eslint-plugin-react-hooks": "5.1.0",
     "eslint-plugin-react-refresh": "0.4.16",
     "globals": "15.14.0",
+    "happy-dom": "20.9.0",
+    "nodemon": "^3.1.14",
     "prettier": "3.4.2",
     "tsx": "4.21.0",
     "typescript": "5.7.2",
     "typescript-eslint": "8.18.1",
     "vite": "8.0.11",
+    "vitest": "4.1.5",
     "wait-on": "8.0.1"
   }
 }
