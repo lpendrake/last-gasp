@@ -39,4 +39,45 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.on('notes:indexDelta', listener);
     return () => ipcRenderer.removeListener('notes:indexDelta', listener);
   },
+
+  // Timeline
+  timelineListEvents: (campaignPath: string) =>
+    ipcRenderer.invoke('timeline:listEvents', campaignPath),
+  timelineGetEvent: (campaignPath: string, filename: string) =>
+    ipcRenderer.invoke('timeline:getEvent', campaignPath, filename),
+  timelineCreateEvent: (
+    campaignPath: string,
+    filename: string,
+    frontmatter: unknown,
+    body: string,
+  ) => ipcRenderer.invoke('timeline:createEvent', campaignPath, filename, frontmatter, body),
+  timelineUpdateEvent: (
+    campaignPath: string,
+    filename: string,
+    frontmatter: unknown,
+    body: string,
+    ifUnmodifiedSince: string,
+  ) =>
+    ipcRenderer.invoke(
+      'timeline:updateEvent',
+      campaignPath,
+      filename,
+      frontmatter,
+      body,
+      ifUnmodifiedSince,
+    ),
+  timelineDeleteEvent: (campaignPath: string, filename: string, ifUnmodifiedSince: string) =>
+    ipcRenderer.invoke('timeline:deleteEvent', campaignPath, filename, ifUnmodifiedSince),
+  timelineGetSessions: (campaignPath: string) =>
+    ipcRenderer.invoke('timeline:getSessions', campaignPath),
+  timelinePutSessions: (campaignPath: string, sessions: unknown) =>
+    ipcRenderer.invoke('timeline:putSessions', campaignPath, sessions),
+  timelineGetState: (campaignPath: string) =>
+    ipcRenderer.invoke('timeline:getState', campaignPath),
+  timelinePutState: (campaignPath: string, state: unknown) =>
+    ipcRenderer.invoke('timeline:putState', campaignPath, state),
+  timelineGetTags: (campaignPath: string) =>
+    ipcRenderer.invoke('timeline:getTags', campaignPath),
+  timelineLoadPalette: (campaignPath: string) =>
+    ipcRenderer.invoke('timeline:loadPalette', campaignPath),
 });

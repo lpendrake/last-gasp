@@ -1,5 +1,16 @@
 export {};
 
+import type {
+  EventFrontmatter,
+  EventListItem,
+  EventWithMtime,
+  Session,
+  State,
+  TagsRegistry,
+  Palette,
+  ConflictResult,
+} from '../renderer/timeline/data/types';
+
 export interface Campaign {
   id: string;
   name: string;
@@ -53,6 +64,34 @@ declare global {
 
       // Dialog
       selectDirectory: () => Promise<string | null>;
+
+      // Timeline
+      timelineListEvents: (campaignPath: string) => Promise<EventListItem[]>;
+      timelineGetEvent: (campaignPath: string, filename: string) => Promise<EventWithMtime>;
+      timelineCreateEvent: (
+        campaignPath: string,
+        filename: string,
+        frontmatter: EventFrontmatter,
+        body: string,
+      ) => Promise<EventWithMtime>;
+      timelineUpdateEvent: (
+        campaignPath: string,
+        filename: string,
+        frontmatter: EventFrontmatter,
+        body: string,
+        ifUnmodifiedSince: string,
+      ) => Promise<EventWithMtime | ConflictResult>;
+      timelineDeleteEvent: (
+        campaignPath: string,
+        filename: string,
+        ifUnmodifiedSince: string,
+      ) => Promise<{ ok: true } | ConflictResult>;
+      timelineGetSessions: (campaignPath: string) => Promise<Session[]>;
+      timelinePutSessions: (campaignPath: string, sessions: Session[]) => Promise<{ ok: true }>;
+      timelineGetState: (campaignPath: string) => Promise<State>;
+      timelinePutState: (campaignPath: string, state: State) => Promise<{ ok: true }>;
+      timelineGetTags: (campaignPath: string) => Promise<TagsRegistry>;
+      timelineLoadPalette: (campaignPath: string) => Promise<Palette>;
     };
   }
 }

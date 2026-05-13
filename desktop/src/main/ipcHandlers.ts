@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import matter from 'gray-matter';
 import { generateShortId } from '../shared/ids.js';
 import { buildLinkIndex } from './linkIndex.js';
+import { registerTimelineIpcHandlers } from './timelineIpcHandlers.js';
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -264,4 +265,6 @@ ${description}
       return false;
     }
   });
+
+  registerTimelineIpcHandlers();
 }
