@@ -62,7 +62,7 @@ export default function App() {
       case 'notes':
         return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
       case 'timeline':
-        return <TimelineView />;
+        return <TimelineView campaignPath={activeCampaign.path} />;
       case 'relationships':
         return <RelationshipsView />;
       default:

@@ -1,51 +1,94 @@
-import React, { useState } from 'react';
-import { FooterPortal } from '../../components/FooterPortal';
+import { useEffect, useRef, useState } from 'react';
+import { timelinePort } from '../../timeline/data/ports';
+import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
+import {
+  DEFAULT_SECONDS_PER_PIXEL,
+  type ViewState,
+  type ViewportSize,
+} from '../../timeline/math/zoom';
 
-export function TimelineView() {
-  const [highlighted, setHighlighted] = useState(false);
+interface TimelineViewProps {
+  campaignPath: string;
+}
+
+interface LoadedData {
+  palette: Palette | null;
+  gameState: State | null;
+  events: EventListItem[];
+  sessions: Session[];
+}
+
+export function TimelineView({ campaignPath }: TimelineViewProps) {
+  const [viewState] = useState<ViewState>({
+    centerSeconds: 0,
+    secondsPerPixel: DEFAULT_SECONDS_PER_PIXEL,
+  });
+  const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const [loadedData, setLoadedData] = useState<LoadedData>({
+    palette: null,
+    gameState: null,
+    events: [],
+    sessions: [],
+  });
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { contentRect } = entries[0];
+      setViewportSize({ width: contentRect.width, height: contentRect.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    // gameState/events/sessions pre-wired here; consumed by render layers in follow-up issues.
+    Promise.all([
+      timelinePort.loadPalette(campaignPath),
+      timelinePort.getState(campaignPath),
+      timelinePort.listEvents(campaignPath),
+      timelinePort.getSessions(campaignPath),
+    ])
+      .then(([palette, gameState, events, sessions]) => {
+        if (!cancelled) setLoadedData({ palette, gameState, events, sessions });
+      })
+      .catch((err) => console.error('[TimelineView] failed to load campaign data', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignPath]);
+
+  const bgColor = loadedData.palette?.theme.background ?? '#09090b';
 
   return (
     <div
+      ref={viewportRef}
+      data-timeline-viewport
+      data-width={viewportSize.width}
+      data-height={viewportSize.height}
+      data-center={viewState.centerSeconds}
+      data-scale={viewState.secondsPerPixel}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
+        position: 'relative',
         width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: highlighted ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-        transition: 'background-color 0.3s',
+        height: '100%',
+        backgroundColor: bgColor,
+        overflow: 'hidden',
       }}
     >
-      <h1
-        style={{
-          color: highlighted ? '#818cf8' : '#fff',
-          transition: 'color 0.2s',
-          fontSize: '48px',
-          fontWeight: 800,
-        }}
-      >
-        Timeline
-      </h1>
-      <p style={{ color: '#888' }}>Future home of the Timeline interface.</p>
-
-      <FooterPortal>
-        <button
-          onClick={() => setHighlighted(!highlighted)}
-          style={{
-            background: 'rgba(99, 102, 241, 0.1)',
-            color: '#818cf8',
-            border: '1px solid #6366f1',
-            padding: '6px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '13px',
-          }}
-        >
-          Highlight Timeline
-        </button>
-      </FooterPortal>
+      <div
+        data-layer="axis-layer"
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      />
+      <div
+        data-layer="session-layer"
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+      />
+      <div data-layer="cards-layer" style={{ position: 'absolute', inset: 0 }} />
     </div>
   );
 }
