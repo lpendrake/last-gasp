@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FooterPortal } from '../../components/FooterPortal';
+import { FooterPortal } from '../../components/footer-portal';
 
 export function RelationshipsView() {
   const [nodesExpanded, setNodesExpanded] = useState(false);
