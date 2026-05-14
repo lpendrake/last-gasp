@@ -10,6 +10,7 @@ import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golar
 import { paletteToCssVars } from '../../timeline/palette';
 import { Axis } from '../../timeline/render/Axis';
 import { Cards } from '../../timeline/render/Cards.tsx';
+import { NowMarker } from '../../timeline/render/NowMarker';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -99,6 +100,14 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           view={viewState}
           size={viewportSize}
           palette={loadedData.palette}
+          inGameNowSeconds={inGameNowSeconds}
+        />
+      )}
+      {loadedData.palette && loadedData.gameState && (
+        <NowMarker
+          view={viewState}
+          size={viewportSize}
+          inGameNow={loadedData.gameState.in_game_now}
           inGameNowSeconds={inGameNowSeconds}
         />
       )}
