@@ -71,6 +71,13 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   const inGameNowSeconds = loadedData.gameState?.in_game_now
     ? toAbsoluteSeconds(parseISOString(loadedData.gameState.in_game_now))
     : Infinity;
+  // TEMP debug for issue #82 — remove before merge.
+  console.log('[TimelineView]', {
+    palette: loadedData.palette ? 'loaded' : 'null',
+    gameState: loadedData.gameState,
+    inGameNowSeconds,
+    viewportSize,
+  });
 
   return (
     <div

@@ -56,6 +56,15 @@ export function NowMarker({
   inGameNowSeconds,
 }: NowMarkerProps): ReactElement | null {
   const layout = computeNowMarkerLayout(view, size, inGameNow, inGameNowSeconds);
+  // TEMP debug for issue #82 — remove before merge.
+  console.log('[NowMarker]', {
+    inGameNow,
+    inGameNowSeconds,
+    centerSeconds: view.centerSeconds,
+    secondsPerPixel: view.secondsPerPixel,
+    size,
+    layout,
+  });
   if (layout === null) return null;
 
   return (
