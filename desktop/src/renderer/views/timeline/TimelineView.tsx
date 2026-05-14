@@ -66,7 +66,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   }, [campaignPath]);
 
   const bgColor = loadedData.palette?.theme.background ?? '#09090b';
-  const inGameNow = loadedData.gameState?.in_game_now;
+  const inGameNowSeconds = loadedData.gameState?.in_game_now
+    ? toAbsoluteSeconds(parseISOString(loadedData.gameState.in_game_now))
+    : Infinity;
 
   return (
     <div
@@ -91,13 +93,13 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         data-layer="session-layer"
         style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
       />
-      {loadedData.palette && inGameNow && (
+      {loadedData.palette && (
         <Cards
           events={loadedData.events}
           view={viewState}
           size={viewportSize}
           palette={loadedData.palette}
-          inGameNowSeconds={toAbsoluteSeconds(parseISOString(inGameNow))}
+          inGameNowSeconds={inGameNowSeconds}
         />
       )}
     </div>
