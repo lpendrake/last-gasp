@@ -15,7 +15,7 @@ import {
   type ConfirmState,
 } from '../types';
 import type { LinkIndexEntry } from '../../../types/global';
-import type { ContextMenuTarget } from '../components/NoteContextMenu';
+import type { ContextMenuTarget } from '../components/note-context-menu';
 
 interface NotesControllerOptions {
   campaignId: string;

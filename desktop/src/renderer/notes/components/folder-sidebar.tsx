@@ -7,7 +7,7 @@ import {
   type OpenTab,
   type TreeNode,
 } from '../types.ts';
-import type { ContextMenuTarget } from './NoteContextMenu.tsx';
+import type { ContextMenuTarget } from './note-context-menu.tsx';
 
 const DRAG_MIME = 'application/x-last-gasp-note';
 interface NoteDragPayload {

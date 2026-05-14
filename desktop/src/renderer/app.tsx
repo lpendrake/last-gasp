@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Footer, ViewType } from './components/Footer';
-import { NotesView } from './views/notes/NotesView';
-import { TimelineView } from './views/timeline/TimelineView';
-import { RelationshipsView } from './views/relationships/RelationshipsView';
-import { DirectoryPicker } from './views/setup/DirectoryPicker';
-import { CampaignManager } from './views/campaigns/CampaignManager';
+import { Footer, ViewType } from './components/footer';
+import { NotesView } from './views/notes/notes-view';
+import { TimelineView } from './views/timeline/timeline-view';
+import { RelationshipsView } from './views/relationships/relationships-view';
+import { DirectoryPicker } from './views/setup/directory-picker';
+import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
 import '../../src/index.css';
 

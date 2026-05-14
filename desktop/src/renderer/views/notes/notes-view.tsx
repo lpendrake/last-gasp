@@ -1,5 +1,5 @@
 import React from 'react';
-import { NotesApp } from '../../notes/Notes';
+import { NotesApp } from '../../notes/notes';
 
 export function NotesView({
   campaignPath,
