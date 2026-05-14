@@ -8,7 +8,7 @@ import {
 } from '../../timeline/math/zoom';
 import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golarian';
 import { Axis } from '../../timeline/render/Axis';
-import { Cards } from '../../timeline/render/Cards';
+import { Cards } from '../../timeline/render/Cards.tsx';
 
 interface TimelineViewProps {
   campaignPath: string;
