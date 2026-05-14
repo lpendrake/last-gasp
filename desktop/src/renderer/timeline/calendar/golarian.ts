@@ -137,7 +137,9 @@ export function validateDate(date: Pick<GolarianDate, 'year' | 'month' | 'day'>)
  * Parse ISO-style string: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS (with optional MM:SS).
  */
 export function parseISOString(s: string): GolarianDate {
-  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2}))?)?)?$/);
+  const match = s.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2})(?:\.\d+)?)?)?Z?)?$/,
+  );
   if (!match) throw new SyntaxError(`Cannot parse date: "${s}"`);
 
   const date: GolarianDate = {

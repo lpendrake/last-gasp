@@ -10,8 +10,6 @@ import {
   fromAbsoluteSeconds,
 } from '../calendar/golarian';
 import { formatAxisDayTick, formatAxisHour } from '../calendar/format';
-import type { Palette } from '../data/types';
-import { paletteToCssVars } from '../palette';
 
 export interface TimeTier {
   readonly id: 'midday' | 'hour' | 'half' | 'quarter' | 'minute';
@@ -60,10 +58,9 @@ export function naturalTier(withinDay: number, tiers: readonly TimeTier[]): Time
 interface AxisProps {
   view: ViewState;
   size: ViewportSize;
-  palette: Palette;
 }
 
-export function Axis({ view, size, palette }: AxisProps): ReactElement | null {
+export function Axis({ view, size }: AxisProps): ReactElement | null {
   if (size.width === 0 || size.height === 0) return null;
 
   const axisY = Math.floor(size.height * 0.8);
@@ -212,7 +209,6 @@ export function Axis({ view, size, palette }: AxisProps): ReactElement | null {
         position: 'absolute',
         inset: 0,
         pointerEvents: 'none',
-        ...paletteToCssVars(palette),
       }}
     >
       {/* Month bands behind everything else */}
