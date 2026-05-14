@@ -14,7 +14,6 @@ import { toAbsoluteSeconds, parseISOString } from '../../calendar/golarian';
 // ---- Fixtures ----
 
 const SIZE: ViewportSize = { width: 1200, height: 600 };
-const AXIS_Y = Math.floor(600 * 0.8); // 480
 
 // Reference date: 4726-05-04 (Wednesday)
 const REF_DATE = '4726-05-04';
@@ -119,14 +118,11 @@ describe('layoutCards', () => {
   });
 
   it('places future events to the right of past events', () => {
-    const events = [
-      ev('past.md', '4726-05-04', 'Past'),
-      ev('future.md', '4726-05-09', 'Future'),
-    ];
+    const events = [ev('past.md', '4726-05-04', 'Past'), ev('future.md', '4726-05-09', 'Future')];
     const nowSecs = toAbsoluteSeconds(parseISOString('4726-05-06'));
     const cards = layoutCards(events, VIEW, SIZE, nowSecs);
-    const past = cards.find(c => c.event.filename === 'past.md')!;
-    const future = cards.find(c => c.event.filename === 'future.md')!;
+    const past = cards.find((c) => c.event.filename === 'past.md')!;
+    const future = cards.find((c) => c.event.filename === 'future.md')!;
     expect(future.x).toBeGreaterThan(past.x);
   });
 });
@@ -146,10 +142,7 @@ describe('assignRows', () => {
 
   it('places non-overlapping cards in row 0', () => {
     // Events 10 days apart are never close enough to overlap
-    const events = [
-      ev('a.md', '4726-05-01', 'Alpha'),
-      ev('b.md', '4726-05-20', 'Beta'),
-    ];
+    const events = [ev('a.md', '4726-05-01', 'Alpha'), ev('b.md', '4726-05-20', 'Beta')];
     const laidOut = layoutCards(events, VIEW, SIZE, REF_SECS);
     const placements = assignRows(laidOut);
     expect(placements.get('a.md')!.row).toBe(0);
@@ -176,13 +169,17 @@ describe('assignRows', () => {
     ];
     const laidOut = layoutCards(events, VIEW, SIZE, REF_SECS);
     const placements = assignRows(laidOut);
-    const rows = ['a.md', 'b.md', 'c.md'].map(f => placements.get(f)!.row).sort((a, b) => a - b);
+    const rows = ['a.md', 'b.md', 'c.md'].map((f) => placements.get(f)!.row).sort((a, b) => a - b);
     expect(rows).toEqual([0, 1, 2]);
   });
 
   it('card width is clamped between 120 and 360', () => {
     const shortTitle = ev('a.md', REF_DATE, 'Hi');
-    const longTitle = ev('b.md', '4726-05-10', 'A very long title that exceeds the maximum card width allowed by the layout algorithm');
+    const longTitle = ev(
+      'b.md',
+      '4726-05-10',
+      'A very long title that exceeds the maximum card width allowed by the layout algorithm',
+    );
     const laidOut = layoutCards([shortTitle, longTitle], VIEW, SIZE, REF_SECS);
     const placements = assignRows(laidOut);
     expect(placements.get('a.md')!.width).toBe(120);
@@ -226,11 +223,15 @@ describe('weekdayColorFromPalette', () => {
   });
 
   it('returns wednesday color for 4726-05-04 (the anchor Wednesday)', () => {
-    expect(weekdayColorFromPalette('4726-05-04', MOCK_PALETTE)).toBe(MOCK_PALETTE.weekdays.wednesday);
+    expect(weekdayColorFromPalette('4726-05-04', MOCK_PALETTE)).toBe(
+      MOCK_PALETTE.weekdays.wednesday,
+    );
   });
 
   it('returns thursday color for 4726-05-05', () => {
-    expect(weekdayColorFromPalette('4726-05-05', MOCK_PALETTE)).toBe(MOCK_PALETTE.weekdays.thursday);
+    expect(weekdayColorFromPalette('4726-05-05', MOCK_PALETTE)).toBe(
+      MOCK_PALETTE.weekdays.thursday,
+    );
   });
 
   it('returns friday color for 4726-05-06', () => {
@@ -238,7 +239,9 @@ describe('weekdayColorFromPalette', () => {
   });
 
   it('returns saturday color for 4726-05-07', () => {
-    expect(weekdayColorFromPalette('4726-05-07', MOCK_PALETTE)).toBe(MOCK_PALETTE.weekdays.saturday);
+    expect(weekdayColorFromPalette('4726-05-07', MOCK_PALETTE)).toBe(
+      MOCK_PALETTE.weekdays.saturday,
+    );
   });
 
   it('returns sunday color for 4726-05-08', () => {
@@ -255,7 +258,7 @@ describe('weekdayColorFromPalette', () => {
 describe('snapshot: ~20 event fixture', () => {
   it('layoutCards output matches snapshot', () => {
     const laidOut = layoutCards(FIXTURE_EVENTS, VIEW, SIZE, NOW_SECS);
-    const snapshot = laidOut.map(c => ({
+    const snapshot = laidOut.map((c) => ({
       filename: c.event.filename,
       x: Math.round(c.x * 100) / 100, // 2dp for readability
       isFuture: c.isFuture,
@@ -267,7 +270,7 @@ describe('snapshot: ~20 event fixture', () => {
     const laidOut = layoutCards(FIXTURE_EVENTS, VIEW, SIZE, NOW_SECS);
     const placements = assignRows(laidOut);
     // Merge layout + placement into a stable-ordered array for the snapshot
-    const snapshot = FIXTURE_EVENTS.map(e => ({
+    const snapshot = FIXTURE_EVENTS.map((e) => ({
       filename: e.filename,
       row: placements.get(e.filename)!.row,
       width: placements.get(e.filename)!.width,
@@ -292,7 +295,8 @@ describe('snapshot: ~20 event fixture', () => {
     for (const [, segments] of rowBuckets) {
       for (let i = 0; i < segments.length; i++) {
         for (let j = i + 1; j < segments.length; j++) {
-          const a = segments[i], b = segments[j];
+          const a = segments[i],
+            b = segments[j];
           const overlaps = !(a.right < b.left || b.right < a.left);
           expect(overlaps).toBe(false);
         }
