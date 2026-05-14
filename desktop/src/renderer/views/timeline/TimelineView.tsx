@@ -6,6 +6,7 @@ import {
   type ViewState,
   type ViewportSize,
 } from '../../timeline/math/zoom';
+import { Axis } from '../../timeline/render/Axis';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -80,10 +81,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         overflow: 'hidden',
       }}
     >
-      <div
-        data-layer="axis-layer"
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-      />
+      {loadedData.palette && (
+        <Axis view={viewState} size={viewportSize} palette={loadedData.palette} />
+      )}
       <div
         data-layer="session-layer"
         style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
