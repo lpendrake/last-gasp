@@ -8,10 +8,10 @@ import {
 } from '../../timeline/math/zoom';
 import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golarian';
 import { paletteToCssVars } from '../../timeline/palette';
-import { Axis } from '../../timeline/render/Axis';
-import { Cards } from '../../timeline/render/Cards.tsx';
-import { NowMarker } from '../../timeline/render/NowMarker';
-import { SessionBands } from '../../timeline/render/SessionBands';
+import { Axis } from '../../timeline/render/axis';
+import { Cards } from '../../timeline/render/cards.tsx';
+import { NowMarker } from '../../timeline/render/now-marker';
+import { SessionBands } from '../../timeline/render/session-bands.tsx';
 
 interface TimelineViewProps {
   campaignPath: string;

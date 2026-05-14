@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { naturalTier, chooseDayStep, ALL_TIERS, type TimeTier } from '../Axis';
+import { naturalTier, chooseDayStep, ALL_TIERS, type TimeTier } from '../axis';
 
 function tier(id: TimeTier['id']): TimeTier {
   const t = ALL_TIERS.find((t) => t.id === id);

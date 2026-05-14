@@ -1,16 +1,16 @@
 import { useMemo, useRef, useState } from 'react';
 import { type EditorView } from '@codemirror/view';
 import { useNotesController } from './hooks/useNotesController';
-import { type SavedEditorInstance } from './editor/NoteEditor.tsx';
-import { QuickAdd } from './components/QuickAdd.tsx';
-import { NoteContextMenu } from './components/NoteContextMenu.tsx';
-import { EditorTabs } from './components/EditorTabs.tsx';
-import { BreadcrumbNav } from './components/BreadcrumbNav.tsx';
-import { NoteEditor } from './editor/NoteEditor.tsx';
-import { FolderSidebar } from './components/FolderSidebar.tsx';
-import { MetaPanel } from './components/MetaPanel.tsx';
-import { FormatToolbar } from './components/FormatToolbar.tsx';
-import { FooterPortal } from '../components/FooterPortal.tsx';
+import { type SavedEditorInstance } from './editor/note-editor.tsx';
+import { QuickAdd } from './components/quick-add.tsx';
+import { NoteContextMenu } from './components/note-context-menu.tsx';
+import { EditorTabs } from './components/editor-tabs.tsx';
+import { BreadcrumbNav } from './components/breadcrumb-nav.tsx';
+import { NoteEditor } from './editor/note-editor.tsx';
+import { FolderSidebar } from './components/folder-sidebar.tsx';
+import { MetaPanel } from './components/meta-panel.tsx';
+import { FormatToolbar } from './components/format-toolbar.tsx';
+import { FooterPortal } from '../components/footer-portal.tsx';
 
 import './styles/index.css';
 import './styles/sidebar.css';

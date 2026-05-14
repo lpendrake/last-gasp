@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeNowMarkerLayout } from '../NowMarker';
+import { computeNowMarkerLayout } from '../now-marker';
 import { toAbsoluteSeconds, parseISOString } from '../../calendar/golarian';
 import { DEFAULT_SECONDS_PER_PIXEL, type ViewState, type ViewportSize } from '../../math/zoom';
 
