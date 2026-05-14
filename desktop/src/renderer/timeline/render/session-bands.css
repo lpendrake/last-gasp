@@ -1,0 +1,87 @@
+/* ===== Session pills ===== */
+
+.session-pill {
+  position: absolute;
+  background: var(--pill-color, #6b7c5a);
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: 0.85;
+  cursor: default;
+  transition: opacity 0.1s;
+}
+
+.session-pill:hover {
+  opacity: 1;
+}
+
+.session-pill.left-flat {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.session-pill.right-flat {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.session-pill-label {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 12px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.session-pill-seam {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* ===== Session tooltip ===== */
+
+.session-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--tooltip-border, #6b7c5a);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--theme-text-primary, #d8d0b8);
+  max-width: 360px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  line-height: 1.4;
+}
+
+.session-tooltip-header {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--theme-text-primary, #d8d0b8);
+}
+
+.session-tooltip-row {
+  display: flex;
+  gap: 8px;
+  color: var(--theme-text-secondary, #a89a80);
+  line-height: 1.5;
+}
+
+.session-tooltip-key {
+  color: var(--theme-text-muted, #7a6f58);
+  min-width: 36px;
+  flex-shrink: 0;
+}

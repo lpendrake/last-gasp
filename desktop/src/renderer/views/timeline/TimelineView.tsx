@@ -11,6 +11,7 @@ import { paletteToCssVars } from '../../timeline/palette';
 import { Axis } from '../../timeline/render/Axis';
 import { Cards } from '../../timeline/render/Cards.tsx';
 import { NowMarker } from '../../timeline/render/NowMarker';
+import { SessionBands } from '../../timeline/render/SessionBands';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -89,10 +90,14 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
       }}
     >
       {loadedData.palette && <Axis view={viewState} size={viewportSize} />}
-      <div
-        data-layer="session-layer"
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-      />
+      {loadedData.palette && (
+        <SessionBands
+          sessions={loadedData.sessions}
+          events={loadedData.events}
+          view={viewState}
+          size={viewportSize}
+        />
+      )}
       {loadedData.palette && (
         <Cards
           events={loadedData.events}
