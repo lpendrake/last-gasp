@@ -29,7 +29,7 @@ function assertSafeFilename(dir: string, filename: string): void {
 }
 
 function eventsDir(campaignPath: string) {
-  return path.join(campaignPath, 'events');
+  return path.join(campaignPath, 'timeline');
 }
 
 function fileMtime(filePath: string): string {
