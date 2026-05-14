@@ -187,9 +187,9 @@ export function registerTimelineIpcHandlers() {
   );
 
   ipcMain.handle('timeline:getState', (_event, campaignPath: string): State => {
-    const filePath = path.join(campaignPath, 'state.json');
+    const filePath = path.join(campaignPath, 'timeline', 'state.json');
     if (!fs.existsSync(filePath)) {
-      return { in_game_now: '', current_session: null, campaign_start: '' };
+      return { in_game_now: '', campaign_start: '' };
     }
     return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as State;
   });
@@ -197,7 +197,7 @@ export function registerTimelineIpcHandlers() {
   ipcMain.handle(
     'timeline:putState',
     (_event, campaignPath: string, state: State): { ok: true } => {
-      const filePath = path.join(campaignPath, 'state.json');
+      const filePath = path.join(campaignPath, 'timeline', 'state.json');
       fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8');
       return { ok: true };
     },

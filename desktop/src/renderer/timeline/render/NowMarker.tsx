@@ -35,7 +35,8 @@ export function computeNowMarkerLayout(
 
   return {
     x,
-    labelTop: axisY + 66,
+    // Sit below the month label band (which starts at axisY+64 and is ~35px tall).
+    labelTop: axisY + 108,
     dayMonth,
     year,
     time,

@@ -120,8 +120,8 @@ ${description}
 `;
         fs.writeFileSync(path.join(campaignPath, 'campaign.md'), configContent);
         fs.writeFileSync(
-          path.join(campaignPath, 'state.json'),
-          JSON.stringify({ in_game_now: '', current_session: null, campaign_start: '' }, null, 2),
+          path.join(campaignPath, 'timeline', 'state.json'),
+          JSON.stringify({ in_game_now: '', campaign_start: '' }, null, 2),
         );
 
         return { success: true, path: campaignPath };

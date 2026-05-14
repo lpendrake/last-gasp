@@ -40,11 +40,12 @@ describe('computeNowMarkerLayout', () => {
     expect(layout!.x).toBe(SIZE.width / 2);
   });
 
-  it('places the label below the axis line (axisY + 66)', () => {
+  it('places the label below the month-label band (axisY + 108)', () => {
     const layout = computeNowMarkerLayout(viewCenteredOn(NOW_SECS), SIZE, NOW_ISO, NOW_SECS)!;
     const axisY = Math.floor(SIZE.height * 0.8);
-    expect(layout.labelTop).toBe(axisY + 66);
-    expect(layout.labelTop).toBeGreaterThan(axisY);
+    // Month-label band starts at axisY+64 and runs ~35px; we sit below it.
+    expect(layout.labelTop).toBe(axisY + 108);
+    expect(layout.labelTop).toBeGreaterThan(axisY + 64 + 35);
   });
 
   it('shifts the marker right when the view is centered earlier than now', () => {
