@@ -78,7 +78,8 @@
   font-size: 13px;
 }
 
-.note-editor-container {
+.note-editor-container,
+.markdown-editor-container {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
