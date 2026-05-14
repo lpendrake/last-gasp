@@ -6,7 +6,9 @@ import {
   type ViewState,
   type ViewportSize,
 } from '../../timeline/math/zoom';
+import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golarian';
 import { Axis } from '../../timeline/render/Axis';
+import { Cards } from '../../timeline/render/Cards';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -88,7 +90,15 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         data-layer="session-layer"
         style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
       />
-      <div data-layer="cards-layer" style={{ position: 'absolute', inset: 0 }} />
+      {loadedData.palette && loadedData.gameState && (
+        <Cards
+          events={loadedData.events}
+          view={viewState}
+          size={viewportSize}
+          palette={loadedData.palette}
+          inGameNowSeconds={toAbsoluteSeconds(parseISOString(loadedData.gameState.in_game_now))}
+        />
+      )}
     </div>
   );
 }
