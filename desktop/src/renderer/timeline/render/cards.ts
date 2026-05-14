@@ -20,7 +20,13 @@ export interface CardPlacement {
 }
 
 const WEEKDAY_KEYS: (keyof Palette['weekdays'])[] = [
-  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
 ];
 
 export function weekdayColorFromPalette(isoDate: string, palette: Palette): string {
@@ -35,7 +41,7 @@ export function layoutCards(
   size: ViewportSize,
   inGameNowSeconds: number,
 ): LaidOutCard[] {
-  return events.map(ev => {
+  return events.map((ev) => {
     const seconds = toAbsoluteSeconds(parseISOString(ev.date));
     return {
       event: ev,
@@ -59,7 +65,7 @@ export function assignRows(laidOut: LaidOutCard[]): Map<string, CardPlacement> {
     let row = 0;
     while (true) {
       if (!rows[row]) rows[row] = [];
-      const overlaps = rows[row].some(o => !(right < o.left || left > o.right));
+      const overlaps = rows[row].some((o) => !(right < o.left || left > o.right));
       if (!overlaps) {
         rows[row].push({ left, right });
         break;
