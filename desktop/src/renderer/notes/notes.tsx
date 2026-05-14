@@ -40,8 +40,7 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
     ctrl.activeTab?.fileKind !== 'asset' && ctrl.activeTab?.fileKind !== 'unsupported';
 
   const imagePasteConfig = useMemo(
-    () =>
-      ctrl.activeTab ? makeImagePasteConfig(ctrl.activeTab.folder, campaignPath) : undefined,
+    () => (ctrl.activeTab ? makeImagePasteConfig(ctrl.activeTab.folder, campaignPath) : undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [ctrl.activeTab?.folder, campaignPath],
   );

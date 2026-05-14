@@ -192,7 +192,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       effects: modeCompartmentRef.current.reconfigure(buildModeExtensions(isSourceMode)),
     });
     view.focus();
-  }, [isSourceMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSourceMode]);
 
   // External content update (e.g. file reloaded from disk).
   useEffect(() => {

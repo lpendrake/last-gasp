@@ -69,7 +69,9 @@ describe('makeImagePasteConfig', () => {
     await config.onImagePaste(blob, 'image/jpeg');
 
     const [savedPath] = vi.mocked(notesData.saveImage).mock.calls[0];
-    expect(savedPath).toMatch(/^\/my\/campaign\/notes\/player characters\/assets\/pasted-\d+\.jpeg$/);
+    expect(savedPath).toMatch(
+      /^\/my\/campaign\/notes\/player characters\/assets\/pasted-\d+\.jpeg$/,
+    );
   });
 
   it('passes the image buffer to saveImage', async () => {
