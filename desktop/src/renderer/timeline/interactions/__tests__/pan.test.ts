@@ -148,17 +148,18 @@ describe('createPan', () => {
   });
 
   it('wasMoved resets even when shouldIgnore prevents the drag', () => {
-    const { container, pan } = setup({ shouldIgnore: () => true });
-    // First gesture: normal drag, sets wasMoved via direct manipulation
-    // Since shouldIgnore=true, wasMoved never sets. Simulate a prior wasMoved state
-    // by using a separate pan without shouldIgnore, then testing reset.
+    const { pan } = setup({ shouldIgnore: () => true });
+    // Since shouldIgnore=true, wasMoved never sets. Build a second pan to reach a
+    // prior wasMoved=true state, then verify the next mousedown resets it.
     pan.destroy();
     const container2 = makeContainer();
     let ignore = false;
     const captured2: Captured = { view: makeView() };
     const pan2 = createPan(container2, {
       getView: () => captured2.view,
-      setView: (v) => { captured2.view = v; },
+      setView: (v) => {
+        captured2.view = v;
+      },
       shouldIgnore: () => ignore,
     });
     // First gesture moves, sets wasMoved
