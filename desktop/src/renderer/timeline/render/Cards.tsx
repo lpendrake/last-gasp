@@ -5,13 +5,7 @@ import type { ViewState, ViewportSize } from '../math/zoom';
 import { parseISOString } from '../calendar/golarian';
 import { formatCardFace } from '../calendar/format';
 import { paletteToCssVars } from '../palette';
-import {
-  layoutCards,
-  assignRows,
-  weekdayColorFromPalette,
-  CARD_HEIGHT,
-  CARD_GAP,
-} from './cards';
+import { layoutCards, assignRows, weekdayColorFromPalette, CARD_HEIGHT, CARD_GAP } from './cards';
 
 interface CardsProps {
   events: EventListItem[];
@@ -21,7 +15,13 @@ interface CardsProps {
   inGameNowSeconds: number;
 }
 
-export function Cards({ events, view, size, palette, inGameNowSeconds }: CardsProps): ReactElement | null {
+export function Cards({
+  events,
+  view,
+  size,
+  palette,
+  inGameNowSeconds,
+}: CardsProps): ReactElement | null {
   const laidOut = useMemo(
     () => layoutCards(events, view, size, inGameNowSeconds),
     [events, view, size, inGameNowSeconds],
@@ -43,7 +43,7 @@ export function Cards({ events, view, size, palette, inGameNowSeconds }: CardsPr
       }}
     >
       {/* Connectors first so cards render on top */}
-      {laidOut.map(card => {
+      {laidOut.map((card) => {
         const { row } = placements.get(card.event.filename)!;
         return (
           <div
@@ -57,14 +57,14 @@ export function Cards({ events, view, size, palette, inGameNowSeconds }: CardsPr
           />
         );
       })}
-      {laidOut.map(card => (
+      {laidOut.map((card) => (
         <div
           key={`dot-${card.event.filename}`}
           className="event-card-dot"
           style={{ left: card.x, top: axisY }}
         />
       ))}
-      {laidOut.map(card => {
+      {laidOut.map((card) => {
         const { row, width } = placements.get(card.event.filename)!;
         const cardTop = axisY - CARD_HEIGHT - CARD_GAP - row * (CARD_HEIGHT + CARD_GAP);
         const color = card.event.color ?? weekdayColorFromPalette(card.event.date, palette);
@@ -73,12 +73,14 @@ export function Cards({ events, view, size, palette, inGameNowSeconds }: CardsPr
             key={card.event.filename}
             className={`event-card${card.isFuture ? ' is-future' : ''}`}
             data-filename={card.event.filename}
-            style={{
-              left: card.x - width / 2,
-              width,
-              top: cardTop,
-              '--weekday-color': color,
-            } as CSSProperties}
+            style={
+              {
+                left: card.x - width / 2,
+                width,
+                top: cardTop,
+                '--weekday-color': color,
+              } as CSSProperties
+            }
           >
             <div className="event-card-header" />
             <div className="event-card-body">
