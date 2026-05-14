@@ -19,7 +19,6 @@ export interface EventListItem extends EventFrontmatter {
 
 export interface State {
   in_game_now: string;
-  current_session: string | null;
   campaign_start: string;
 }
 

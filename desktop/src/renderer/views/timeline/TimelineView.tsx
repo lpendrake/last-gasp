@@ -10,6 +10,7 @@ import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golar
 import { paletteToCssVars } from '../../timeline/palette';
 import { Axis } from '../../timeline/render/Axis';
 import { Cards } from '../../timeline/render/Cards.tsx';
+import { NowMarker } from '../../timeline/render/NowMarker';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -67,9 +68,8 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   }, [campaignPath]);
 
   const bgColor = loadedData.palette?.theme.background ?? '#09090b';
-  const inGameNowSeconds = loadedData.gameState?.in_game_now
-    ? toAbsoluteSeconds(parseISOString(loadedData.gameState.in_game_now))
-    : Infinity;
+  const inGameNow = loadedData.gameState?.in_game_now || null;
+  const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
   return (
     <div
@@ -99,6 +99,14 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           view={viewState}
           size={viewportSize}
           palette={loadedData.palette}
+          inGameNowSeconds={inGameNowSeconds}
+        />
+      )}
+      {loadedData.palette && inGameNow && (
+        <NowMarker
+          view={viewState}
+          size={viewportSize}
+          inGameNow={inGameNow}
           inGameNowSeconds={inGameNowSeconds}
         />
       )}

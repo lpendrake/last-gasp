@@ -143,7 +143,6 @@ describe('getState', () => {
   it('delegates to fsApi', async () => {
     const state: State = {
       in_game_now: '4726-03-01T00:00:00',
-      current_session: null,
       campaign_start: '4726-01-01',
     };
     mockFsApi.timelineGetState.mockResolvedValue(state);
@@ -156,7 +155,6 @@ describe('putState', () => {
     mockFsApi.timelinePutState.mockResolvedValue({ ok: true });
     const state: State = {
       in_game_now: '4726-03-01',
-      current_session: null,
       campaign_start: '4726-01-01',
     };
     await timelinePort.putState(CAMPAIGN, state);
