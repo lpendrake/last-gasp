@@ -130,10 +130,8 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   useZoom(viewportRef, viewRef, sizeRef, setViewState);
 
   const [previewSize, savePreviewSize] = usePreviewSize();
-  const { expansion, handleCardClick, collapse } = useCardExpansion(
-    campaignPath,
-    pan,
-    () => reschedule.wasActivated(),
+  const { expansion, handleCardClick, collapse } = useCardExpansion(campaignPath, pan, () =>
+    reschedule.wasActivated(),
   );
   // Keep the ref in sync so refreshEvents always calls the current collapse.
   collapseRef.current = collapse;

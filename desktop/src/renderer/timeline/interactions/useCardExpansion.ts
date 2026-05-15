@@ -25,6 +25,10 @@ export function useCardExpansion(
   const expansionRef = useRef<CardExpansionState | null>(null);
   expansionRef.current = expansion;
 
+  // Ref for suppressClick so handleCardClick doesn't need it in deps.
+  const suppressClickRef = useRef(suppressClick);
+  suppressClickRef.current = suppressClick;
+
   const collapse = useCallback(() => {
     expansionRef.current = null;
     setExpansion(null);
@@ -32,7 +36,7 @@ export function useCardExpansion(
 
   const handleCardClick = useCallback(
     (filename: string) => {
-      if (pan.wasMoved() || suppressClick?.()) return;
+      if (pan.wasMoved() || suppressClickRef.current?.()) return;
 
       // Toggle off when clicking the already-expanded card (including while loading)
       if (expansionRef.current?.filename === filename) {

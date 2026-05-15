@@ -1,8 +1,4 @@
-import {
-  parseISOString,
-  toAbsoluteSeconds,
-  fromAbsoluteSeconds,
-} from '../calendar/golarian';
+import { parseISOString, toAbsoluteSeconds, fromAbsoluteSeconds } from '../calendar/golarian';
 import { formatAxisDay, formatAxisHour } from '../calendar/format';
 import { secondsToX, xToSeconds, SECONDS_PER_DAY } from '../math/zoom';
 import type { ViewState, ViewportSize } from '../math/zoom';

@@ -58,10 +58,7 @@ function makeDot(container: HTMLElement, filename: string): HTMLElement {
   return el;
 }
 
-function setup(
-  events: EventListItem[] = [],
-  overrides: Partial<RescheduleDeps> = {},
-) {
+function setup(events: EventListItem[] = [], overrides: Partial<RescheduleDeps> = {}) {
   const container = makeContainer();
   const label = makeLabel();
   const view = makeView();
@@ -100,9 +97,7 @@ function down(target: HTMLElement, x = 200) {
 }
 
 function move(x: number, ctrl = false) {
-  window.dispatchEvent(
-    new MouseEvent('mousemove', { clientX: x, clientY: 100, ctrlKey: ctrl }),
-  );
+  window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: 100, ctrlKey: ctrl }));
 }
 
 function up() {
