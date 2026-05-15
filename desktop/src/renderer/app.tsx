@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Footer, ViewType } from './components/footer';
 import { NotesView } from './views/notes/notes-view';
 import { TimelineView } from './views/timeline/timeline-view';

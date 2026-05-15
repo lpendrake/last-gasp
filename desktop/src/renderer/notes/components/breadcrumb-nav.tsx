@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import { tabKey, type OpenTab } from '../types.ts';
 import type { SaveStatus } from '../hooks/useSaveSync.ts';
 
@@ -28,10 +28,10 @@ export function BreadcrumbNav({ activeTab, savingState, savedAt }: BreadcrumbNav
       <span className="breadcrumb-sep">/</span>
       <span className="breadcrumb-segment">{activeTab.folder}</span>
       {pathParts.slice(0, -1).map((part, i) => (
-        <React.Fragment key={i}>
+        <Fragment key={i}>
           <span className="breadcrumb-sep">/</span>
           <span className="breadcrumb-segment">{part}</span>
-        </React.Fragment>
+        </Fragment>
       ))}
       <span className="breadcrumb-sep">/</span>
       <span className="breadcrumb-segment is-leaf">{pathParts[pathParts.length - 1]}</span>

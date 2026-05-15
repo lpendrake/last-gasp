@@ -3,7 +3,7 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import React, { createRef } from 'react';
+import  { createRef, ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { EditorView } from '@codemirror/view';
@@ -24,7 +24,7 @@ function teardown() {
   container.remove();
 }
 
-function renderEl(el: React.ReactElement) {
+function renderEl(el: ReactElement) {
   act(() => root.render(el));
 }
 

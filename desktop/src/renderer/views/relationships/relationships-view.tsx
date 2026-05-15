@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FooterPortal } from '../../components/footer-portal';
 
 export function RelationshipsView() {

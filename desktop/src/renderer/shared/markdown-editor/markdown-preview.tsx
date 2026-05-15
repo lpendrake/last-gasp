@@ -1,4 +1,3 @@
-import React from 'react';
 import { MarkdownEditor } from './markdown-editor';
 import type { WikiLinksHostConfig } from './markdown-editor';
 import type { ImageDecorationsOptions } from './extensions/image-decorations';

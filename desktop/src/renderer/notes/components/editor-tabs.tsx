@@ -1,4 +1,3 @@
-import React from 'react';
 import { folderColor, tabKey, type FileState, type OpenTab } from '../types.ts';
 
 interface EditorTabsProps {

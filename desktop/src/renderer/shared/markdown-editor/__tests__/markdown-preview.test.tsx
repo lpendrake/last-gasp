@@ -2,7 +2,6 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import { describe, it, expect } from 'vitest';
-import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { MarkdownPreview } from '../markdown-preview';
