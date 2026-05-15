@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { timelinePort } from '../../timeline/data/ports';
 import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
 import {
@@ -14,6 +14,8 @@ import { NowMarker } from '../../timeline/render/now-marker';
 import { SessionBands } from '../../timeline/render/session-bands.tsx';
 import { usePan } from '../../timeline/interactions/usePan';
 import { useZoom } from '../../timeline/interactions/useZoom';
+import { useCardExpansion } from '../../timeline/interactions/useCardExpansion';
+import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -39,6 +41,12 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
     sessions: [],
   });
 
+  // Whether a resize drag is in progress — used to suppress pan during resize
+  const resizingRef = useRef(false);
+  const handleResizeDragChange = useCallback((active: boolean) => {
+    resizingRef.current = active;
+  }, []);
+
   const viewportRef = useRef<HTMLDivElement>(null);
 
   // Keep refs in sync so event-handler closures always see the latest state.
@@ -47,8 +55,13 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   viewRef.current = viewState;
   sizeRef.current = viewportSize;
 
-  usePan(viewportRef, viewRef, setViewState);
+  const pan = usePan(viewportRef, viewRef, setViewState, {
+    isOtherDragActive: () => resizingRef.current,
+  });
   useZoom(viewportRef, viewRef, sizeRef, setViewState);
+
+  const [previewSize, savePreviewSize] = usePreviewSize();
+  const { expansion, handleCardClick } = useCardExpansion(campaignPath, pan);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -117,6 +130,12 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           size={viewportSize}
           palette={loadedData.palette}
           inGameNowSeconds={inGameNowSeconds}
+          campaignPath={campaignPath}
+          expansion={expansion}
+          previewSize={previewSize}
+          onCardClick={handleCardClick}
+          onPreviewSizeChange={savePreviewSize}
+          onResizeDragChange={handleResizeDragChange}
         />
       )}
       {loadedData.palette && inGameNow && (

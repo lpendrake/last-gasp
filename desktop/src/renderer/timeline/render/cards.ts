@@ -62,6 +62,30 @@ export function layoutCards(
   });
 }
 
+export interface ExpansionLayout {
+  expandsDown: boolean;
+  cardTop: number;
+  cardWidth: number;
+}
+
+/**
+ * Compute geometry for an expanded card.
+ *
+ * Returns whether the expanded section opens downward (to stay on-screen),
+ * the adjusted top of the card element, and the card width (at least previewWidth).
+ */
+export function computeExpansionLayout(
+  normalTop: number,
+  expandedHeight: number,
+  normalWidth: number,
+  previewWidth: number,
+): ExpansionLayout {
+  const expandsDown = normalTop - expandedHeight < 0;
+  const cardTop = expandsDown ? normalTop : normalTop - expandedHeight;
+  const cardWidth = Math.max(normalWidth, previewWidth);
+  return { expandsDown, cardTop, cardWidth };
+}
+
 export function assignRows(laidOut: LaidOutCard[]): Map<string, CardPlacement> {
   const rows: { left: number; right: number }[][] = [];
   const sorted = [...laidOut].sort((a, b) => a.x - b.x);
