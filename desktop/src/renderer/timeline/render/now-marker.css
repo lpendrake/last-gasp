@@ -15,9 +15,8 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  /* pointer-events: auto + context-menu cursor will land here when the
-     advance-time popover lands (issue #82 is read-only). */
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: context-menu;
 }
 
 .now-marker-date {

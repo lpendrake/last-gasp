@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type React from 'react';
 import './now-marker.css';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { secondsToX } from '../math/zoom';
@@ -48,6 +49,7 @@ interface NowMarkerProps {
   size: ViewportSize;
   inGameNow: string;
   inGameNowSeconds: number;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export function NowMarker({
@@ -55,13 +57,19 @@ export function NowMarker({
   size,
   inGameNow,
   inGameNowSeconds,
+  onContextMenu,
 }: NowMarkerProps): ReactElement | null {
   const layout = computeNowMarkerLayout(view, size, inGameNow, inGameNowSeconds);
   if (layout === null) return null;
 
   return (
     <div className="now-marker" style={{ left: layout.x }}>
-      <div className="now-marker-labels" style={{ top: layout.labelTop }}>
+      <div
+        className="now-marker-labels"
+        style={{ top: layout.labelTop }}
+        onContextMenu={onContextMenu}
+        title={onContextMenu ? 'Right-click to advance time' : undefined}
+      >
         <div className="now-marker-date">{layout.dayMonth}</div>
         <div className="now-marker-year">{layout.year}</div>
         {layout.time !== null && <div className="now-marker-time">{layout.time}</div>}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Footer, ViewType } from './components/footer';
 import { NotesView } from './views/notes/notes-view';
 import { TimelineView } from './views/timeline/timeline-view';
@@ -10,6 +10,7 @@ import '../../src/index.css';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('notes');
+  const [paletteVars, setPaletteVars] = useState<CSSProperties | null>(null);
   const {
     rootDir,
     campaigns,
@@ -62,7 +63,12 @@ export default function App() {
       case 'notes':
         return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
       case 'timeline':
-        return <TimelineView campaignPath={activeCampaign.path} />;
+        return (
+          <TimelineView
+            campaignPath={activeCampaign.path}
+            onPaletteVarsChange={(vars) => setPaletteVars(vars)}
+          />
+        );
       case 'relationships':
         return <RelationshipsView />;
       default:
@@ -74,12 +80,13 @@ export default function App() {
     <div
       style={{
         height: '100vh',
-        backgroundColor: 'var(--theme-background)',
-        color: 'var(--theme-text-primary)',
+        backgroundColor: 'var(--theme-background, #09090b)',
+        color: 'var(--theme-text-primary, #d8d0b8)',
         fontFamily: '"Inter", "Segoe UI", sans-serif',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        ...(paletteVars ?? {}),
       }}
     >
       {/* Main View Area */}
