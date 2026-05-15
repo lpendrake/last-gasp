@@ -19,6 +19,7 @@
     "rebuild:win": "taskkill /F /IM \"TableTop Timeline.exe\" /T /FI \"STATUS eq RUNNING\" & npm run package:win && start \"\" \"release/TableTop Timeline Setup 1.0.0.exe\"",
     "test": "vitest",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "preview": "vite preview"
   },
   "build": {
