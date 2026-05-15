@@ -1,27 +1,12 @@
 import { useRef, useCallback, type CSSProperties, type ReactElement } from 'react';
-import MarkdownIt from 'markdown-it';
+import { MarkdownPreview } from '../../shared/markdown-editor';
 import type { PreviewSize } from '../interactions/usePreviewSize';
 
-const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
+const ABSOLUTE_SRC_RE = /^(?:https?:|data:|notes-asset:|file:|\/)/;
 
-/**
- * Rewrite relative image src attributes to notes-asset:// URLs.
- * The main process resolves notes-asset://current/<relPath> against currentCampaignPath.
- */
-function fixImageUrls(el: HTMLElement): void {
-  for (const img of el.querySelectorAll<HTMLImageElement>('img[src]')) {
-    const src = img.getAttribute('src') ?? '';
-    if (
-      src.startsWith('http') ||
-      src.startsWith('data:') ||
-      src.startsWith('notes-asset:') ||
-      src.startsWith('file:') ||
-      src.startsWith('/')
-    ) {
-      continue;
-    }
-    img.setAttribute('src', `notes-asset://current/events/${encodeURIComponent(src)}`);
-  }
+function resolveEventImageSrc(src: string): string {
+  if (ABSOLUTE_SRC_RE.test(src)) return src;
+  return `notes-asset://current/events/${encodeURIComponent(src)}`;
 }
 
 interface CardExpansionProps {
@@ -44,16 +29,6 @@ export function CardExpansion({
 }: CardExpansionProps): ReactElement {
   // Ref to the expansion container element (owns the height we resize)
   const expRef = useRef<HTMLDivElement>(null);
-
-  const renderedHtml = body !== null ? md.render(body) : null;
-
-  // Callback ref: after the body div mounts, rewrite any relative image URLs
-  const bodyRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      if (el && body !== null) fixImageUrls(el);
-    },
-    [body],
-  );
 
   const handleResizeMouseDown = useCallback(
     (dir: 'nw' | 'ne' | 'sw' | 'se') => (e: React.MouseEvent) => {
@@ -132,12 +107,11 @@ export function CardExpansion({
       className={`event-card-expanded${expandsDown ? ' expands-down' : ''}`}
       style={{ height: size.expandedHeight } as CSSProperties}
     >
-      {renderedHtml !== null ? (
-        <div
-          ref={bodyRef}
-          className="exp-body markdown-body"
-          // markdown-it renders with html:false so no XSS risk
-          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+      {body !== null ? (
+        <MarkdownPreview
+          className="exp-body"
+          content={body}
+          images={{ resolveSrc: resolveEventImageSrc }}
         />
       ) : (
         <div className="exp-body">

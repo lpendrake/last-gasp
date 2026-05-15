@@ -8,12 +8,22 @@ export interface ParsedImage {
   altFrom: number; // position of first alt char (after `![`)
   altTo: number; // position after last alt char (before `]`)
   alt: string;
-  src: string;
+  src: string; // raw src from the markdown (before any transformation)
 }
 
-const IMAGE_RE = /!\[([^\]]*)\]\((notes-asset:\/\/[^)]+)\)/g;
+export interface ImageDecorationsOptions {
+  /** Map a raw image src to a displayable URL, or return null to skip the widget. */
+  resolveSrc?: (rawSrc: string) => string | null;
+}
 
-/** Finds all `![alt](notes-asset://...)` images in `text`, positions offset by `offset`. */
+// Matches any ![alt](url) — url may be any non-whitespace, non-paren sequence.
+const IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+
+/** Default: only render notes-asset:// images (backward-compatible behaviour). */
+const defaultResolveSrc = (src: string): string | null =>
+  src.startsWith('notes-asset://') ? src : null;
+
+/** Finds all `![alt](url)` images in `text`, positions offset by `offset`. */
 export function findImagesInText(text: string, offset = 0): ParsedImage[] {
   const results: ParsedImage[] = [];
   const re = new RegExp(IMAGE_RE.source, 'g');
@@ -62,19 +72,25 @@ class ImageWidget extends WidgetType {
   }
 }
 
-function buildImageDecorations(state: EditorState): DecorationSet {
+function buildImageDecorations(
+  state: EditorState,
+  resolveSrc: (rawSrc: string) => string | null,
+): DecorationSet {
   const cursorHead = state.selection.main.head;
   const builder = new RangeSetBuilder<Decoration>();
   const images = findImagesInText(state.doc.toString());
 
   for (const img of images) {
+    const resolvedSrc = resolveSrc(img.src);
+    if (resolvedSrc === null) continue;
+
     // Always render the image — block widget appears above the label line.
     // side: -1 places it before the character at img.from.
     builder.add(
       img.from,
       img.from,
       Decoration.widget({
-        widget: new ImageWidget(img.src, img.alt),
+        widget: new ImageWidget(resolvedSrc, img.alt),
         side: -1,
       }),
     );
@@ -93,14 +109,15 @@ function buildImageDecorations(state: EditorState): DecorationSet {
   return builder.finish();
 }
 
-export function imageDecorations(): Extension {
+export function imageDecorations(opts?: ImageDecorationsOptions): Extension {
+  const resolveSrc = opts?.resolveSrc ?? defaultResolveSrc;
   return StateField.define<DecorationSet>({
     create(state) {
-      return buildImageDecorations(state);
+      return buildImageDecorations(state, resolveSrc);
     },
     update(value, transaction) {
       if (transaction.docChanged || transaction.selection) {
-        return buildImageDecorations(transaction.state);
+        return buildImageDecorations(transaction.state, resolveSrc);
       }
       return value.map(transaction.changes);
     },

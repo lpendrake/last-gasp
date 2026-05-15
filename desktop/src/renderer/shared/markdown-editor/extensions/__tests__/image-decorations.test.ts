@@ -16,9 +16,20 @@ describe('findImagesInText', () => {
     });
   });
 
-  it('ignores non-notes-asset images', () => {
+  it('finds non-notes-asset images too (resolveSrc decides rendering)', () => {
     const text = '![alt](https://example.com/img.png)';
-    expect(findImagesInText(text)).toHaveLength(0);
+    const imgs = findImagesInText(text);
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].src).toBe('https://example.com/img.png');
+    expect(imgs[0].alt).toBe('alt');
+  });
+
+  it('finds bare relative-path images', () => {
+    const text = '![hero](hero.jpg)';
+    const imgs = findImagesInText(text);
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].src).toBe('hero.jpg');
+    expect(imgs[0].alt).toBe('hero');
   });
 
   it('handles multiple images in order', () => {

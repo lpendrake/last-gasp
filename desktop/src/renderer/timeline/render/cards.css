@@ -137,11 +137,30 @@
 
 .exp-body {
   flex: 1;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Override notes-editor padding/font within the compact card preview */
+.exp-body .cm-scroller {
+  padding: 6px 8px;
+}
+
+.exp-body .cm-content {
   font-size: 13px;
   line-height: 1.5;
+  font-family: inherit;
   color: var(--theme-text-primary, #d8d0b8);
-  min-height: 0;
+}
+
+/* No edit cursor or active-line highlight in the read-only preview */
+.exp-body .cm-cursor {
+  display: none;
+}
+
+.exp-body .cm-activeLine {
+  background: transparent;
 }
 
 .exp-loading {
