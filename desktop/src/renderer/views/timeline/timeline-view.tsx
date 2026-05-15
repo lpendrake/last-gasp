@@ -163,7 +163,10 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         {/* New Event button — mouseDown stops pan from starting */}
         <button
           className="timeline-new-event-btn"
-          onClick={(e) => { e.stopPropagation(); editor.openCreate(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            editor.openCreate();
+          }}
           onMouseDown={(e) => e.stopPropagation()}
         >
           + New Event
@@ -200,8 +203,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
                   lineHeight: 1.5,
                 }}
               >
-                &ldquo;{editor.cardDeleteConflict.title || editor.cardDeleteConflict.filename}&rdquo;
-                changed on disk since the events list was loaded. Delete the current version anyway?
+                &ldquo;{editor.cardDeleteConflict.title || editor.cardDeleteConflict.filename}
+                &rdquo; changed on disk since the events list was loaded. Delete the current version
+                anyway?
               </p>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                 <button

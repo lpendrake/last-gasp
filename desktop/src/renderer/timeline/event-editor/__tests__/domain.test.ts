@@ -14,7 +14,14 @@ import type { Event } from '../../data/types';
 // ---- helpers ----
 
 function buf(overrides: Partial<EditorBuffer> = {}): EditorBuffer {
-  return { title: 'Test Event', date: '4726-05-04', tagsText: '', color: '', body: '', ...overrides };
+  return {
+    title: 'Test Event',
+    date: '4726-05-04',
+    tagsText: '',
+    color: '',
+    body: '',
+    ...overrides,
+  };
 }
 
 function event(overrides: Partial<Event> = {}): Event {
@@ -48,7 +55,13 @@ describe('emptyBuffer', () => {
 
 describe('bufferFromEvent', () => {
   it('maps event fields to buffer', () => {
-    const ev = event({ title: 'Big Battle', date: '4726-05-04T09:30', tags: ['combat', 'plot'], color: '#a83030', body: '# Notes\nHello' });
+    const ev = event({
+      title: 'Big Battle',
+      date: '4726-05-04T09:30',
+      tags: ['combat', 'plot'],
+      color: '#a83030',
+      body: '# Notes\nHello',
+    });
     const b = bufferFromEvent(ev);
     expect(b.title).toBe('Big Battle');
     expect(b.date).toBe('4726-05-04T09:30');
@@ -104,9 +117,20 @@ describe('bufferToFrontmatter', () => {
   });
 
   it('round-trips through bufferFromEvent', () => {
-    const original = buf({ title: 'Round-trip', date: '4726-03-15', tagsText: 'a, b', color: '#3d7a38', body: 'Hello' });
+    const original = buf({
+      title: 'Round-trip',
+      date: '4726-03-15',
+      tagsText: 'a, b',
+      color: '#3d7a38',
+      body: 'Hello',
+    });
     const fm = bufferToFrontmatter(original);
-    const ev = event({ ...fm, tags: fm.tags ?? [], color: fm.color ?? undefined, body: original.body });
+    const ev = event({
+      ...fm,
+      tags: fm.tags ?? [],
+      color: fm.color ?? undefined,
+      body: original.body,
+    });
     const restored = bufferFromEvent(ev);
     expect(restored.title).toBe(original.title);
     expect(restored.date).toBe(original.date);
@@ -150,11 +174,15 @@ describe('validateBuffer', () => {
 
 describe('deriveFilename', () => {
   it('derives slug from title and date prefix', () => {
-    expect(deriveFilename(buf({ title: 'The Big Heist', date: '4726-05-04T09:30' }))).toBe('4726-05-04-the-big-heist.md');
+    expect(deriveFilename(buf({ title: 'The Big Heist', date: '4726-05-04T09:30' }))).toBe(
+      '4726-05-04-the-big-heist.md',
+    );
   });
 
   it('strips apostrophes from title', () => {
-    expect(deriveFilename(buf({ title: "It's Time", date: '4726-05-04' }))).toBe('4726-05-04-its-time.md');
+    expect(deriveFilename(buf({ title: "It's Time", date: '4726-05-04' }))).toBe(
+      '4726-05-04-its-time.md',
+    );
   });
 
   it('uses "event" fallback when title is blank', () => {
@@ -169,11 +197,15 @@ describe('deriveFilename', () => {
   });
 
   it('replaces non-alphanumeric runs with single dash', () => {
-    expect(deriveFilename(buf({ title: 'Battle!!! At Dawn', date: '4726-01-01' }))).toBe('4726-01-01-battle-at-dawn.md');
+    expect(deriveFilename(buf({ title: 'Battle!!! At Dawn', date: '4726-01-01' }))).toBe(
+      '4726-01-01-battle-at-dawn.md',
+    );
   });
 
   it('strips leading/trailing dashes from slug', () => {
-    expect(deriveFilename(buf({ title: '---Test---', date: '4726-01-01' }))).toBe('4726-01-01-test.md');
+    expect(deriveFilename(buf({ title: '---Test---', date: '4726-01-01' }))).toBe(
+      '4726-01-01-test.md',
+    );
   });
 });
 

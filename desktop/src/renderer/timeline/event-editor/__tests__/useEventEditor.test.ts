@@ -196,9 +196,7 @@ describe('resolveCardDeleteConflict', () => {
 
   it('overwrite re-fetches mtime, retries delete, and refreshes', async () => {
     const onChanged = vi.fn();
-    mockDelete
-      .mockRejectedValueOnce(new ConflictError())
-      .mockResolvedValueOnce(undefined);
+    mockDelete.mockRejectedValueOnce(new ConflictError()).mockResolvedValueOnce(undefined);
     mockGetEvent.mockResolvedValue(EVENT_WITH_MTIME);
     const { result } = renderHook(() => useEventEditor(CAMPAIGN, onChanged));
 

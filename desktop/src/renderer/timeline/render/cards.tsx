@@ -212,7 +212,10 @@ function CardItem({
               className="event-card-action-btn event-card-action-btn--danger"
               data-action="delete"
               title="Delete"
-              onClick={(e) => { e.stopPropagation(); void onDeleteClick(card.event); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                void onDeleteClick(card.event);
+              }}
             >
               {ICON_DELETE}
             </button>
@@ -220,7 +223,10 @@ function CardItem({
               className="event-card-action-btn event-card-action-btn--primary"
               data-action="edit"
               title="Edit"
-              onClick={(e) => { e.stopPropagation(); onEditClick(card.event.filename); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick(card.event.filename);
+              }}
             >
               {ICON_EDIT}
             </button>

@@ -36,9 +36,7 @@ export function EventEditorModal({
   onSaved,
   onDeleted,
 }: EventEditorModalProps) {
-  const [loadState, setLoadState] = useState<LoadState>(
-    mode.kind === 'edit' ? 'loading' : 'ready',
-  );
+  const [loadState, setLoadState] = useState<LoadState>(mode.kind === 'edit' ? 'loading' : 'ready');
   const [buffer, setBuffer] = useState<EditorBuffer>(
     mode.kind === 'create' ? emptyBuffer(mode.initialDate) : emptyBuffer(),
   );
@@ -126,14 +124,22 @@ export function EventEditorModal({
           );
         } else {
           const filename = deriveFilename(current);
-          result = await timelinePort.createEvent(campaignPath, filename, frontmatter, current.body);
+          result = await timelinePort.createEvent(
+            campaignPath,
+            filename,
+            frontmatter,
+            current.body,
+          );
           filenameRef.current = result.event.filename;
         }
         lastModifiedRef.current = result.lastModified;
         setConflictPending(null);
         setSaveState('saved');
         // Timer is cleared on unmount so onSaved doesn't fire on a stale modal
-        savedTimerRef.current = window.setTimeout(() => onSaved(filenameRef.current!), SAVED_BANNER_MS);
+        savedTimerRef.current = window.setTimeout(
+          () => onSaved(filenameRef.current!),
+          SAVED_BANNER_MS,
+        );
       } catch (err) {
         if (err instanceof ConflictError) {
           setSaveState('dirty');
@@ -206,7 +212,8 @@ export function EventEditorModal({
   const handleDeleteClick = useCallback(() => {
     if (mode.kind !== 'edit') return;
     const displayName = buffer.title || mode.filename;
-    if (!window.confirm(`Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`)) return;
+    if (!window.confirm(`Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`))
+      return;
     void doDelete();
   }, [mode, buffer.title, doDelete]);
 
@@ -267,12 +274,7 @@ export function EventEditorModal({
                   ? '✓ saved'
                   : ''}
           </div>
-          <button
-            type="button"
-            className="event-editor-close"
-            aria-label="Close"
-            onClick={onClose}
-          >
+          <button type="button" className="event-editor-close" aria-label="Close" onClick={onClose}>
             ×
           </button>
         </div>
@@ -385,8 +387,8 @@ export function EventEditorModal({
           <div className="event-editor-conflict-overlay">
             <div className="event-editor-conflict-panel">
               <p className="event-editor-conflict-msg">
-                This file changed on disk since you opened it. Overwrite the on-disk version
-                anyway, or cancel to keep the editor open?
+                This file changed on disk since you opened it. Overwrite the on-disk version anyway,
+                or cancel to keep the editor open?
               </p>
               <div className="event-editor-conflict-btns">
                 <button
