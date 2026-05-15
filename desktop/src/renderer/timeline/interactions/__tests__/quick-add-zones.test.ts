@@ -1,11 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  createQuickAddZones,
-  SNAP_SECS,
-  QUICK_ADD_ZONE_TOP,
-  QUICK_ADD_ZONE_BOTTOM,
-} from '../quick-add-zones';
+import { createQuickAddZones, QUICK_ADD_ZONE_TOP, QUICK_ADD_ZONE_BOTTOM } from '../quick-add-zones';
 import type { QuickAddZonesDeps } from '../quick-add-zones';
 import type { ViewState, ViewportSize } from '../../math/zoom';
 import { secondsToX } from '../../math/zoom';
@@ -211,11 +206,12 @@ describe('createQuickAddZones', () => {
     const container = makeContainer();
     createQuickAddZones(container, deps);
 
-    // rawSecs = 30000 → day snap: round(30000/86400)*86400 = 0
-    mm(container, xAt(30000), ZONE_Y, { ctrl: true });
+    // rawSecs = 50000 → day snap: round(50000/86400)*86400 = 1*86400 = 86400
+    // (discriminates from a buggy impl that always returns 0)
+    mm(container, xAt(50000), ZONE_Y, { ctrl: true });
 
     const el = container.querySelector('.quick-add') as HTMLElement;
-    const expectedX = secondsToX(0, VIEW, SIZE);
+    const expectedX = secondsToX(86400, VIEW, SIZE);
     expect(el.style.left).toBe(`${expectedX}px`);
   });
 
@@ -526,9 +522,5 @@ describe('createQuickAddZones', () => {
     // snapped to nearest SNAP_SECS (600): round(200/600)*600 = 0
     // 0 seconds = midnight → time should be hidden
     expect(timeEl.style.display).toBe('none');
-  });
-
-  it('SNAP_SECS constant is 600 (10 minutes)', () => {
-    expect(SNAP_SECS).toBe(600);
   });
 });
