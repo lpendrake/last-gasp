@@ -24,6 +24,7 @@ import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 import { useReschedule } from '../../timeline/interactions/useReschedule';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
+import { FooterPortal } from '../../components/footer-portal';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -226,18 +227,6 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         {/* Drag-to-reschedule floating time label */}
         <div ref={dragLabelRef} className="reschedule-drag-label" style={{ display: 'none' }} />
 
-        {/* New Event button — mouseDown stops pan from starting */}
-        <button
-          className="timeline-new-event-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            editor.openCreate();
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          + New Event
-        </button>
-
         {/* Reschedule error toast */}
         {rescheduleError && (
           <div
@@ -314,6 +303,12 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           </div>
         )}
       </div>
+
+      <FooterPortal>
+        <button className="timeline-new-event-btn" onClick={() => editor.openCreate()}>
+          + New Event
+        </button>
+      </FooterPortal>
 
       {/* Event editor modal — rendered outside viewport to avoid pan/zoom transform */}
       {editor.editorMode && (

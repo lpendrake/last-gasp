@@ -274,14 +274,9 @@
   align-items: center;
 }
 
-/* ===== New Event floating button ===== */
+/* ===== New Event footer button ===== */
 
 .timeline-new-event-btn {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  z-index: 10;
-  pointer-events: auto;
   padding: 7px 14px;
   background: var(--theme-panel-accent, #3a4d35);
   border: 1px solid var(--theme-accent, #6a9a4a);
@@ -291,7 +286,6 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .timeline-new-event-btn:hover {
