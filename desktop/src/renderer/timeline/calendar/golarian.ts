@@ -191,3 +191,21 @@ export function fromAbsoluteSeconds(totalSeconds: number): GolarianDate {
 export function hasTime(isoString: string): boolean {
   return isoString.includes('T');
 }
+
+/** Returns null instead of throwing for unparseable date strings. */
+export function tryParseDate(dateStr: string): GolarianDate | null {
+  try {
+    return parseISOString(dateStr);
+  } catch {
+    return null;
+  }
+}
+
+/** Returns null instead of throwing for unparseable date strings. */
+export function tryParseSeconds(dateStr: string): number | null {
+  try {
+    return toAbsoluteSeconds(parseISOString(dateStr));
+  } catch {
+    return null;
+  }
+}

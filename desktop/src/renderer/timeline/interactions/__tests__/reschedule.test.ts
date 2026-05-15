@@ -342,6 +342,41 @@ describe('createReschedule — Escape abort', () => {
   });
 });
 
+describe('createReschedule — save failure revert', () => {
+  it('reverts card away from dragged position when saveReschedule rejects', async () => {
+    const ev = makeEvent('a.md', '4726-05-04');
+    const { container } = setup([ev], {
+      saveReschedule: vi.fn().mockRejectedValue(new Error('conflict')),
+    });
+    const card = makeCard(container, 'a.md');
+    shiftDown(card, 500);
+    move(600);
+    const draggedLeft = card.style.left;
+    await up();
+    // placeAt(originalSecs) fires in the catch — card is back at original x, not dragged x
+    expect(card.style.left).not.toBe(draggedLeft);
+    expect(card.style.left).toMatch(/px$/);
+  });
+
+  it('reverts connector and dot away from dragged position when saveReschedule rejects', async () => {
+    const ev = makeEvent('a.md', '4726-05-04');
+    const { container } = setup([ev], {
+      saveReschedule: vi.fn().mockRejectedValue(new Error('conflict')),
+    });
+    makeCard(container, 'a.md');
+    const connector = makeConnector(container, 'a.md');
+    const dot = makeDot(container, 'a.md');
+    shiftDown(container.querySelector('.event-card')!, 500);
+    move(600);
+    const draggedConnector = connector.style.left;
+    await up();
+    expect(connector.style.left).not.toBe(draggedConnector);
+    expect(dot.style.left).not.toBe(draggedConnector);
+    // connector and dot are at the same (original) x after revert
+    expect(connector.style.left).toBe(dot.style.left);
+  });
+});
+
 describe('createReschedule — destroy', () => {
   it('destroy removes all listeners so events are no-ops', async () => {
     const ev = makeEvent('a.md', '4726-05-04');

@@ -3,8 +3,8 @@ import type { ViewState, ViewportSize } from '../math/zoom';
 import { secondsToX } from '../math/zoom';
 import {
   type GolarianDate,
-  parseISOString,
   toAbsoluteSeconds,
+  tryParseDate,
   weekdayIndex,
 } from '../calendar/golarian';
 
@@ -50,21 +50,18 @@ export function layoutCards(
   inGameNowSeconds: number,
 ): LaidOutCard[] {
   return events.flatMap((ev) => {
-    try {
-      const parsedDate = parseISOString(ev.date);
-      const seconds = toAbsoluteSeconds(parsedDate);
-      return [
-        {
-          event: ev,
-          parsedDate,
-          seconds,
-          x: secondsToX(seconds, view, size),
-          isFuture: seconds > inGameNowSeconds,
-        },
-      ];
-    } catch {
-      return [];
-    }
+    const parsedDate = tryParseDate(ev.date);
+    if (!parsedDate) return [];
+    const seconds = toAbsoluteSeconds(parsedDate);
+    return [
+      {
+        event: ev,
+        parsedDate,
+        seconds,
+        x: secondsToX(seconds, view, size),
+        isFuture: seconds > inGameNowSeconds,
+      },
+    ];
   });
 }
 

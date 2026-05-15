@@ -75,7 +75,8 @@ export function createReschedule(
       dotEl: container.querySelector<HTMLElement>(
         `.event-card-dot[data-filename="${CSS.escape(filename)}"]`,
       ),
-      cardWidth: parseInt(cardEl.style.width, 10),
+      // getBoundingClientRect is reliable regardless of box-sizing or inline-style presence.
+      cardWidth: Math.round(cardEl.getBoundingClientRect().width),
       startMouseX: e.clientX,
       originalSecs,
       currentSecs: originalSecs,

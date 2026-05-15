@@ -24,7 +24,8 @@ import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 import { useReschedule } from '../../timeline/interactions/useReschedule';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
-import { computeSessionLabel } from '../../timeline/render/session-bands';
+import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
+import './timeline-view.css';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -89,18 +90,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         const { event, lastModified } = await timelinePort.getEvent(campaignPath, filename);
         const newDate = toISOString(fromAbsoluteSeconds(newSeconds));
         const nonSeshTags = (event.tags ?? []).filter((t) => !t.startsWith('sesh:'));
-        const newSeshTags = sessionsRef.current
-          .filter((s) => {
-            if (!s.inGameStart) return false;
-            try {
-              const start = toAbsoluteSeconds(parseISOString(s.inGameStart));
-              const end = s.inGameEnd ? toAbsoluteSeconds(parseISOString(s.inGameEnd)) : start;
-              return newSeconds >= start && newSeconds <= end;
-            } catch {
-              return false;
-            }
-          })
-          .map((s) => `sesh:${computeSessionLabel(s, sessionsRef.current)}`);
+        const newSeshTags = sessionTagsForSeconds(newSeconds, sessionsRef.current);
         const updatedTags = [...nonSeshTags, ...newSeshTags];
         await timelinePort.updateEvent(
           campaignPath,
@@ -124,7 +114,8 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
             : 'Reschedule failed. Please try again.';
         setRescheduleError(msg);
         setTimeout(() => setRescheduleError(null), 4000);
-        await refreshEvents();
+        // Rethrow so the reschedule module immediately reverts the card's DOM position.
+        throw err;
       }
     },
     [campaignPath, refreshEvents],
@@ -259,27 +250,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         </button>
 
         {/* Reschedule error toast */}
-        {rescheduleError && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 16,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'var(--theme-surface, #1e1e1a)',
-              border: '1px solid var(--theme-danger, #c06040)',
-              borderRadius: 4,
-              padding: '8px 16px',
-              color: 'var(--theme-text-primary, #d8d0b8)',
-              fontSize: 13,
-              zIndex: 100,
-              pointerEvents: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {rescheduleError}
-          </div>
-        )}
+        {rescheduleError && <div className="timeline-error-toast">{rescheduleError}</div>}
 
         {/* Card-delete conflict overlay (inline modal) */}
         {editor.cardDeleteConflict && (
