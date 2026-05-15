@@ -2,7 +2,10 @@
 
 .event-editor-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 50px; /* footer height — don't cover the footer */
+  left: 0;
   background: rgba(0, 0, 0, 0.65);
   z-index: 1000;
   display: flex;
@@ -17,7 +20,7 @@
   border-radius: 4px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
   width: calc(100vw - 48px);
-  height: calc(100vh - 48px);
+  height: calc(100vh - 50px - 48px); /* viewport minus footer minus 24px margins */
   display: flex;
   flex-direction: column;
   overflow: hidden;
