@@ -225,6 +225,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
       {/* Event editor modal — rendered outside viewport to avoid pan/zoom transform */}
       {editor.editorMode && (
         <EventEditorModal
+          key={editor.editorMode.kind === 'edit' ? editor.editorMode.filename : 'new'}
           campaignPath={campaignPath}
           mode={editor.editorMode}
           onClose={editor.closeEditor}

@@ -51,8 +51,16 @@ export function EventEditorModal({
   const filenameRef = useRef<string | null>(mode.kind === 'edit' ? mode.filename : null);
   const bufferRef = useRef<EditorBuffer>(buffer);
   bufferRef.current = buffer;
+  const savedTimerRef = useRef<number | null>(null);
 
   const viewRef = useRef<EditorView | null>(null);
+
+  // Clear the saved-banner timer if the modal unmounts during the delay
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
+    };
+  }, []);
 
   // Load event on mount in edit mode
   useEffect(() => {
@@ -124,7 +132,8 @@ export function EventEditorModal({
         lastModifiedRef.current = result.lastModified;
         setConflictPending(null);
         setSaveState('saved');
-        setTimeout(() => onSaved(filenameRef.current!), SAVED_BANNER_MS);
+        // Timer is cleared on unmount so onSaved doesn't fire on a stale modal
+        savedTimerRef.current = window.setTimeout(() => onSaved(filenameRef.current!), SAVED_BANNER_MS);
       } catch (err) {
         if (err instanceof ConflictError) {
           setSaveState('dirty');
