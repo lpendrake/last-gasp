@@ -25,7 +25,6 @@
   flex: 1 1 auto;
   position: relative;
   overflow: auto;
-  padding: 28px 60px 100px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 16px;
   line-height: 1.65;
@@ -45,7 +44,6 @@
   color: var(--theme-text-primary, #d8d0b8);
   border: none;
   outline: none;
-  padding: 28px 60px 100px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 15px;
   line-height: 1.65;
@@ -93,7 +91,7 @@
 }
 
 .cm-scroller {
-  padding: 28px 60px 100px;
+  padding: 0 10px 0 10px;
 }
 
 .cm-content {
