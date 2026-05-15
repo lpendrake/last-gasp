@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { MarkdownEditor, FormatToolbar } from '../../shared/markdown-editor';
+import { FooterPortal } from '../../components/footer-portal';
 import { timelinePort, ConflictError } from '../data/ports';
 import {
   emptyBuffer,
@@ -60,11 +61,19 @@ export function EventEditorModal({
     };
   }, []);
 
+  // Capture mount-time values in a ref so the effect can have an empty deps array.
+  // The key prop on EventEditorModal ensures a full remount when the target changes,
+  // so reading from refs here is always correct.
+  const loadTargetRef = useRef(
+    mode.kind === 'edit' ? { campaignPath, filename: mode.filename } : null,
+  );
+
   // Load event on mount in edit mode
   useEffect(() => {
-    if (mode.kind !== 'edit') return;
+    const target = loadTargetRef.current;
+    if (!target) return;
     timelinePort
-      .getEvent(campaignPath, mode.filename)
+      .getEvent(target.campaignPath, target.filename)
       .then(({ event, lastModified }) => {
         setBuffer(bufferFromEvent(event));
         lastModifiedRef.current = lastModified;
@@ -74,7 +83,6 @@ export function EventEditorModal({
         console.error('[EventEditorModal] failed to load event', err);
         setLoadState('load-error');
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-once: mode and campaignPath are stable per modal instance (key prop ensures remount on target change)
   }, []);
 
   // Escape: close the modal (capture phase wins over useCardExpansion's handler)
@@ -254,163 +262,175 @@ export function EventEditorModal({
   );
 
   return (
-    <div
-      className="event-editor-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isBusy) onClose();
-      }}
-    >
-      <div className="event-editor-modal">
-        {/* Header */}
-        <div className="event-editor-header">
-          <h2 className="event-editor-title">
-            {isEditMode ? `Edit: ${mode.filename}` : 'New event'}
-          </h2>
-          <div className={`event-editor-save-status event-editor-save-status--${saveState}`}>
-            {saveState === 'dirty'
-              ? '• unsaved'
-              : saveState === 'saving'
-                ? 'saving…'
-                : saveState === 'saved'
-                  ? '✓ saved'
-                  : ''}
+    <>
+      <div
+        className="event-editor-overlay"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isBusy) onClose();
+        }}
+      >
+        <div className="event-editor-modal">
+          {/* Header */}
+          <div className="event-editor-header">
+            <h2 className="event-editor-title">
+              {isEditMode ? `Edit: ${mode.filename}` : 'New event'}
+            </h2>
+            <div className={`event-editor-save-status event-editor-save-status--${saveState}`}>
+              {saveState === 'dirty'
+                ? '• unsaved'
+                : saveState === 'saving'
+                  ? 'saving…'
+                  : saveState === 'saved'
+                    ? '✓ saved'
+                    : ''}
+            </div>
+            <button
+              type="button"
+              className="event-editor-close"
+              aria-label="Close"
+              onClick={onClose}
+            >
+              ×
+            </button>
           </div>
-          <button type="button" className="event-editor-close" aria-label="Close" onClick={onClose}>
-            ×
-          </button>
-        </div>
 
-        {/* Error banner */}
-        {saveState === 'error' && errorMessage && (
-          <div className="event-editor-error">⚠ {errorMessage}</div>
-        )}
+          {/* Error banner */}
+          {saveState === 'error' && errorMessage && (
+            <div className="event-editor-error">⚠ {errorMessage}</div>
+          )}
 
-        {/* Loading / load-error */}
-        {loadState === 'loading' && <div className="event-editor-loading">Loading…</div>}
-        {loadState === 'load-error' && (
-          <div className="event-editor-loading event-editor-loading--error">
-            Failed to load event.
-          </div>
-        )}
+          {/* Loading / load-error */}
+          {loadState === 'loading' && <div className="event-editor-loading">Loading…</div>}
+          {loadState === 'load-error' && (
+            <div className="event-editor-loading event-editor-loading--error">
+              Failed to load event.
+            </div>
+          )}
 
-        {loadState === 'ready' && (
-          <>
-            {/* Frontmatter fields */}
-            <div className="event-editor-fields">
-              <label className="event-editor-field">
-                <span className="event-editor-field-label">Title</span>
-                <input
-                  type="text"
-                  className="event-editor-input"
-                  value={buffer.title}
-                  onChange={(e) => updateBuffer({ title: e.target.value })}
-                  autoComplete="off"
-                />
-              </label>
-
-              <label className="event-editor-field">
-                <span className="event-editor-field-label">Date (Golarian ISO)</span>
-                <input
-                  type="text"
-                  className="event-editor-input"
-                  value={buffer.date}
-                  onChange={(e) => updateBuffer({ date: e.target.value })}
-                  placeholder="4726-05-04T09:30"
-                  autoComplete="off"
-                />
-              </label>
-
-              <label className="event-editor-field">
-                <span className="event-editor-field-label">Tags (comma-separated)</span>
-                <input
-                  type="text"
-                  className="event-editor-input"
-                  value={buffer.tagsText}
-                  onChange={(e) => updateBuffer({ tagsText: e.target.value })}
-                  placeholder="plot:beast, location:fort"
-                  autoComplete="off"
-                />
-              </label>
-
-              <div className="event-editor-field">
-                <span className="event-editor-field-label">Colour</span>
-                <div className="event-editor-color-row">
-                  <select
-                    className="event-editor-input event-editor-color-select"
-                    value={colorPresetValue}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      // Switching to Custom clears color so the user can type; other presets set directly
-                      updateBuffer({ color: val === '__custom__' ? '' : val });
-                    }}
-                  >
-                    {COLOR_PRESETS.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                  {colorPresetValue === '__custom__' && (
-                    <input
-                      type="text"
-                      className="event-editor-input event-editor-color-custom"
-                      value={buffer.color}
-                      onChange={(e) => updateBuffer({ color: e.target.value })}
-                      placeholder="#c43"
-                      autoComplete="off"
-                    />
-                  )}
-                  <span
-                    className="event-editor-color-swatch"
-                    style={{ background: buffer.color || 'transparent' }}
-                    title={buffer.color || 'weekday default'}
+          {loadState === 'ready' && (
+            <>
+              {/* Frontmatter fields */}
+              <div className="event-editor-fields">
+                <label className="event-editor-field">
+                  <span className="event-editor-field-label">Title</span>
+                  <input
+                    type="text"
+                    className="event-editor-input"
+                    value={buffer.title}
+                    onChange={(e) => updateBuffer({ title: e.target.value })}
+                    autoComplete="off"
                   />
+                </label>
+
+                <label className="event-editor-field">
+                  <span className="event-editor-field-label">Date (Golarian ISO)</span>
+                  <input
+                    type="text"
+                    className="event-editor-input"
+                    value={buffer.date}
+                    onChange={(e) => updateBuffer({ date: e.target.value })}
+                    placeholder="4726-05-04T09:30"
+                    autoComplete="off"
+                  />
+                </label>
+
+                <label className="event-editor-field">
+                  <span className="event-editor-field-label">Tags (comma-separated)</span>
+                  <input
+                    type="text"
+                    className="event-editor-input"
+                    value={buffer.tagsText}
+                    onChange={(e) => updateBuffer({ tagsText: e.target.value })}
+                    placeholder="plot:beast, location:fort"
+                    autoComplete="off"
+                  />
+                </label>
+
+                <div className="event-editor-field">
+                  <span className="event-editor-field-label">Colour</span>
+                  <div className="event-editor-color-row">
+                    <select
+                      className="event-editor-input event-editor-color-select"
+                      value={colorPresetValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        // Switching to Custom clears color so the user can type; other presets set directly
+                        updateBuffer({ color: val === '__custom__' ? '' : val });
+                      }}
+                    >
+                      {COLOR_PRESETS.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    {colorPresetValue === '__custom__' && (
+                      <input
+                        type="text"
+                        className="event-editor-input event-editor-color-custom"
+                        value={buffer.color}
+                        onChange={(e) => updateBuffer({ color: e.target.value })}
+                        placeholder="#c43"
+                        autoComplete="off"
+                      />
+                    )}
+                    <span
+                      className="event-editor-color-swatch"
+                      style={{ background: buffer.color || 'transparent' }}
+                      title={buffer.color || 'weekday default'}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Markdown editor */}
+              <div className="event-editor-body">
+                <MarkdownEditor
+                  content={buffer.body}
+                  onChange={(s) => updateBuffer({ body: s })}
+                  viewRef={viewRef}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Conflict overlay */}
+          {conflictPending && (
+            <div className="event-editor-conflict-overlay">
+              <div className="event-editor-conflict-panel">
+                <p className="event-editor-conflict-msg">
+                  This file changed on disk since you opened it. Overwrite the on-disk version
+                  anyway, or cancel to keep the editor open?
+                </p>
+                <div className="event-editor-conflict-btns">
+                  <button
+                    type="button"
+                    className="event-editor-btn"
+                    onClick={() => setConflictPending(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="event-editor-btn event-editor-btn--danger"
+                    onClick={() => void handleOverwrite()}
+                  >
+                    Overwrite
+                  </button>
                 </div>
               </div>
             </div>
-
-            {/* Markdown editor */}
-            <div className="event-editor-body">
-              <MarkdownEditor
-                content={buffer.body}
-                onChange={(s) => updateBuffer({ body: s })}
-                viewRef={viewRef}
-              />
-            </div>
-
-            {/* Toolbar with footer controls in right slot */}
-            <FormatToolbar viewRef={viewRef} isEditable footerSlot={footerSlot} />
-          </>
-        )}
-
-        {/* Conflict overlay */}
-        {conflictPending && (
-          <div className="event-editor-conflict-overlay">
-            <div className="event-editor-conflict-panel">
-              <p className="event-editor-conflict-msg">
-                This file changed on disk since you opened it. Overwrite the on-disk version anyway,
-                or cancel to keep the editor open?
-              </p>
-              <div className="event-editor-conflict-btns">
-                <button
-                  type="button"
-                  className="event-editor-btn"
-                  onClick={() => setConflictPending(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="event-editor-btn event-editor-btn--danger"
-                  onClick={() => void handleOverwrite()}
-                >
-                  Overwrite
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      <FooterPortal>
+        <FormatToolbar
+          viewRef={viewRef}
+          isEditable={loadState === 'ready'}
+          footerSlot={footerSlot}
+        />
+      </FooterPortal>
+    </>
   );
 }
