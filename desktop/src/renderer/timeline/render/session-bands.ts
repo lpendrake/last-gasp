@@ -1,7 +1,7 @@
 import type { EventListItem, Session } from '../data/types';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { secondsToX } from '../math/zoom';
-import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian';
+import { parseISOString, toAbsoluteSeconds, tryParseSeconds } from '../calendar/golarian';
 import { formatCompactWithTime } from '../calendar/format';
 
 export interface SessionBand {
@@ -64,8 +64,8 @@ export function computeSessionBandsFromSessions(
         ? toAbsoluteSeconds(parseISOString(s.inGameEnd))
         : startSeconds;
       const eventCount = events.filter((ev) => {
-        const secs = toAbsoluteSeconds(parseISOString(ev.date));
-        return secs >= startSeconds && secs <= endSeconds;
+        const secs = tryParseSeconds(ev.date);
+        return secs !== null && secs >= startSeconds && secs <= endSeconds;
       }).length;
       return { sessionId: s.id, startSeconds, endSeconds, eventCount, color: s.color };
     })
@@ -88,6 +88,19 @@ export function computeSessionLabel(session: Session, allSessions: Session[]): s
   if (sameDaySessions.length <= 1) return base;
   const idx = sameDaySessions.findIndex((s) => s.id === session.id);
   return idx <= 0 ? base : `${base} (${idx + 1})`;
+}
+
+/** Returns the sesh:* tags an event should carry when placed at `seconds`. */
+export function sessionTagsForSeconds(seconds: number, sessions: Session[]): string[] {
+  return sessions
+    .filter((s) => {
+      if (!s.inGameStart) return false;
+      const start = tryParseSeconds(s.inGameStart);
+      if (start === null) return false;
+      const end = s.inGameEnd ? (tryParseSeconds(s.inGameEnd) ?? start) : start;
+      return seconds >= start && seconds <= end;
+    })
+    .map((s) => `sesh:${computeSessionLabel(s, sessions)}`);
 }
 
 export function formatRealRange(realStart: string, realEnd: string): string {

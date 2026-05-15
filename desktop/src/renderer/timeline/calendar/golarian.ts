@@ -138,7 +138,7 @@ export function validateDate(date: Pick<GolarianDate, 'year' | 'month' | 'day'>)
  */
 export function parseISOString(s: string): GolarianDate {
   const match = s.match(
-    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2})(?:\.\d+)?)?)?Z?)?$/,
+    /^(-?\d{4,})-(\d{2})-(\d{2})(?:T(\d{2})(?::(\d{2})(?::(\d{2})(?:\.\d+)?)?)?Z?)?$/,
   );
   if (!match) throw new SyntaxError(`Cannot parse date: "${s}"`);
 
@@ -156,7 +156,9 @@ export function parseISOString(s: string): GolarianDate {
 }
 
 export function toISOString(date: GolarianDate): string {
-  const y = String(date.year).padStart(4, '0');
+  // String(negative).padStart produces e.g. "0-1", so handle the sign separately.
+  const absYear = Math.abs(date.year);
+  const y = (date.year < 0 ? '-' : '') + String(absYear).padStart(4, '0');
   const m = String(date.month).padStart(2, '0');
   const d = String(date.day).padStart(2, '0');
   if (date.hour === 0 && date.minute === 0 && date.second === 0) {
@@ -174,7 +176,8 @@ export function toAbsoluteSeconds(date: GolarianDate): number {
 
 export function fromAbsoluteSeconds(totalSeconds: number): GolarianDate {
   const days = Math.floor(totalSeconds / 86400);
-  const rem = totalSeconds % 86400;
+  // JS % can return a negative remainder for negative dividends; normalise to [0, 86400).
+  const rem = ((totalSeconds % 86400) + 86400) % 86400;
   const base = fromAbsoluteDays(days);
   return {
     ...base,
@@ -187,4 +190,22 @@ export function fromAbsoluteSeconds(totalSeconds: number): GolarianDate {
 /** Whether the date string includes a time component (for all-day vs point event rendering). */
 export function hasTime(isoString: string): boolean {
   return isoString.includes('T');
+}
+
+/** Returns null instead of throwing for unparseable date strings. */
+export function tryParseDate(dateStr: string): GolarianDate | null {
+  try {
+    return parseISOString(dateStr);
+  } catch {
+    return null;
+  }
+}
+
+/** Returns null instead of throwing for unparseable date strings. */
+export function tryParseSeconds(dateStr: string): number | null {
+  try {
+    return toAbsoluteSeconds(parseISOString(dateStr));
+  } catch {
+    return null;
+  }
 }

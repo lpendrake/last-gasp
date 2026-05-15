@@ -116,7 +116,7 @@ export function Axis({ view, size }: AxisProps): ReactElement | null {
   const monthBands: ReactElement[] = [];
   const monthLabels: ReactElement[] = [];
 
-  const startDate = fromAbsoluteDays(Math.max(0, Math.floor(startSec / SECONDS_PER_DAY)));
+  const startDate = fromAbsoluteDays(Math.floor(startSec / SECONDS_PER_DAY));
   let monthStartDay = toAbsoluteDays({ year: startDate.year, month: startDate.month, day: 1 });
 
   while (true) {

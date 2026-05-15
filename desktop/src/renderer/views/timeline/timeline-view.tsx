@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { timelinePort } from '../../timeline/data/ports';
+import { timelinePort, ConflictError } from '../../timeline/data/ports';
 import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
 import {
   DEFAULT_SECONDS_PER_PIXEL,
   type ViewState,
   type ViewportSize,
 } from '../../timeline/math/zoom';
-import { parseISOString, toAbsoluteSeconds } from '../../timeline/calendar/golarian';
+import {
+  parseISOString,
+  toAbsoluteSeconds,
+  fromAbsoluteSeconds,
+  toISOString,
+} from '../../timeline/calendar/golarian';
 import { paletteToCssVars } from '../../timeline/palette';
 import { Axis } from '../../timeline/render/axis';
 import { Cards } from '../../timeline/render/cards.tsx';
@@ -16,8 +21,11 @@ import { usePan } from '../../timeline/interactions/usePan';
 import { useZoom } from '../../timeline/interactions/useZoom';
 import { useCardExpansion } from '../../timeline/interactions/useCardExpansion';
 import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
+import { useReschedule } from '../../timeline/interactions/useReschedule';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
+import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
+import './timeline-view.css';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -42,6 +50,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
     events: [],
     sessions: [],
   });
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
 
   const resizingRef = useRef(false);
   const handleResizeDragChange = useCallback((active: boolean) => {
@@ -49,29 +58,93 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   }, []);
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const dragLabelRef = useRef<HTMLDivElement>(null);
 
   const viewRef = useRef<ViewState>(viewState);
   const sizeRef = useRef<ViewportSize>(viewportSize);
   viewRef.current = viewState;
   sizeRef.current = viewportSize;
 
-  const pan = usePan(viewportRef, viewRef, setViewState, {
-    isOtherDragActive: () => resizingRef.current,
-  });
-  useZoom(viewportRef, viewRef, sizeRef, setViewState);
+  const eventsRef = useRef<EventListItem[]>(loadedData.events);
+  eventsRef.current = loadedData.events;
 
-  const [previewSize, savePreviewSize] = usePreviewSize();
-  const { expansion, handleCardClick, collapse } = useCardExpansion(campaignPath, pan);
+  const sessionsRef = useRef<Session[]>(loadedData.sessions);
+  sessionsRef.current = loadedData.sessions;
+
+  // collapseRef breaks the circular dep: refreshEvents→collapse→useCardExpansion→pan→reschedule
+  const collapseRef = useRef<() => void>(() => {});
 
   const refreshEvents = useCallback(async () => {
     try {
       const events = await timelinePort.listEvents(campaignPath);
       setLoadedData((d) => ({ ...d, events }));
-      collapse();
+      collapseRef.current();
     } catch (err) {
       console.error('[TimelineView] failed to refresh events', err);
     }
-  }, [campaignPath, collapse]);
+  }, [campaignPath]);
+
+  const saveReschedule = useCallback(
+    async (filename: string, newSeconds: number) => {
+      try {
+        const { event, lastModified } = await timelinePort.getEvent(campaignPath, filename);
+        const newDate = toISOString(fromAbsoluteSeconds(newSeconds));
+        const nonSeshTags = (event.tags ?? []).filter((t) => !t.startsWith('sesh:'));
+        const newSeshTags = sessionTagsForSeconds(newSeconds, sessionsRef.current);
+        const updatedTags = [...nonSeshTags, ...newSeshTags];
+        await timelinePort.updateEvent(
+          campaignPath,
+          filename,
+          {
+            title: event.title,
+            date: newDate,
+            ...(updatedTags.length > 0 ? { tags: updatedTags } : {}),
+            ...(event.color ? { color: event.color } : {}),
+            ...(event.status ? { status: event.status } : {}),
+          },
+          event.body,
+          lastModified,
+        );
+        await refreshEvents();
+      } catch (err) {
+        console.error('[saveReschedule] failed', err);
+        const msg =
+          err instanceof ConflictError
+            ? `"${filename}" was modified on disk — reschedule reverted.`
+            : 'Reschedule failed. Please try again.';
+        setRescheduleError(msg);
+        setTimeout(() => setRescheduleError(null), 4000);
+        // Rethrow so the reschedule module immediately reverts the card's DOM position.
+        throw err;
+      }
+    },
+    [campaignPath, refreshEvents],
+  );
+
+  const reschedule = useReschedule(
+    viewportRef,
+    dragLabelRef,
+    viewRef,
+    sizeRef,
+    () => eventsRef.current,
+    saveReschedule,
+  );
+
+  const pan = usePan(viewportRef, viewRef, setViewState, {
+    shouldIgnore: useCallback(
+      (e: MouseEvent) => e.shiftKey && !!(e.target as HTMLElement).closest('.event-card'),
+      [],
+    ),
+    isOtherDragActive: () => resizingRef.current || reschedule.isActive(),
+  });
+  useZoom(viewportRef, viewRef, sizeRef, setViewState);
+
+  const [previewSize, savePreviewSize] = usePreviewSize();
+  const { expansion, handleCardClick, collapse } = useCardExpansion(campaignPath, pan, () =>
+    reschedule.wasActivated(),
+  );
+  // Keep the ref in sync so refreshEvents always calls the current collapse.
+  collapseRef.current = collapse;
 
   const editor = useEventEditor(campaignPath, refreshEvents);
 
@@ -123,6 +196,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           backgroundColor: bgColor,
           overflow: 'hidden',
           cursor: 'grab',
+          userSelect: 'none',
           ...(loadedData.palette ? paletteToCssVars(loadedData.palette) : {}),
         }}
       >
@@ -160,6 +234,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           />
         )}
 
+        {/* Drag-to-reschedule floating time label */}
+        <div ref={dragLabelRef} className="reschedule-drag-label" style={{ display: 'none' }} />
+
         {/* New Event button — mouseDown stops pan from starting */}
         <button
           className="timeline-new-event-btn"
@@ -171,6 +248,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         >
           + New Event
         </button>
+
+        {/* Reschedule error toast */}
+        {rescheduleError && <div className="timeline-error-toast">{rescheduleError}</div>}
 
         {/* Card-delete conflict overlay (inline modal) */}
         {editor.cardDeleteConflict && (

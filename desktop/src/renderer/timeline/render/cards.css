@@ -205,6 +205,31 @@
 .resize-handle-se::before { bottom: 0; right: 0; width: 8px; height: 2px; }
 .resize-handle-se::after  { bottom: 0; right: 0; width: 2px; height: 8px; }
 
+/* ===== Drag-to-reschedule ===== */
+
+.event-card.is-rescheduling {
+  z-index: 40;
+  opacity: 0.85;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  border-color: var(--theme-accent-gold, #c9a860);
+}
+
+.reschedule-drag-label {
+  position: absolute;
+  display: none;
+  transform: translateX(-50%);
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-accent-gold, #c9a860);
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-accent-gold, #c9a860);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+}
+
 /* ===== Connector line and axis dot ===== */
 
 .event-card-connector {

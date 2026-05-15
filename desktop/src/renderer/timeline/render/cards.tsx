@@ -83,6 +83,7 @@ export function Cards({
         <div
           key={`conn-${card.event.filename}`}
           className="event-card-connector"
+          data-filename={card.event.filename}
           style={{
             left: card.x,
             top: axisY - CARD_GAP - card.row * (CARD_HEIGHT + CARD_GAP),
@@ -94,6 +95,7 @@ export function Cards({
         <div
           key={`dot-${card.event.filename}`}
           className="event-card-dot"
+          data-filename={card.event.filename}
           style={{ left: card.x, top: axisY }}
         />
       ))}
@@ -189,6 +191,7 @@ function CardItem({
   return (
     <div
       className={`event-card${card.isFuture ? ' is-future' : ''}${isExpanded ? ' is-expanded' : ''}`}
+      data-filename={card.event.filename}
       style={
         {
           left: card.x - cardWidth / 2,

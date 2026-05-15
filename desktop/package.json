@@ -20,7 +20,11 @@
     "test": "vitest",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "cd .. && husky desktop/.husky"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": "eslint --fix"
   },
   "build": {
     "appId": "com.lpendrake.tabletop-timeline",
@@ -91,6 +95,8 @@
     "eslint-plugin-react-refresh": "0.4.16",
     "globals": "15.14.0",
     "happy-dom": "20.9.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
     "nodemon": "^3.1.14",
     "prettier": "3.4.2",
     "tsx": "4.21.0",

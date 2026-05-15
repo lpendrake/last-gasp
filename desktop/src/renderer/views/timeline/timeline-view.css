@@ -1,0 +1,15 @@
+.timeline-error-toast {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--theme-surface, #1e1e1a);
+  border: 1px solid var(--theme-danger, #c06040);
+  border-radius: 4px;
+  padding: 8px 16px;
+  color: var(--theme-text-primary, #d8d0b8);
+  font-size: 13px;
+  z-index: 100;
+  pointer-events: none;
+  white-space: nowrap;
+}
