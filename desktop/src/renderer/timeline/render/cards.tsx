@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type ReactElement } from 'react';
+import { useCallback, useMemo, type CSSProperties, type ReactElement } from 'react';
 import './cards.css';
 import type { EventListItem, Palette } from '../data/types';
 import type { ViewState, ViewportSize } from '../math/zoom';
@@ -7,11 +7,31 @@ import {
   layoutCards,
   assignRows,
   weekdayColorFromPalette,
+  computeExpansionLayout,
   CARD_HEIGHT,
   CARD_GAP,
   type LaidOutCard,
   type CardPlacement,
 } from './cards';
+import type { CardExpansionState } from '../interactions/useCardExpansion';
+import type { PreviewSize } from '../interactions/usePreviewSize';
+import { CardExpansion } from './card-expansion';
+
+// MIT-licensed Heroicons v1 paths
+const ICON_EDIT = (
+  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+  </svg>
+);
+const ICON_DELETE = (
+  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+    <path
+      fillRule="evenodd"
+      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
 
 interface CardsProps {
   events: EventListItem[];
@@ -19,6 +39,11 @@ interface CardsProps {
   size: ViewportSize;
   palette: Palette;
   inGameNowSeconds: number;
+  expansion: CardExpansionState | null;
+  previewSize: PreviewSize;
+  onCardClick: (filename: string) => void;
+  onPreviewSizeChange: (s: PreviewSize) => void;
+  onResizeDragChange: (active: boolean) => void;
 }
 
 export function Cards({
@@ -27,6 +52,11 @@ export function Cards({
   size,
   palette,
   inGameNowSeconds,
+  expansion,
+  previewSize,
+  onCardClick,
+  onPreviewSizeChange,
+  onResizeDragChange,
 }: CardsProps): ReactElement | null {
   const laidOut = useMemo(
     () => layoutCards(events, view, size, inGameNowSeconds),
@@ -43,13 +73,7 @@ export function Cards({
   const axisY = Math.floor(size.height * 0.8);
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        pointerEvents: 'none',
-      }}
-    >
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       {/* Connectors first so cards render on top */}
       {placed.map((card) => (
         <div
@@ -70,29 +94,142 @@ export function Cards({
         />
       ))}
       {placed.map((card) => {
-        const cardTop = axisY - CARD_HEIGHT - CARD_GAP - card.row * (CARD_HEIGHT + CARD_GAP);
+        const isExpanded = expansion?.filename === card.event.filename;
+        const normalTop = axisY - CARD_HEIGHT - CARD_GAP - card.row * (CARD_HEIGHT + CARD_GAP);
+        const { expandsDown, cardTop, cardWidth } = isExpanded
+          ? computeExpansionLayout(
+              normalTop,
+              previewSize.expandedHeight,
+              card.width,
+              previewSize.width,
+            )
+          : { expandsDown: false, cardTop: normalTop, cardWidth: card.width };
+
         const color = card.event.color ?? weekdayColorFromPalette(card.parsedDate, palette);
+
         return (
-          <div
+          <CardItem
             key={card.event.filename}
-            className={`event-card${card.isFuture ? ' is-future' : ''}`}
-            style={
-              {
-                left: card.x - card.width / 2,
-                width: card.width,
-                top: cardTop,
-                '--weekday-color': color,
-              } as CSSProperties
-            }
-          >
-            <div className="event-card-header" />
-            <div className="event-card-body">
-              <div className="event-card-title">{card.event.title}</div>
-              <div className="event-card-date">{formatCardFace(card.parsedDate)}</div>
-            </div>
-          </div>
+            card={card}
+            isExpanded={isExpanded}
+            cardTop={cardTop}
+            cardWidth={cardWidth}
+            color={color}
+            expandsDown={expandsDown}
+            expansion={expansion}
+            previewSize={previewSize}
+            onCardClick={onCardClick}
+            onPreviewSizeChange={onPreviewSizeChange}
+            onResizeDragChange={onResizeDragChange}
+          />
         );
       })}
+    </div>
+  );
+}
+
+interface CardItemProps {
+  card: LaidOutCard & CardPlacement;
+  isExpanded: boolean;
+  cardTop: number;
+  cardWidth: number;
+  color: string;
+  expandsDown: boolean;
+  expansion: CardExpansionState | null;
+  previewSize: PreviewSize;
+  onCardClick: (filename: string) => void;
+  onPreviewSizeChange: (s: PreviewSize) => void;
+  onResizeDragChange: (active: boolean) => void;
+}
+
+function CardItem({
+  card,
+  isExpanded,
+  cardTop,
+  cardWidth,
+  color,
+  expandsDown,
+  expansion,
+  previewSize,
+  onCardClick,
+  onPreviewSizeChange,
+  onResizeDragChange,
+}: CardItemProps): ReactElement {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onCardClick(card.event.filename);
+    },
+    [card.event.filename, onCardClick],
+  );
+
+  const expansionEl = isExpanded ? (
+    <CardExpansion
+      body={expansion?.body ?? null}
+      expandsDown={expandsDown}
+      size={previewSize}
+      centerX={card.x}
+      onSizeChange={onPreviewSizeChange}
+      onResizeDragChange={onResizeDragChange}
+    />
+  ) : null;
+
+  const tags = card.event.tags;
+
+  return (
+    <div
+      className={`event-card${card.isFuture ? ' is-future' : ''}${isExpanded ? ' is-expanded' : ''}`}
+      style={
+        {
+          left: card.x - cardWidth / 2,
+          width: cardWidth,
+          top: cardTop,
+          '--weekday-color': color,
+          pointerEvents: 'auto',
+        } as CSSProperties
+      }
+      onClick={handleClick}
+    >
+      {/* Expansion section above the card face when opening upward */}
+      {isExpanded && !expandsDown && expansionEl}
+
+      <div className="event-card-header" />
+      <div className="event-card-body">
+        <div className="event-card-title-row">
+          <div className="event-card-title">{card.event.title}</div>
+          <div className="event-card-actions">
+            <button
+              className="event-card-action-btn event-card-action-btn--danger"
+              data-action="delete"
+              title="Delete"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {ICON_DELETE}
+            </button>
+            <button
+              className="event-card-action-btn event-card-action-btn--primary"
+              data-action="edit"
+              title="Edit"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {ICON_EDIT}
+            </button>
+          </div>
+        </div>
+        <div className="event-card-date">{formatCardFace(card.parsedDate)}</div>
+        {tags && tags.length > 0 && (
+          <div className="event-card-tags">
+            {tags.map((t) => (
+              <span key={t} className="event-card-tag">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Expansion section below the card face when opening downward */}
+      {isExpanded && expandsDown && expansionEl}
     </div>
   );
 }

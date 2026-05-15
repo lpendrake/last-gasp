@@ -1,5 +1,4 @@
-import React from 'react';
-import { FileEntry } from '../useFiles';
+import { FileEntry } from '../../hooks/useFiles';
 
 interface SidebarProps {
   files: FileEntry[];

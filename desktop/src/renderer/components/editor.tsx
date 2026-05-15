@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileEntry } from '../hooks/useFiles';
 
 interface EditorProps {

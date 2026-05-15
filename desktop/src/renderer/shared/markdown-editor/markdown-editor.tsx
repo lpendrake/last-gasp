@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   EditorView,
   highlightSpecialChars,
@@ -26,7 +26,7 @@ import { lastGaspThemeExtensions } from './theme';
 import { wikiLinks, setKnownIds, type WikiLinkSuggestion } from './extensions/wiki-links';
 import { markdownDecorations } from './extensions/decorations';
 import { imagePaste, type ImagePasteConfig } from './extensions/image-paste';
-import { imageDecorations } from './extensions/image-decorations';
+import { imageDecorations, type ImageDecorationsOptions } from './extensions/image-decorations';
 import { dropLink, type DropLinkConfig } from './extensions/drop-link';
 import { formattingKeymap } from './commands';
 
@@ -48,7 +48,10 @@ export interface WikiLinksHostConfig {
 
 export interface MarkdownEditorProps {
   content: string;
-  onChange: (content: string) => void;
+  onChange?: (content: string) => void;
+
+  /** When true, disables all editing and makes onChange optional. */
+  readOnly?: boolean;
 
   isSourceMode?: boolean;
 
@@ -61,6 +64,9 @@ export interface MarkdownEditorProps {
   /** Enables wiki-link parsing, completion, and click-to-open. Omit to disable. */
   wikiLinks?: WikiLinksHostConfig;
 
+  /** Image decoration options — supply resolveSrc to handle non-notes-asset URLs. */
+  images?: ImageDecorationsOptions;
+
   /** Enables image paste-to-disk. Omit to drop pasted images silently. */
   imagePaste?: ImagePasteConfig;
 
@@ -71,11 +77,13 @@ export interface MarkdownEditorProps {
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   content,
   onChange,
+  readOnly = false,
   isSourceMode = false,
   savedInstance,
   onSaveInstance,
   viewRef,
   wikiLinks: wikiLinksConfig,
+  images: imagesConfig,
   imagePaste: imagePasteConfig,
   dropLink: dropLinkConfig,
 }) => {
@@ -86,11 +94,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const onChangeRef = useRef(onChange);
   const onSaveInstanceRef = useRef(onSaveInstance);
   const isSourceModeRef = useRef(isSourceMode);
+  const readOnlyRef = useRef(readOnly);
   const wikiLinksRef = useRef(wikiLinksConfig);
+  const imagesRef = useRef(imagesConfig);
   onChangeRef.current = onChange;
   onSaveInstanceRef.current = onSaveInstance;
   isSourceModeRef.current = isSourceMode;
+  readOnlyRef.current = readOnly;
   wikiLinksRef.current = wikiLinksConfig;
+  imagesRef.current = imagesConfig;
 
   const modeCompartmentRef = useRef<Compartment>(
     savedInstance?.modeCompartment ?? new Compartment(),
@@ -99,7 +111,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   /** Extensions that differ between live and source mode. */
   function buildModeExtensions(sourceMode: boolean): Extension[] {
     if (sourceMode) return [];
-    const exts: Extension[] = [markdownDecorations(), imageDecorations()];
+    const exts: Extension[] = [markdownDecorations(), imageDecorations(imagesRef.current)];
     if (wikiLinksRef.current) {
       exts.push(
         wikiLinks({
@@ -119,8 +131,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 
     const compartment = modeCompartmentRef.current;
 
+    const ro = readOnlyRef.current;
+
     const baseExtensions: Extension[] = [
-      highlightActiveLine(),
+      ...(ro ? [] : [highlightActiveLine()]),
       highlightSpecialChars(),
       history(),
       drawSelection(),
@@ -147,12 +161,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
-          onChangeRef.current(update.state.doc.toString());
+          onChangeRef.current?.(update.state.doc.toString());
         }
       }),
       Prec.high(formattingKeymap),
       compartment.of(buildModeExtensions(isSourceModeRef.current)),
     ];
+
+    if (ro) {
+      baseExtensions.push(EditorState.readOnly.of(true));
+      baseExtensions.push(EditorView.editable.of(false));
+    }
 
     if (imagePasteConfig) {
       baseExtensions.push(imagePaste(imagePasteConfig));

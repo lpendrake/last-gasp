@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Campaign } from '../../types/global';
+import { useState } from 'react';
+import { Campaign } from '../../../types/global';
 
 interface CampaignManagerProps {
   campaigns: Campaign[];

@@ -3,7 +3,7 @@
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import React, { createRef } from 'react';
+import { createRef, ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 import { EditorView } from '@codemirror/view';
@@ -24,7 +24,7 @@ function teardown() {
   container.remove();
 }
 
-function renderEl(el: React.ReactElement) {
+function renderEl(el: ReactElement) {
   act(() => root.render(el));
 }
 
@@ -184,5 +184,24 @@ describe('MarkdownEditor', () => {
     setup();
     renderEl(<MarkdownEditor content="no extras" onChange={vi.fn()} />);
     expect(container.querySelector('.markdown-editor-container')).not.toBeNull();
+  });
+
+  it('mounts in readOnly mode without onChange and is non-editable', () => {
+    setup();
+    const viewRef = createRef<EditorView | null>() as React.MutableRefObject<EditorView | null>;
+    renderEl(<MarkdownEditor content="read me" readOnly viewRef={viewRef} />);
+    expect(container.querySelector('.markdown-editor-container')).not.toBeNull();
+    expect(viewRef.current?.state.readOnly).toBe(true);
+    expect(viewRef.current?.contentDOM.contentEditable).toBe('false');
+  });
+
+  it('does not invoke onChange in readOnly mode when no onChange is supplied', () => {
+    setup();
+    // Should mount without throwing even with no onChange
+    const viewRef = createRef<EditorView | null>() as React.MutableRefObject<EditorView | null>;
+    renderEl(<MarkdownEditor content="static" readOnly viewRef={viewRef} />);
+    // EditorState.readOnly blocks user-initiated mutations (keyboard/paste), not
+    // programmatic dispatch — so just confirm the readOnly facet is set.
+    expect(viewRef.current?.state.readOnly).toBe(true);
   });
 });
