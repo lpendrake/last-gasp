@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, useMemo, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import {
   parseISOString,
@@ -10,7 +10,7 @@ import { formatExpanded } from '../calendar/format';
 import './AdvanceTimePopover.css';
 
 interface AdvanceTimePopoverProps {
-  /** Viewport-relative click position — popover appears above this point. */
+  /** Screen coordinates of the now-marker labels element's top-left corner. */
   anchor: { x: number; y: number };
   currentNow: string;
   onSave: (newNow: string) => Promise<void>;
@@ -24,6 +24,15 @@ const QUICK_DELTAS: { label: string; delta: number }[] = [
   { label: '+1 week', delta: 7 * 86400 },
 ];
 
+/** Parse "+5h", "+2d", "+30m", "+1w" style relative deltas. Returns seconds or null. */
+export function parseRelativeDelta(s: string): number | null {
+  const m = /^\+\s*(\d+)\s*([mhdw])$/i.exec(s.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const multipliers: Record<string, number> = { m: 60, h: 3600, d: 86400, w: 7 * 86400 };
+  return n * multipliers[m[2].toLowerCase()];
+}
+
 export function AdvanceTimePopover({
   anchor,
   currentNow,
@@ -31,7 +40,7 @@ export function AdvanceTimePopover({
   onClose,
 }: AdvanceTimePopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
-  const baseSecs = toAbsoluteSeconds(parseISOString(currentNow));
+  const baseSecs = useMemo(() => toAbsoluteSeconds(parseISOString(currentNow)), [currentNow]);
   const [pendingSecs, setPendingSecs] = useState(baseSecs);
   const [inputValue, setInputValue] = useState(currentNow);
   const [inputError, setInputError] = useState(false);
@@ -71,6 +80,14 @@ export function AdvanceTimePopover({
 
   function handleInput(value: string) {
     setInputValue(value);
+    // Try relative delta first (+5h, +2d, +1w, etc.)
+    const relDelta = parseRelativeDelta(value);
+    if (relDelta !== null) {
+      setPendingSecs(baseSecs + relDelta);
+      setInputError(false);
+      return;
+    }
+    // Fall back to absolute ISO date
     try {
       const d = parseISOString(value.trim());
       setPendingSecs(toAbsoluteSeconds(d));
@@ -86,6 +103,8 @@ export function AdvanceTimePopover({
     try {
       await onSave(toISOString(fromAbsoluteSeconds(pendingSecs)));
       onClose();
+    } catch {
+      // parent error toast surfaces the failure; keep popover open
     } finally {
       setSaving(false);
     }
@@ -117,7 +136,7 @@ export function AdvanceTimePopover({
           className={`atp-input${inputError ? ' is-error' : ''}`}
           type="text"
           value={inputValue}
-          placeholder="4726-05-04T09:30"
+          placeholder="+5h, +2d or 4726-05-04T09:30"
           onChange={(e) => handleInput(e.target.value)}
         />
       </div>

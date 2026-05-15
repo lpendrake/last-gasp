@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export function FooterPortal({ children }: { children: React.ReactNode }) {
+export type FooterSlot = 'left' | 'center' | 'right';
+
+interface FooterPortalProps {
+  children: React.ReactNode;
+  slot?: FooterSlot;
+}
+
+export function FooterPortal({ children, slot = 'right' }: FooterPortalProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -11,7 +18,7 @@ export function FooterPortal({ children }: { children: React.ReactNode }) {
 
   if (!mounted) return null;
 
-  const target = document.getElementById('footer-portal-target');
+  const target = document.getElementById(`footer-slot-${slot}`);
   if (!target) return null;
 
   return createPortal(children, target);

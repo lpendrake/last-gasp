@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { Footer, ViewType } from './components/footer';
 import { NotesView } from './views/notes/notes-view';
 import { TimelineView } from './views/timeline/timeline-view';
@@ -6,11 +6,12 @@ import { RelationshipsView } from './views/relationships/relationships-view';
 import { DirectoryPicker } from './views/setup/directory-picker';
 import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
+import { useCampaignPalette } from './hooks/useCampaignPalette';
+import { paletteToCssVars } from './timeline/palette';
 import '../../src/index.css';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('notes');
-  const [paletteVars, setPaletteVars] = useState<CSSProperties | null>(null);
   const {
     rootDir,
     campaigns,
@@ -21,6 +22,9 @@ export default function App() {
     handleOpenCampaign,
     handleCloseCampaign,
   } = useCampaigns();
+
+  const palette = useCampaignPalette(activeCampaign?.path ?? null);
+  const paletteVars = palette ? paletteToCssVars(palette) : null;
 
   if (isLoading) {
     return (
@@ -63,12 +67,7 @@ export default function App() {
       case 'notes':
         return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
       case 'timeline':
-        return (
-          <TimelineView
-            campaignPath={activeCampaign.path}
-            onPaletteVarsChange={(vars) => setPaletteVars(vars)}
-          />
-        );
+        return <TimelineView campaignPath={activeCampaign.path} palette={palette} />;
       case 'relationships':
         return <RelationshipsView />;
       default:

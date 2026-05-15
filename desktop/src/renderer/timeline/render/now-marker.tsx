@@ -1,5 +1,4 @@
-import type { ReactElement } from 'react';
-import type React from 'react';
+import type { ReactElement, MouseEvent } from 'react';
 import './now-marker.css';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { secondsToX } from '../math/zoom';
@@ -49,7 +48,7 @@ interface NowMarkerProps {
   size: ViewportSize;
   inGameNow: string;
   inGameNowSeconds: number;
-  onContextMenu?: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: MouseEvent<HTMLDivElement>) => void;
 }
 
 export function NowMarker({

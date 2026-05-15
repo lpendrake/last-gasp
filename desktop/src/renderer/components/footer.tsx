@@ -27,18 +27,20 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
         alignItems: 'center',
         padding: '0 20px',
         position: 'relative',
+        gap: '0',
       }}
     >
       {/* Burger & View Switcher */}
       <div
         onClick={() => setMenuOpen(!menuOpen)}
         style={{
+          flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
           cursor: 'pointer',
           padding: '6px 12px',
-          borderRadius: '6px',
+          borderRadius: '4px',
           backgroundColor: menuOpen ? 'var(--theme-panel-accent, #3a4d35)' : 'transparent',
           color: 'var(--theme-text-primary, #d8d0b8)',
           transition: 'background 0.2s',
@@ -156,18 +158,39 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
         </>
       )}
 
-      {/* Dynamic Content Portal Target */}
+      {/* Three-slot portal grid — fills remaining footer width */}
       <div
-        id="footer-portal-target"
         style={{
           flex: 1,
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          paddingLeft: '20px',
-          gap: '10px',
+          paddingLeft: '12px',
         }}
-      ></div>
+      >
+        <div
+          id="footer-slot-left"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            justifyContent: 'flex-start',
+          }}
+        />
+        <div
+          id="footer-slot-center"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+        />
+        <div
+          id="footer-slot-right"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            justifyContent: 'flex-end',
+          }}
+        />
+      </div>
     </div>
   );
 }

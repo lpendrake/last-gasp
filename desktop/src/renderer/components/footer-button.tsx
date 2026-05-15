@@ -1,28 +1,24 @@
 import type { ReactNode } from 'react';
 import './footer-button.css';
 
+type FooterButtonVariant = 'default' | 'primary' | 'active';
+
 interface FooterButtonProps {
-  variant?: 'primary' | 'default';
+  variant?: FooterButtonVariant;
   onClick: () => void;
-  onMouseDown?: (e: React.MouseEvent) => void;
   children: ReactNode;
   title?: string;
 }
 
-export function FooterButton({
-  variant = 'default',
-  onClick,
-  onMouseDown,
-  children,
-  title,
-}: FooterButtonProps) {
+const VARIANT_CLASS: Record<FooterButtonVariant, string> = {
+  default: '',
+  primary: ' footer-btn--primary',
+  active: ' footer-btn--active',
+};
+
+export function FooterButton({ variant = 'default', onClick, children, title }: FooterButtonProps) {
   return (
-    <button
-      className={`footer-btn${variant === 'primary' ? ' footer-btn--primary' : ''}`}
-      onClick={onClick}
-      onMouseDown={onMouseDown}
-      title={title}
-    >
+    <button className={`footer-btn${VARIANT_CLASS[variant]}`} onClick={onClick} title={title}>
       {children}
     </button>
   );

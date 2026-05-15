@@ -59,7 +59,7 @@ export function RelationshipsView() {
         )}
       </div>
 
-      <FooterPortal>
+      <FooterPortal slot="right">
         <button
           onClick={() => setNodesExpanded(!nodesExpanded)}
           style={{

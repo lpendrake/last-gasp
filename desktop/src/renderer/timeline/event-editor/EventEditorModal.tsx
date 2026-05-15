@@ -488,7 +488,7 @@ export function EventEditorModal({
         </div>
       </div>
 
-      <FooterPortal>
+      <FooterPortal slot="center">
         <FormatToolbar
           viewRef={viewRef}
           isEditable={loadState === 'ready'}

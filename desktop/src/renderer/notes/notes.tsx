@@ -139,7 +139,7 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
         </main>
       </div>
 
-      <FooterPortal>
+      <FooterPortal slot="center">
         <FormatToolbar
           viewRef={editorViewRef}
           isEditable={!!isEditableNote && !!ctrl.activeTab}
