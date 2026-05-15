@@ -16,6 +16,8 @@ import { usePan } from '../../timeline/interactions/usePan';
 import { useZoom } from '../../timeline/interactions/useZoom';
 import { useCardExpansion } from '../../timeline/interactions/useCardExpansion';
 import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
+import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
+import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 
 interface TimelineViewProps {
   campaignPath: string;
@@ -41,7 +43,6 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
     sessions: [],
   });
 
-  // Whether a resize drag is in progress — used to suppress pan during resize
   const resizingRef = useRef(false);
   const handleResizeDragChange = useCallback((active: boolean) => {
     resizingRef.current = active;
@@ -49,7 +50,6 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
 
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Keep refs in sync so event-handler closures always see the latest state.
   const viewRef = useRef<ViewState>(viewState);
   const sizeRef = useRef<ViewportSize>(viewportSize);
   viewRef.current = viewState;
@@ -61,7 +61,19 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   useZoom(viewportRef, viewRef, sizeRef, setViewState);
 
   const [previewSize, savePreviewSize] = usePreviewSize();
-  const { expansion, handleCardClick } = useCardExpansion(campaignPath, pan);
+  const { expansion, handleCardClick, collapse } = useCardExpansion(campaignPath, pan);
+
+  const refreshEvents = useCallback(async () => {
+    try {
+      const events = await timelinePort.listEvents(campaignPath);
+      setLoadedData((d) => ({ ...d, events }));
+      collapse();
+    } catch (err) {
+      console.error('[TimelineView] failed to refresh events', err);
+    }
+  }, [campaignPath, collapse]);
+
+  const editor = useEventEditor(campaignPath, refreshEvents);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -76,7 +88,6 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
 
   useEffect(() => {
     let cancelled = false;
-    // gameState/events/sessions pre-wired here; consumed by render layers in follow-up issues.
     Promise.all([
       timelinePort.loadPalette(campaignPath),
       timelinePort.getState(campaignPath),
@@ -97,54 +108,130 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
   return (
-    <div
-      ref={viewportRef}
-      data-timeline-viewport
-      data-width={viewportSize.width}
-      data-height={viewportSize.height}
-      data-center={viewState.centerSeconds}
-      data-scale={viewState.secondsPerPixel}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        backgroundColor: bgColor,
-        overflow: 'hidden',
-        cursor: 'grab',
-        ...(loadedData.palette ? paletteToCssVars(loadedData.palette) : {}),
-      }}
-    >
-      {loadedData.palette && <Axis view={viewState} size={viewportSize} />}
-      {loadedData.palette && (
-        <SessionBands
-          sessions={loadedData.sessions}
-          events={loadedData.events}
-          view={viewState}
-          size={viewportSize}
+    <>
+      <div
+        ref={viewportRef}
+        data-timeline-viewport
+        data-width={viewportSize.width}
+        data-height={viewportSize.height}
+        data-center={viewState.centerSeconds}
+        data-scale={viewState.secondsPerPixel}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          backgroundColor: bgColor,
+          overflow: 'hidden',
+          cursor: 'grab',
+          ...(loadedData.palette ? paletteToCssVars(loadedData.palette) : {}),
+        }}
+      >
+        {loadedData.palette && <Axis view={viewState} size={viewportSize} />}
+        {loadedData.palette && (
+          <SessionBands
+            sessions={loadedData.sessions}
+            events={loadedData.events}
+            view={viewState}
+            size={viewportSize}
+          />
+        )}
+        {loadedData.palette && (
+          <Cards
+            events={loadedData.events}
+            view={viewState}
+            size={viewportSize}
+            palette={loadedData.palette}
+            inGameNowSeconds={inGameNowSeconds}
+            expansion={expansion}
+            previewSize={previewSize}
+            onCardClick={handleCardClick}
+            onPreviewSizeChange={savePreviewSize}
+            onResizeDragChange={handleResizeDragChange}
+            onEditClick={editor.openEdit}
+            onDeleteClick={editor.requestDeleteFromCard}
+          />
+        )}
+        {loadedData.palette && inGameNow && (
+          <NowMarker
+            view={viewState}
+            size={viewportSize}
+            inGameNow={inGameNow}
+            inGameNowSeconds={inGameNowSeconds}
+          />
+        )}
+
+        {/* New Event button — mouseDown stops pan from starting */}
+        <button
+          className="timeline-new-event-btn"
+          onClick={(e) => { e.stopPropagation(); editor.openCreate(); }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          + New Event
+        </button>
+
+        {/* Card-delete conflict overlay (inline modal) */}
+        {editor.cardDeleteConflict && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.65)',
+              zIndex: 1001,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                background: 'var(--theme-surface, #1e1e1a)',
+                border: '1px solid var(--theme-border-strong, #5a4530)',
+                borderRadius: 4,
+                padding: '20px 24px',
+                maxWidth: 400,
+                textAlign: 'center',
+              }}
+            >
+              <p
+                style={{
+                  margin: '0 0 16px',
+                  color: 'var(--theme-text-primary, #d8d0b8)',
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                &ldquo;{editor.cardDeleteConflict.title || editor.cardDeleteConflict.filename}&rdquo;
+                changed on disk since the events list was loaded. Delete the current version anyway?
+              </p>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                <button
+                  className="event-editor-btn"
+                  onClick={() => void editor.resolveCardDeleteConflict('cancel')}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="event-editor-btn event-editor-btn--danger"
+                  onClick={() => void editor.resolveCardDeleteConflict('overwrite')}
+                >
+                  Delete anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Event editor modal — rendered outside viewport to avoid pan/zoom transform */}
+      {editor.editorMode && (
+        <EventEditorModal
+          campaignPath={campaignPath}
+          mode={editor.editorMode}
+          onClose={editor.closeEditor}
+          onSaved={editor.handleSaved}
+          onDeleted={editor.handleDeleted}
         />
       )}
-      {loadedData.palette && (
-        <Cards
-          events={loadedData.events}
-          view={viewState}
-          size={viewportSize}
-          palette={loadedData.palette}
-          inGameNowSeconds={inGameNowSeconds}
-          expansion={expansion}
-          previewSize={previewSize}
-          onCardClick={handleCardClick}
-          onPreviewSizeChange={savePreviewSize}
-          onResizeDragChange={handleResizeDragChange}
-        />
-      )}
-      {loadedData.palette && inGameNow && (
-        <NowMarker
-          view={viewState}
-          size={viewportSize}
-          inGameNow={inGameNow}
-          inGameNowSeconds={inGameNowSeconds}
-        />
-      )}
-    </div>
+    </>
   );
 }

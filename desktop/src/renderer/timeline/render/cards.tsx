@@ -44,6 +44,8 @@ interface CardsProps {
   onCardClick: (filename: string) => void;
   onPreviewSizeChange: (s: PreviewSize) => void;
   onResizeDragChange: (active: boolean) => void;
+  onEditClick: (filename: string) => void;
+  onDeleteClick: (item: EventListItem) => void;
 }
 
 export function Cards({
@@ -57,6 +59,8 @@ export function Cards({
   onCardClick,
   onPreviewSizeChange,
   onResizeDragChange,
+  onEditClick,
+  onDeleteClick,
 }: CardsProps): ReactElement | null {
   const laidOut = useMemo(
     () => layoutCards(events, view, size, inGameNowSeconds),
@@ -121,6 +125,8 @@ export function Cards({
             onCardClick={onCardClick}
             onPreviewSizeChange={onPreviewSizeChange}
             onResizeDragChange={onResizeDragChange}
+            onEditClick={onEditClick}
+            onDeleteClick={onDeleteClick}
           />
         );
       })}
@@ -140,6 +146,8 @@ interface CardItemProps {
   onCardClick: (filename: string) => void;
   onPreviewSizeChange: (s: PreviewSize) => void;
   onResizeDragChange: (active: boolean) => void;
+  onEditClick: (filename: string) => void;
+  onDeleteClick: (item: EventListItem) => void;
 }
 
 function CardItem({
@@ -154,6 +162,8 @@ function CardItem({
   onCardClick,
   onPreviewSizeChange,
   onResizeDragChange,
+  onEditClick,
+  onDeleteClick,
 }: CardItemProps): ReactElement {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -202,7 +212,7 @@ function CardItem({
               className="event-card-action-btn event-card-action-btn--danger"
               data-action="delete"
               title="Delete"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); void onDeleteClick(card.event); }}
             >
               {ICON_DELETE}
             </button>
@@ -210,7 +220,7 @@ function CardItem({
               className="event-card-action-btn event-card-action-btn--primary"
               data-action="edit"
               title="Edit"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onEditClick(card.event.filename); }}
             >
               {ICON_EDIT}
             </button>

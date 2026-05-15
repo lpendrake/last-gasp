@@ -1,0 +1,297 @@
+/* ===== Event Editor Modal ===== */
+
+.event-editor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.event-editor-modal {
+  position: relative;
+  background: var(--theme-surface, #1e1e1a);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+  width: min(960px, 92vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== Header ===== */
+
+.event-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  flex-shrink: 0;
+}
+
+.event-editor-title {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--theme-text-secondary, #a89a80);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-editor-save-status {
+  font-size: 12px;
+  color: var(--theme-text-muted, #7a6f58);
+  flex-shrink: 0;
+}
+
+.event-editor-save-status--dirty {
+  color: var(--theme-accent-gold, #c9a860);
+}
+
+.event-editor-save-status--saved {
+  color: var(--theme-accent, #6a9a4a);
+}
+
+.event-editor-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--theme-text-muted, #7a6f58);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.event-editor-close:hover {
+  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-panel-accent, #3a4d35);
+}
+
+/* ===== Error banner ===== */
+
+.event-editor-error {
+  padding: 8px 14px;
+  background: rgba(192, 96, 64, 0.15);
+  border-bottom: 1px solid var(--theme-danger, #c06040);
+  color: var(--theme-danger, #c06040);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ===== Loading state ===== */
+
+.event-editor-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-text-muted, #7a6f58);
+  font-style: italic;
+  font-size: 14px;
+  padding: 32px;
+}
+
+.event-editor-loading--error {
+  color: var(--theme-danger, #c06040);
+}
+
+/* ===== Frontmatter fields ===== */
+
+.event-editor-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  flex-shrink: 0;
+}
+
+.event-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.event-editor-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--theme-text-muted, #7a6f58);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.event-editor-input {
+  background: var(--theme-bg, #09090b);
+  border: 1px solid var(--theme-border, #3a3a30);
+  border-radius: 2px;
+  color: var(--theme-text-primary, #d8d0b8);
+  font-size: 13px;
+  padding: 4px 7px;
+  outline: none;
+  font-family: inherit;
+}
+
+.event-editor-input:focus {
+  border-color: var(--theme-accent, #6a9a4a);
+}
+
+/* ===== Color row ===== */
+
+.event-editor-color-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.event-editor-color-select {
+  flex: 1;
+}
+
+.event-editor-color-custom {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.event-editor-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1px solid var(--theme-border, #3a3a30);
+  flex-shrink: 0;
+}
+
+/* ===== Markdown editor body ===== */
+
+.event-editor-body {
+  flex: 1 1 auto;
+  min-height: 200px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-editor-body .markdown-editor-container {
+  flex: 1;
+  overflow: auto;
+}
+
+/* ===== Conflict overlay ===== */
+
+.event-editor-conflict-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 4px;
+}
+
+.event-editor-conflict-panel {
+  background: var(--theme-surface, #1e1e1a);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  padding: 20px 24px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.event-editor-conflict-msg {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--theme-text-primary, #d8d0b8);
+  line-height: 1.5;
+}
+
+.event-editor-conflict-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ===== Buttons ===== */
+
+.event-editor-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--theme-border, #3a3a30);
+  border-radius: 2px;
+  background: var(--theme-surface, #1e1e1a);
+  color: var(--theme-text-secondary, #a89a80);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.event-editor-btn:hover:not(:disabled) {
+  background: var(--theme-panel-accent, #3a4d35);
+  color: var(--theme-text-primary, #d8d0b8);
+}
+
+.event-editor-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.event-editor-btn--primary {
+  background: var(--theme-panel-accent, #3a4d35);
+  border-color: var(--theme-accent, #6a9a4a);
+  color: var(--theme-accent, #6a9a4a);
+  font-weight: 600;
+}
+
+.event-editor-btn--primary:hover:not(:disabled) {
+  background: #4d6640;
+  color: #8aba6a;
+}
+
+.event-editor-btn--danger {
+  color: var(--theme-danger, #c06040);
+}
+
+.event-editor-btn--danger:hover:not(:disabled) {
+  background: rgba(192, 96, 64, 0.15);
+  border-color: var(--theme-danger, #c06040);
+}
+
+/* ===== Footer slot buttons (inside FormatToolbar .ftb-right) ===== */
+
+.event-editor-footer-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ===== New Event floating button ===== */
+
+.timeline-new-event-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+  pointer-events: auto;
+  padding: 7px 14px;
+  background: var(--theme-panel-accent, #3a4d35);
+  border: 1px solid var(--theme-accent, #6a9a4a);
+  border-radius: 3px;
+  color: var(--theme-accent, #6a9a4a);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.timeline-new-event-btn:hover {
+  background: #4d6640;
+  color: #8aba6a;
+}
