@@ -64,8 +64,12 @@ export function computeSessionBandsFromSessions(
         ? toAbsoluteSeconds(parseISOString(s.inGameEnd))
         : startSeconds;
       const eventCount = events.filter((ev) => {
-        const secs = toAbsoluteSeconds(parseISOString(ev.date));
-        return secs >= startSeconds && secs <= endSeconds;
+        try {
+          const secs = toAbsoluteSeconds(parseISOString(ev.date));
+          return secs >= startSeconds && secs <= endSeconds;
+        } catch {
+          return false;
+        }
       }).length;
       return { sessionId: s.id, startSeconds, endSeconds, eventCount, color: s.color };
     })

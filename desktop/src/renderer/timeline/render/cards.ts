@@ -49,16 +49,22 @@ export function layoutCards(
   size: ViewportSize,
   inGameNowSeconds: number,
 ): LaidOutCard[] {
-  return events.map((ev) => {
-    const parsedDate = parseISOString(ev.date);
-    const seconds = toAbsoluteSeconds(parsedDate);
-    return {
-      event: ev,
-      parsedDate,
-      seconds,
-      x: secondsToX(seconds, view, size),
-      isFuture: seconds > inGameNowSeconds,
-    };
+  return events.flatMap((ev) => {
+    try {
+      const parsedDate = parseISOString(ev.date);
+      const seconds = toAbsoluteSeconds(parsedDate);
+      return [
+        {
+          event: ev,
+          parsedDate,
+          seconds,
+          x: secondsToX(seconds, view, size),
+          isFuture: seconds > inGameNowSeconds,
+        },
+      ];
+    } catch {
+      return [];
+    }
   });
 }
 

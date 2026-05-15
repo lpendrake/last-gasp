@@ -118,7 +118,7 @@ export function createReschedule(
     const originalX = secondsToX(session.originalSecs, view, size);
     const rawSecs = xToSeconds(originalX + deltaX, view, size);
     const snapUnit = e.ctrlKey ? SECONDS_PER_DAY : SNAP_SECS;
-    const snappedSecs = Math.round(rawSecs / snapUnit) * snapUnit;
+    const snappedSecs = Math.max(0, Math.round(rawSecs / snapUnit) * snapUnit);
 
     session.currentSecs = snappedSecs;
     const snappedX = placeAt(session, snappedSecs);
