@@ -21,6 +21,7 @@ type LoadState = 'loading' | 'ready' | 'load-error';
 type ConflictPending = { kind: 'save' } | { kind: 'delete' };
 
 const SAVED_BANNER_MS = 900;
+const AUTOSAVE_DELAY_MS = 2000;
 
 export interface EventEditorModalProps {
   campaignPath: string;
@@ -28,6 +29,8 @@ export interface EventEditorModalProps {
   onClose: () => void;
   onSaved: (filename: string) => void;
   onDeleted: (filename: string) => void;
+  /** Called after a background auto-save; editor stays open. */
+  onAutosaved?: (filename: string) => void;
 }
 
 export function EventEditorModal({
@@ -36,6 +39,7 @@ export function EventEditorModal({
   onClose,
   onSaved,
   onDeleted,
+  onAutosaved,
 }: EventEditorModalProps) {
   const [loadState, setLoadState] = useState<LoadState>(mode.kind === 'edit' ? 'loading' : 'ready');
   const [buffer, setBuffer] = useState<EditorBuffer>(
@@ -53,11 +57,13 @@ export function EventEditorModal({
   const savedTimerRef = useRef<number | null>(null);
 
   const viewRef = useRef<EditorView | null>(null);
+  const autoSaveTimerRef = useRef<number | null>(null);
 
-  // Clear the saved-banner timer if the modal unmounts during the delay
+  // Clear pending timers if the modal unmounts mid-flight
   useEffect(() => {
     return () => {
       if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
+      if (autoSaveTimerRef.current !== null) window.clearTimeout(autoSaveTimerRef.current);
     };
   }, []);
 
@@ -85,48 +91,44 @@ export function EventEditorModal({
       });
   }, []);
 
-  // Escape: close the modal (capture phase wins over useCardExpansion's handler)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      if (saveState === 'saving') return;
-      if (saveState === 'dirty' || saveState === 'error') {
-        if (!window.confirm('You have unsaved changes — close anyway?')) return;
-      }
-      onClose();
-    };
-    document.addEventListener('keydown', onKey, { capture: true });
-    return () => document.removeEventListener('keydown', onKey, { capture: true });
-  }, [saveState, onClose]);
-
-  const updateBuffer = useCallback((patch: Partial<EditorBuffer>) => {
-    setBuffer((prev) => ({ ...prev, ...patch }));
-    setSaveState((s) => (s === 'saving' ? s : 'dirty'));
-    setErrorMessage(null);
-  }, []);
-
   // ---- Save ----
 
   const doSave = useCallback(
-    async (overrideMtime?: string) => {
+    async (
+      opts: {
+        /** Ctrl+Enter: close the editor immediately on success (no banner delay). */
+        closeAfterSave?: boolean;
+        /** Auto-save: skip the error UI on failure; return to clean on success. */
+        silent?: boolean;
+        overrideMtime?: string;
+      } = {},
+    ) => {
       const current = bufferRef.current;
       const validationError = validateBuffer(current);
       if (validationError) {
+        if (opts.silent) return;
         setErrorMessage(validationError);
         setSaveState('error');
         return;
       }
+
+      // Cancel any pending auto-save when a manual or ctrl-enter save fires.
+      if (!opts.silent && autoSaveTimerRef.current !== null) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+
       setSaveState('saving');
       const frontmatter = bufferToFrontmatter(current);
-      const mtime = overrideMtime ?? lastModifiedRef.current;
+      const mtime = opts.overrideMtime ?? lastModifiedRef.current;
 
       try {
         let result;
-        if (mode.kind === 'edit') {
+        // After the first auto-save in create mode, filenameRef is set — update from then on.
+        if (filenameRef.current !== null) {
           result = await timelinePort.updateEvent(
             campaignPath,
-            filenameRef.current!,
+            filenameRef.current,
             frontmatter,
             current.body,
             mtime!,
@@ -144,23 +146,85 @@ export function EventEditorModal({
         lastModifiedRef.current = result.lastModified;
         setConflictPending(null);
         setSaveState('saved');
-        // Timer is cleared on unmount so onSaved doesn't fire on a stale modal
-        savedTimerRef.current = window.setTimeout(
-          () => onSaved(filenameRef.current!),
-          SAVED_BANNER_MS,
-        );
+
+        if (opts.closeAfterSave) {
+          // Ctrl+Enter: no banner delay, close immediately.
+          onSaved(filenameRef.current!);
+        } else if (opts.silent) {
+          // Auto-save: show brief banner then return to clean (editor stays open).
+          savedTimerRef.current = window.setTimeout(() => {
+            setSaveState('clean');
+            onAutosaved?.(filenameRef.current!);
+          }, SAVED_BANNER_MS);
+        } else {
+          // Manual save (Save button / Ctrl+S): banner then close.
+          savedTimerRef.current = window.setTimeout(
+            () => onSaved(filenameRef.current!),
+            SAVED_BANNER_MS,
+          );
+        }
       } catch (err) {
         if (err instanceof ConflictError) {
           setSaveState('dirty');
-          setConflictPending({ kind: 'save' });
+          // Auto-save conflict: silently revert so user can resolve manually.
+          if (!opts.silent) setConflictPending({ kind: 'save' });
+          return;
+        }
+        if (opts.silent) {
+          setSaveState('dirty'); // revert so the dirty indicator stays visible
           return;
         }
         setSaveState('error');
         setErrorMessage(err instanceof Error ? err.message : String(err));
       }
     },
-    [campaignPath, mode, onSaved],
+    [campaignPath, onSaved, onAutosaved],
   );
+
+  const scheduleAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current !== null) window.clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      autoSaveTimerRef.current = null;
+      void doSave({ silent: true });
+    }, AUTOSAVE_DELAY_MS);
+  }, [doSave]);
+
+  const updateBuffer = useCallback(
+    (patch: Partial<EditorBuffer>) => {
+      setBuffer((prev) => ({ ...prev, ...patch }));
+      setSaveState((s) => (s === 'saving' ? s : 'dirty'));
+      setErrorMessage(null);
+      scheduleAutoSave();
+    },
+    [scheduleAutoSave],
+  );
+
+  // Escape + Ctrl+Enter: capture phase wins over CodeMirror keybindings.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        if (saveState === 'saving') return;
+        if (saveState === 'dirty' || saveState === 'error') {
+          if (!window.confirm('You have unsaved changes — close anyway?')) return;
+        }
+        onClose();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        if (saveState === 'saving') return;
+        if (saveState === 'dirty' || saveState === 'error') {
+          void doSave({ closeAfterSave: true });
+        } else if (saveState === 'clean' || saveState === 'saved') {
+          onClose();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKey, { capture: true });
+    return () => document.removeEventListener('keydown', onKey, { capture: true });
+  }, [saveState, onClose, doSave]);
 
   // ---- Delete ----
 
@@ -195,7 +259,7 @@ export function EventEditorModal({
     try {
       const { lastModified: freshMtime } = await timelinePort.getEvent(campaignPath, filename);
       if (conflictPending.kind === 'save') {
-        await doSave(freshMtime);
+        await doSave({ overrideMtime: freshMtime });
       } else {
         await doDelete(freshMtime);
       }

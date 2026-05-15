@@ -16,6 +16,7 @@ export interface UseEventEditorResult {
   openEdit: (filename: string) => void;
   closeEditor: () => void;
   handleSaved: (filename: string) => void;
+  handleAutosaved: (filename: string) => void;
   handleDeleted: (filename: string) => void;
   requestDeleteFromCard: (item: EventListItem) => Promise<void>;
   cardDeleteConflict: CardDeleteConflict | null;
@@ -43,6 +44,10 @@ export function useEventEditor(
 
   const handleSaved = useCallback(() => {
     setEditorMode(null);
+    onEventsChanged();
+  }, [onEventsChanged]);
+
+  const handleAutosaved = useCallback(() => {
     onEventsChanged();
   }, [onEventsChanged]);
 
@@ -102,6 +107,7 @@ export function useEventEditor(
     openEdit,
     closeEditor,
     handleSaved,
+    handleAutosaved,
     handleDeleted,
     requestDeleteFromCard,
     cardDeleteConflict,
