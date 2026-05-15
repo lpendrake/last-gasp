@@ -22,6 +22,7 @@ import { useZoom } from '../../timeline/interactions/useZoom';
 import { useCardExpansion } from '../../timeline/interactions/useCardExpansion';
 import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 import { useReschedule } from '../../timeline/interactions/useReschedule';
+import { useQuickAddZones } from '../../timeline/interactions/useQuickAddZones';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
@@ -70,6 +71,9 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
 
   const sessionsRef = useRef<Session[]>(loadedData.sessions);
   sessionsRef.current = loadedData.sessions;
+
+  const gameStateRef = useRef<State | null>(null);
+  gameStateRef.current = loadedData.gameState;
 
   // collapseRef breaks the circular dep: refreshEvents→collapse→useCardExpansion→pan→reschedule
   const collapseRef = useRef<() => void>(() => {});
@@ -147,6 +151,23 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
   collapseRef.current = collapse;
 
   const editor = useEventEditor(campaignPath, refreshEvents);
+
+  useQuickAddZones(viewportRef, {
+    getView: () => viewRef.current,
+    getViewport: () => sizeRef.current,
+    isInteractionActive: () => pan.isDragging() || reschedule.isActive(),
+    shouldSuppressClick: () => pan.wasMoved() || reschedule.wasActivated(),
+    onQuickAdd: (seconds) => {
+      editor.openCreate(toISOString(fromAbsoluteSeconds(seconds)));
+    },
+    onSetNow: async (seconds) => {
+      const current = gameStateRef.current;
+      if (!current) return;
+      const next: State = { ...current, in_game_now: toISOString(fromAbsoluteSeconds(seconds)) };
+      await timelinePort.putState(campaignPath, next);
+      setLoadedData((d) => ({ ...d, gameState: next }));
+    },
+  });
 
   useEffect(() => {
     const el = viewportRef.current;
