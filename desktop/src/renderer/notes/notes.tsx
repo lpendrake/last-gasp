@@ -71,11 +71,16 @@ export function NotesApp({
       if (cancelled) return;
 
       if (matchOffset != null) {
-        // One rAF lets React commit the re-render (MarkdownEditor mount + viewRef set).
-        await new Promise<void>((r) => requestAnimationFrame(r));
-        if (cancelled) return;
-        const view = editorViewRef.current;
-        if (view) {
+        // React's re-render is queued as a MessageChannel macro-task; rAF fires
+        // in the rendering-update step between tasks, before React commits.
+        // Poll until editorViewRef is populated (normally 1-2 frames).
+        let view: EditorView | null = null;
+        for (let attempt = 0; attempt < 20 && !cancelled; attempt++) {
+          await new Promise<void>((r) => requestAnimationFrame(r));
+          view = editorViewRef.current;
+          if (view) break;
+        }
+        if (!cancelled && view) {
           const offset = Math.min(matchOffset, view.state.doc.length);
           view.dispatch({
             selection: EditorSelection.cursor(offset),
