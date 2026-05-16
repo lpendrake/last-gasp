@@ -62,7 +62,10 @@ export function useSessionMode(
       onSaveSession: (s) => callbacksRef.current.onSaveSession(s),
       onCreateSessionPrefill: (start, end) =>
         callbacksRef.current.onCreateSessionPrefill(start, end),
-      onExitSessionMode: () => setActive(false),
+      onExitSessionMode: () => {
+        ctrl.exit();
+        setActive(false);
+      },
     });
     innerRef.current = ctrl;
 
