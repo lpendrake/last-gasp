@@ -104,9 +104,9 @@
   opacity: 0.3;
 }
 
-.cm-heading-1 { font-size: 1.8em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; margin-top: 0.5em; }
-.cm-heading-2 { font-size: 1.4em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; margin-top: 0.4em; }
-.cm-heading-3 { font-size: 1.2em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; margin-top: 0.3em; }
+.cm-heading-1 { font-size: 1.8em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
+.cm-heading-2 { font-size: 1.4em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
+.cm-heading-3 { font-size: 1.2em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
 
 .cm-wiki-link-raw {
   color: var(--theme-text-muted, #7a6f58);
