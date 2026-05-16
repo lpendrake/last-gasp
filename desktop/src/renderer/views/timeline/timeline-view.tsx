@@ -565,7 +565,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
               }}
               title="Manage sessions"
             >
-              {sessionMode.active ? '⎋ Session' : 'Session'}
+              {sessionMode.active ? 'Session X' : 'Session'}
             </FooterButton>
           </FooterPortal>
           <FooterPortal slot="center">
