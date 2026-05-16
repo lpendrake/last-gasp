@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
-import { type EditorView } from '@codemirror/view';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { EditorView } from '@codemirror/view';
+import { EditorSelection } from '@codemirror/state';
 import { useNotesController } from './hooks/useNotesController';
 import { MarkdownEditor, FormatToolbar, type SavedEditorInstance } from '../shared/markdown-editor';
 import { makeImagePasteConfig, makeDropLinkConfig } from './editor-bindings';
@@ -24,9 +25,20 @@ import './styles/context-menu.css';
 interface NotesAppProps {
   campaignId: string;
   campaignPath: string;
+  pendingOpenNotePath?: string | null;
+  onNoteOpenHandled?: () => void;
+  pendingNoteMatchOffset?: number | null;
+  onNoteMatchOffsetHandled?: () => void;
 }
 
-export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
+export function NotesApp({
+  campaignId,
+  campaignPath,
+  pendingOpenNotePath,
+  onNoteOpenHandled,
+  pendingNoteMatchOffset,
+  onNoteMatchOffsetHandled,
+}: NotesAppProps) {
   const ctrl = useNotesController({ campaignId, campaignPath });
   const knownIds = useMemo(() => new Set(ctrl.linkIndex.map((e) => e.id)), [ctrl.linkIndex]);
 
@@ -45,6 +57,57 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
     [ctrl.activeTab?.folder, campaignPath],
   );
   const dropLinkConfig = useMemo(() => makeDropLinkConfig(), []);
+
+  // Open a note from the search overlay, then scroll to the match position.
+  // Both steps are sequenced here so the scroll happens only after the note's
+  // content is loaded and React has committed the editor to the DOM.
+  useEffect(() => {
+    if (!pendingOpenNotePath) return;
+    let cancelled = false;
+    const matchOffset = pendingNoteMatchOffset;
+
+    async function run() {
+      await ctrl.openNoteByPath(pendingOpenNotePath!);
+      if (cancelled) return;
+
+      if (matchOffset != null) {
+        // React's re-render is queued as a MessageChannel macro-task; rAF fires
+        // in the rendering-update step between tasks, before React commits.
+        // Poll until editorViewRef is populated (normally 1-2 frames).
+        let view: EditorView | null = null;
+        for (let attempt = 0; attempt < 20 && !cancelled; attempt++) {
+          await new Promise<void>((r) => requestAnimationFrame(r));
+          view = editorViewRef.current;
+          if (view) break;
+        }
+        if (!cancelled && view) {
+          const offset = Math.min(matchOffset, view.state.doc.length);
+          view.dispatch({
+            selection: EditorSelection.cursor(offset),
+            effects: EditorView.scrollIntoView(offset, { y: 'center' }),
+          });
+          view.focus();
+          // CM6 uses estimated line heights for content it hasn't rendered yet.
+          // A second pass one frame later corrects positions near the end of
+          // long files where the first estimate is slightly short.
+          await new Promise<void>((r) => requestAnimationFrame(r));
+          if (!cancelled) {
+            view.dispatch({ effects: EditorView.scrollIntoView(offset, { y: 'center' }) });
+          }
+        }
+      }
+
+      onNoteMatchOffsetHandled?.();
+      onNoteOpenHandled?.();
+    }
+
+    run().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+    // ctrl.openNoteByPath and handlers are stable; matchOffset is captured on entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingOpenNotePath]);
 
   function handleFrontmatterChange(value: string) {
     if (!ctrl.activeTab) return;

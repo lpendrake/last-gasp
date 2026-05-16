@@ -1,3 +1,19 @@
+@keyframes card-flash {
+  0% {
+    box-shadow: 0 0 0 3px var(--theme-accent-gold, #c8a040);
+  }
+  60% {
+    box-shadow: 0 0 0 3px var(--theme-accent-gold, #c8a040);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.event-card.is-flashing {
+  animation: card-flash 1.2s ease-out forwards;
+}
+
 .is-session-mode .event-card {
   opacity: 0.3;
   pointer-events: none;

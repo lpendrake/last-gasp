@@ -350,6 +350,17 @@ export function useNotesController({ campaignId, campaignPath }: NotesController
     if (fileKind !== 'asset' && fileKind !== 'unsupported') ensureLoaded(folder, path);
   }
 
+  // Opens a note given its campaign-relative path (e.g. "notes/Lore/places.md").
+  // Strips the implicit "notes/" prefix before delegating to openFile.
+  async function openNoteByPath(campaignRelativePath: string) {
+    const withoutPrefix = campaignRelativePath.startsWith('notes/')
+      ? campaignRelativePath.slice('notes/'.length)
+      : campaignRelativePath;
+    const slashIdx = withoutPrefix.indexOf('/');
+    if (slashIdx === -1) return;
+    await openFile(withoutPrefix.slice(0, slashIdx), withoutPrefix.slice(slashIdx + 1));
+  }
+
   function handleContentChange(folder: string, path: string, content: string) {
     const key = `${folder}/${path}`;
     setOpenFiles((prev) => ({ ...prev, [key]: { ...prev[key], content, dirty: true } }));
@@ -740,6 +751,7 @@ export function useNotesController({ campaignId, campaignPath }: NotesController
     setSavedAt,
     // Actions
     openFile,
+    openNoteByPath,
     closeTab,
     handleContentChange,
     handleFrontmatterChange,
