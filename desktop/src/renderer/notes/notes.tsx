@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type EditorView } from '@codemirror/view';
 import { useNotesController } from './hooks/useNotesController';
 import { MarkdownEditor, FormatToolbar, type SavedEditorInstance } from '../shared/markdown-editor';
@@ -10,6 +10,7 @@ import { BreadcrumbNav } from './components/breadcrumb-nav.tsx';
 import { FolderSidebar } from './components/folder-sidebar.tsx';
 import { MetaPanel } from './components/meta-panel.tsx';
 import { FooterPortal } from '../components/footer-portal.tsx';
+import { resolveNoteOpenPath } from '../components/search-overlay';
 
 import './styles/index.css';
 import './styles/sidebar.css';
@@ -24,9 +25,16 @@ import './styles/context-menu.css';
 interface NotesAppProps {
   campaignId: string;
   campaignPath: string;
+  pendingOpenNotePath?: string | null;
+  onNoteOpenHandled?: () => void;
 }
 
-export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
+export function NotesApp({
+  campaignId,
+  campaignPath,
+  pendingOpenNotePath,
+  onNoteOpenHandled,
+}: NotesAppProps) {
   const ctrl = useNotesController({ campaignId, campaignPath });
   const knownIds = useMemo(() => new Set(ctrl.linkIndex.map((e) => e.id)), [ctrl.linkIndex]);
 
@@ -45,6 +53,18 @@ export function NotesApp({ campaignId, campaignPath }: NotesAppProps) {
     [ctrl.activeTab?.folder, campaignPath],
   );
   const dropLinkConfig = useMemo(() => makeDropLinkConfig(), []);
+
+  // Open a note when navigated here from the search overlay.
+  // pendingOpenNotePath is a campaign-relative path with a "notes/" prefix (e.g. "notes/Lore/places.md").
+  useEffect(() => {
+    if (!pendingOpenNotePath) return;
+    const resolved = resolveNoteOpenPath(pendingOpenNotePath);
+    if (!resolved) return;
+    ctrl.openFile(resolved.folder, resolved.filePath);
+    onNoteOpenHandled?.();
+    // ctrl.openFile is stable; only re-run when the pending path changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingOpenNotePath]);
 
   function handleFrontmatterChange(value: string) {
     if (!ctrl.activeTab) return;

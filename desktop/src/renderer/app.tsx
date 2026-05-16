@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Footer, ViewType } from './components/footer';
 import { NotesView } from './views/notes/notes-view';
 import { TimelineView } from './views/timeline/timeline-view';
@@ -8,10 +8,15 @@ import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
 import { useCampaignPalette } from './hooks/useCampaignPalette';
 import { paletteToCssVars } from './timeline/palette';
+import { SearchOverlay } from './components/search-overlay';
+import type { EventListItem } from './timeline/data/types';
 import '../../src/index.css';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('notes');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [pendingJumpFilename, setPendingJumpFilename] = useState<string | null>(null);
+  const [pendingOpenNotePath, setPendingOpenNotePath] = useState<string | null>(null);
   const {
     rootDir,
     campaigns,
@@ -25,6 +30,27 @@ export default function App() {
 
   const palette = useCampaignPalette(activeCampaign?.path ?? null);
   const paletteVars = palette ? paletteToCssVars(palette) : null;
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && activeCampaign) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCampaign]);
+
+  const handleJumpToEvent = useCallback((ev: EventListItem) => {
+    setCurrentView('timeline');
+    setPendingJumpFilename(ev.filename);
+  }, []);
+
+  const handleOpenNote = useCallback((absolutePath: string) => {
+    setCurrentView('notes');
+    setPendingOpenNotePath(absolutePath);
+  }, []);
 
   if (isLoading) {
     return (
@@ -65,13 +91,34 @@ export default function App() {
   const renderView = () => {
     switch (currentView) {
       case 'notes':
-        return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
+        return (
+          <NotesView
+            campaignPath={activeCampaign.path}
+            campaignId={activeCampaign.id}
+            pendingOpenNotePath={pendingOpenNotePath}
+            onNoteOpenHandled={() => setPendingOpenNotePath(null)}
+          />
+        );
       case 'timeline':
-        return <TimelineView campaignPath={activeCampaign.path} palette={palette} />;
+        return (
+          <TimelineView
+            campaignPath={activeCampaign.path}
+            palette={palette}
+            pendingJumpFilename={pendingJumpFilename}
+            onJumpHandled={() => setPendingJumpFilename(null)}
+          />
+        );
       case 'relationships':
         return <RelationshipsView />;
       default:
-        return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
+        return (
+          <NotesView
+            campaignPath={activeCampaign.path}
+            campaignId={activeCampaign.id}
+            pendingOpenNotePath={pendingOpenNotePath}
+            onNoteOpenHandled={() => setPendingOpenNotePath(null)}
+          />
+        );
     }
   };
 
@@ -96,6 +143,14 @@ export default function App() {
         currentView={currentView}
         onChangeView={setCurrentView}
         onBackToCampaigns={handleCloseCampaign}
+      />
+
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        campaignPath={activeCampaign.path}
+        onClose={() => setIsSearchOpen(false)}
+        onJumpToEvent={handleJumpToEvent}
+        onOpenNote={handleOpenNote}
       />
     </div>
   );

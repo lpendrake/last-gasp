@@ -49,6 +49,10 @@ interface TimelineViewProps {
   campaignPath: string;
   /** Palette loaded at the App level so theming persists across view switches. */
   palette: Palette | null;
+  /** When set, the timeline pans to this event filename and flashes the card. */
+  pendingJumpFilename?: string | null;
+  /** Called after the jump has been applied so the parent can clear the pending value. */
+  onJumpHandled?: () => void;
 }
 
 interface LoadedData {
@@ -57,7 +61,12 @@ interface LoadedData {
   sessions: Session[];
 }
 
-export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
+export function TimelineView({
+  campaignPath,
+  palette,
+  pendingJumpFilename,
+  onJumpHandled,
+}: TimelineViewProps) {
   const [viewState, setViewState] = useState<ViewState>({
     centerSeconds: 0,
     secondsPerPixel: DEFAULT_SECONDS_PER_PIXEL,
@@ -380,6 +389,29 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
     const nowSeconds = toAbsoluteSeconds(parseISOString(current.in_game_now));
     setViewState((v) => ({ ...v, centerSeconds: nowSeconds }));
   }, []);
+
+  // Pan to a specific event and flash its card when triggered from the search overlay.
+  useEffect(() => {
+    if (!pendingJumpFilename || !loadedData.events.length) return;
+    const ev = loadedData.events.find((e) => e.filename === pendingJumpFilename);
+    if (!ev) return;
+    const seconds = toAbsoluteSeconds(parseISOString(ev.date));
+    setViewState((v) => ({ ...v, centerSeconds: seconds }));
+    onJumpHandled?.();
+    const filename = pendingJumpFilename;
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(
+        `.event-card[data-filename="${CSS.escape(filename)}"]`,
+      );
+      if (el) {
+        el.classList.add('is-flashing');
+        setTimeout(() => el.classList.remove('is-flashing'), 1200);
+      }
+    });
+    // Run when the filename changes or when event data first loads (for the case where
+    // the jump is requested before events are fetched).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingJumpFilename, loadedData.events.length]);
 
   const bgColor = palette?.theme.background ?? '#09090b';
   const inGameNow = loadedData.gameState?.in_game_now || null;
