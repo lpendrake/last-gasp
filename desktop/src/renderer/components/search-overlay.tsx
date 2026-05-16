@@ -197,6 +197,8 @@ export function SearchOverlay({
   resultsRef.current = results;
   const activateResultRef = useRef(activateResult);
   activateResultRef.current = activateResult;
+  const selectedIdxRef = useRef(selectedIdx);
+  selectedIdxRef.current = selectedIdx;
 
   // Keyboard navigation
   useEffect(() => {
@@ -213,11 +215,8 @@ export function SearchOverlay({
         setSelectedIdx((i) => Math.max(i - 1, 0));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        setSelectedIdx((i) => {
-          const result = resultsRef.current[i];
-          if (result) activateResultRef.current(result);
-          return i;
-        });
+        const result = resultsRef.current[selectedIdxRef.current];
+        if (result) activateResultRef.current(result);
       }
     }
     window.addEventListener('keydown', handleKeyDown);

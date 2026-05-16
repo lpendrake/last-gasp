@@ -36,11 +36,13 @@ export default function App() {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && activeCampaign) {
         e.preventDefault();
+        e.stopPropagation(); // prevent CM6's searchKeymap from opening its own panel
         setIsSearchOpen(true);
       }
     }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Capture phase so we intercept before CM6's bubble-phase keydown handler.
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [activeCampaign]);
 
   const handleJumpToEvent = useCallback((ev: EventListItem) => {

@@ -58,31 +58,43 @@ export function NotesApp({
   );
   const dropLinkConfig = useMemo(() => makeDropLinkConfig(), []);
 
-  // Open a note when navigated here from the search overlay.
+  // Open a note from the search overlay, then scroll to the match position.
+  // Both steps are sequenced here so the scroll happens only after the note's
+  // content is loaded and React has committed the editor to the DOM.
   useEffect(() => {
     if (!pendingOpenNotePath) return;
-    ctrl.openNoteByPath(pendingOpenNotePath);
-    onNoteOpenHandled?.();
-    // ctrl.openNoteByPath is stable; only re-run when the pending path changes.
+    let cancelled = false;
+    const matchOffset = pendingNoteMatchOffset;
+
+    async function run() {
+      await ctrl.openNoteByPath(pendingOpenNotePath!);
+      if (cancelled) return;
+
+      if (matchOffset != null) {
+        // One rAF lets React commit the re-render (MarkdownEditor mount + viewRef set).
+        await new Promise<void>((r) => requestAnimationFrame(r));
+        if (cancelled) return;
+        const view = editorViewRef.current;
+        if (view) {
+          const offset = Math.min(matchOffset, view.state.doc.length);
+          view.dispatch({
+            selection: EditorSelection.cursor(offset),
+            effects: EditorView.scrollIntoView(offset, { y: 'center' }),
+          });
+        }
+      }
+
+      onNoteMatchOffsetHandled?.();
+      onNoteOpenHandled?.();
+    }
+
+    run().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+    // ctrl.openNoteByPath and handlers are stable; matchOffset is captured on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingOpenNotePath]);
-
-  // Scroll to and place cursor at the body-text match offset once the editor is ready.
-  useEffect(() => {
-    if (pendingNoteMatchOffset == null) return;
-    if (ctrl.activeFile?.content == null) return;
-    requestAnimationFrame(() => {
-      const view = editorViewRef.current;
-      if (!view) return;
-      const offset = Math.min(pendingNoteMatchOffset, view.state.doc.length);
-      view.dispatch({
-        selection: EditorSelection.cursor(offset),
-        effects: EditorView.scrollIntoView(offset, { y: 'center' }),
-      });
-      onNoteMatchOffsetHandled?.();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingNoteMatchOffset, ctrl.activeFile?.content]);
 
   function handleFrontmatterChange(value: string) {
     if (!ctrl.activeTab) return;
