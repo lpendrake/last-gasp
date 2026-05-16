@@ -6,6 +6,8 @@ import { RelationshipsView } from './views/relationships/relationships-view';
 import { DirectoryPicker } from './views/setup/directory-picker';
 import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
+import { useCampaignPalette } from './hooks/useCampaignPalette';
+import { paletteToCssVars } from './timeline/palette';
 import '../../src/index.css';
 
 export default function App() {
@@ -20,6 +22,9 @@ export default function App() {
     handleOpenCampaign,
     handleCloseCampaign,
   } = useCampaigns();
+
+  const palette = useCampaignPalette(activeCampaign?.path ?? null);
+  const paletteVars = palette ? paletteToCssVars(palette) : null;
 
   if (isLoading) {
     return (
@@ -62,7 +67,7 @@ export default function App() {
       case 'notes':
         return <NotesView campaignPath={activeCampaign.path} campaignId={activeCampaign.id} />;
       case 'timeline':
-        return <TimelineView campaignPath={activeCampaign.path} />;
+        return <TimelineView campaignPath={activeCampaign.path} palette={palette} />;
       case 'relationships':
         return <RelationshipsView />;
       default:
@@ -74,12 +79,13 @@ export default function App() {
     <div
       style={{
         height: '100vh',
-        backgroundColor: 'var(--theme-background)',
-        color: 'var(--theme-text-primary)',
+        backgroundColor: 'var(--theme-background, #09090b)',
+        color: 'var(--theme-text-primary, #d8d0b8)',
         fontFamily: '"Inter", "Segoe UI", sans-serif',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        ...(paletteVars ?? {}),
       }}
     >
       {/* Main View Area */}

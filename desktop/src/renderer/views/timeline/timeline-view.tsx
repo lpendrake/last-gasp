@@ -26,33 +26,39 @@ import { useQuickAddZones } from '../../timeline/interactions/useQuickAddZones';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
+import { AdvanceTimePopover } from '../../timeline/render/AdvanceTimePopover';
+import { FooterPortal } from '../../components/footer-portal';
+import { FooterButton } from '../../components/footer-button';
+import { loadSavedViewState, saveViewState } from './view-state-persistence';
 import './timeline-view.css';
 
 interface TimelineViewProps {
   campaignPath: string;
+  /** Palette loaded at the App level so theming persists across view switches. */
+  palette: Palette | null;
 }
 
 interface LoadedData {
-  palette: Palette | null;
   gameState: State | null;
   events: EventListItem[];
   sessions: Session[];
 }
 
-export function TimelineView({ campaignPath }: TimelineViewProps) {
+export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
   const [viewState, setViewState] = useState<ViewState>({
     centerSeconds: 0,
     secondsPerPixel: DEFAULT_SECONDS_PER_PIXEL,
   });
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const [loadedData, setLoadedData] = useState<LoadedData>({
-    palette: null,
     gameState: null,
     events: [],
     sessions: [],
   });
-  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [advanceTimeAnchor, setAdvanceTimeAnchor] = useState<{ x: number; y: number } | null>(null);
 
+  const isInitialized = useRef(false);
   const resizingRef = useRef(false);
   const handleResizeDragChange = useCallback((active: boolean) => {
     resizingRef.current = active;
@@ -116,8 +122,8 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           err instanceof ConflictError
             ? `"${filename}" was modified on disk — reschedule reverted.`
             : 'Reschedule failed. Please try again.';
-        setRescheduleError(msg);
-        setTimeout(() => setRescheduleError(null), 4000);
+        setTimelineError(msg);
+        setTimeout(() => setTimelineError(null), 4000);
         // Rethrow so the reschedule module immediately reverts the card's DOM position.
         throw err;
       }
@@ -180,16 +186,30 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
     return () => ro.disconnect();
   }, []);
 
+  // Load campaign data. Defined before the persist effect so React runs this
+  // first when campaignPath changes, resetting isInitialized before persist fires.
   useEffect(() => {
+    isInitialized.current = false;
     let cancelled = false;
     Promise.all([
-      timelinePort.loadPalette(campaignPath),
       timelinePort.getState(campaignPath),
       timelinePort.listEvents(campaignPath),
       timelinePort.getSessions(campaignPath),
     ])
-      .then(([palette, gameState, events, sessions]) => {
-        if (!cancelled) setLoadedData({ palette, gameState, events, sessions });
+      .then(([gameState, events, sessions]) => {
+        if (cancelled) return;
+        setLoadedData({ gameState, events, sessions });
+
+        // Restore saved view state, or default to centering on in-game now.
+        const saved = loadSavedViewState(campaignPath);
+        if (saved) {
+          setViewState(saved);
+        } else {
+          const fallback = gameState.in_game_now || gameState.campaign_start;
+          const nowSeconds = fallback ? toAbsoluteSeconds(parseISOString(fallback)) : 0;
+          setViewState({ centerSeconds: nowSeconds, secondsPerPixel: DEFAULT_SECONDS_PER_PIXEL });
+        }
+        isInitialized.current = true;
       })
       .catch((err) => console.error('[TimelineView] failed to load campaign data', err));
     return () => {
@@ -197,7 +217,46 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
     };
   }, [campaignPath]);
 
-  const bgColor = loadedData.palette?.theme.background ?? '#09090b';
+  // Persist view state to localStorage on every change (debounced).
+  // Guard: only runs after initial data load to avoid overwriting saved state.
+  const persistDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isInitialized.current) return;
+    if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current);
+    persistDebounceRef.current = setTimeout(() => {
+      saveViewState(campaignPath, viewState);
+    }, 300);
+    return () => {
+      if (persistDebounceRef.current) clearTimeout(persistDebounceRef.current);
+    };
+  }, [campaignPath, viewState]);
+
+  const handleAdvanceTimeSave = useCallback(
+    async (newNow: string) => {
+      const current = gameStateRef.current;
+      if (!current) return;
+      const next: State = { ...current, in_game_now: newNow };
+      try {
+        await timelinePort.putState(campaignPath, next);
+        setLoadedData((d) => ({ ...d, gameState: next }));
+      } catch (err) {
+        console.error('[handleAdvanceTimeSave] failed', err);
+        setTimelineError('Failed to advance time. Please try again.');
+        setTimeout(() => setTimelineError(null), 4000);
+        throw err;
+      }
+    },
+    [campaignPath],
+  );
+
+  const handleJumpToNow = useCallback(() => {
+    const current = gameStateRef.current;
+    if (!current) return;
+    const nowSeconds = toAbsoluteSeconds(parseISOString(current.in_game_now));
+    setViewState((v) => ({ ...v, centerSeconds: nowSeconds }));
+  }, []);
+
+  const bgColor = palette?.theme.background ?? '#09090b';
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
@@ -210,6 +269,7 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         data-height={viewportSize.height}
         data-center={viewState.centerSeconds}
         data-scale={viewState.secondsPerPixel}
+        onContextMenu={(e) => e.preventDefault()}
         style={{
           position: 'relative',
           width: '100%',
@@ -218,11 +278,11 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           overflow: 'hidden',
           cursor: 'grab',
           userSelect: 'none',
-          ...(loadedData.palette ? paletteToCssVars(loadedData.palette) : {}),
+          ...(palette ? paletteToCssVars(palette) : {}),
         }}
       >
-        {loadedData.palette && <Axis view={viewState} size={viewportSize} />}
-        {loadedData.palette && (
+        {palette && <Axis view={viewState} size={viewportSize} />}
+        {palette && (
           <SessionBands
             sessions={loadedData.sessions}
             events={loadedData.events}
@@ -230,12 +290,12 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
             size={viewportSize}
           />
         )}
-        {loadedData.palette && (
+        {palette && (
           <Cards
             events={loadedData.events}
             view={viewState}
             size={viewportSize}
-            palette={loadedData.palette}
+            palette={palette}
             inGameNowSeconds={inGameNowSeconds}
             expansion={expansion}
             previewSize={previewSize}
@@ -246,32 +306,26 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
             onDeleteClick={editor.requestDeleteFromCard}
           />
         )}
-        {loadedData.palette && inGameNow && (
+        {palette && inGameNow && (
           <NowMarker
             view={viewState}
             size={viewportSize}
             inGameNow={inGameNow}
             inGameNowSeconds={inGameNowSeconds}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setAdvanceTimeAnchor({ x: r.left, y: r.top });
+            }}
           />
         )}
 
         {/* Drag-to-reschedule floating time label */}
         <div ref={dragLabelRef} className="reschedule-drag-label" style={{ display: 'none' }} />
 
-        {/* New Event button — mouseDown stops pan from starting */}
-        <button
-          className="timeline-new-event-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            editor.openCreate();
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          + New Event
-        </button>
-
-        {/* Reschedule error toast */}
-        {rescheduleError && <div className="timeline-error-toast">{rescheduleError}</div>}
+        {/* Error toast (reschedule failures, advance-time failures) */}
+        {timelineError && <div className="timeline-error-toast">{timelineError}</div>}
 
         {/* Card-delete conflict overlay (inline modal) */}
         {editor.cardDeleteConflict && (
@@ -327,6 +381,16 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
         )}
       </div>
 
+      {/* Advance-time popover — rendered outside viewport via portal */}
+      {advanceTimeAnchor && inGameNow && (
+        <AdvanceTimePopover
+          anchor={advanceTimeAnchor}
+          currentNow={inGameNow}
+          onSave={handleAdvanceTimeSave}
+          onClose={() => setAdvanceTimeAnchor(null)}
+        />
+      )}
+
       {/* Event editor modal — rendered outside viewport to avoid pan/zoom transform */}
       {editor.editorMode && (
         <EventEditorModal
@@ -338,6 +402,22 @@ export function TimelineView({ campaignPath }: TimelineViewProps) {
           onAutosaved={editor.handleAutosaved}
           onDeleted={editor.handleDeleted}
         />
+      )}
+
+      {/* Footer buttons — center slot, hidden while event editor is open */}
+      {!editor.editorMode && (
+        <FooterPortal slot="center">
+          <FooterButton
+            variant="primary"
+            onClick={() => editor.openCreate()}
+            title="Create a new event"
+          >
+            + Event
+          </FooterButton>
+          <FooterButton onClick={handleJumpToNow} title="Jump to in-game now">
+            Now
+          </FooterButton>
+        </FooterPortal>
       )}
     </>
   );

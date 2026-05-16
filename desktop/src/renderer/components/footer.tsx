@@ -21,30 +21,34 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
     <div
       style={{
         height: '50px',
-        backgroundColor: '#18181b',
-        borderTop: '1px solid #27272a',
+        backgroundColor: 'var(--theme-panel, #2d3d2a)',
+        borderTop: '1px solid var(--theme-border, #3a3a30)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 20px',
         position: 'relative',
+        gap: '0',
       }}
     >
       {/* Burger & View Switcher */}
       <div
         onClick={() => setMenuOpen(!menuOpen)}
         style={{
+          flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
           cursor: 'pointer',
           padding: '6px 12px',
-          borderRadius: '6px',
-          backgroundColor: menuOpen ? '#27272a' : 'transparent',
-          color: '#e0e0e0',
+          borderRadius: '4px',
+          backgroundColor: menuOpen ? 'var(--theme-panel-accent, #3a4d35)' : 'transparent',
+          color: 'var(--theme-text-primary, #d8d0b8)',
           transition: 'background 0.2s',
           position: 'relative',
         }}
-        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#27272a')}
+        onMouseOver={(e) =>
+          (e.currentTarget.style.backgroundColor = 'var(--theme-panel-accent, #3a4d35)')
+        }
         onMouseOut={(e) => {
           if (!menuOpen) e.currentTarget.style.backgroundColor = 'transparent';
         }}
@@ -67,9 +71,9 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
               position: 'absolute',
               bottom: '60px',
               left: '20px',
-              backgroundColor: '#18181b',
-              border: '1px solid #27272a',
-              borderRadius: '8px',
+              backgroundColor: 'var(--theme-surface, #242420)',
+              border: '1px solid var(--theme-border-strong, #5a4530)',
+              borderRadius: '4px',
               padding: '8px',
               display: 'flex',
               flexDirection: 'column',
@@ -87,11 +91,15 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
                   setMenuOpen(false);
                 }}
                 style={{
-                  background: currentView === v ? '#27272a' : 'transparent',
-                  color: currentView === v ? '#fff' : '#a1a1aa',
+                  background:
+                    currentView === v ? 'var(--theme-panel-accent, #3a4d35)' : 'transparent',
+                  color:
+                    currentView === v
+                      ? 'var(--theme-accent-gold, #c9a860)'
+                      : 'var(--theme-text-primary, #d8d0b8)',
                   border: 'none',
                   padding: '10px 12px',
-                  borderRadius: '4px',
+                  borderRadius: '2px',
                   textAlign: 'left',
                   cursor: 'pointer',
                   fontWeight: 500,
@@ -99,7 +107,8 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
                   transition: 'background 0.1s',
                 }}
                 onMouseOver={(e) => {
-                  if (currentView !== v) e.currentTarget.style.background = '#1f1f22';
+                  if (currentView !== v)
+                    e.currentTarget.style.background = 'var(--theme-panel, #2d3d2a)';
                 }}
                 onMouseOut={(e) => {
                   if (currentView !== v) e.currentTarget.style.background = 'transparent';
@@ -109,7 +118,13 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
               </button>
             ))}
 
-            <div style={{ height: '1px', backgroundColor: '#27272a', margin: '4px 8px' }} />
+            <div
+              style={{
+                height: '1px',
+                backgroundColor: 'var(--theme-border, #3a3a30)',
+                margin: '4px 8px',
+              }}
+            />
 
             <button
               onClick={() => {
@@ -118,10 +133,10 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
               }}
               style={{
                 background: 'transparent',
-                color: '#71717a',
+                color: 'var(--theme-text-muted, #7a6f58)',
                 border: 'none',
                 padding: '10px 12px',
-                borderRadius: '4px',
+                borderRadius: '2px',
                 textAlign: 'left',
                 cursor: 'pointer',
                 fontWeight: 500,
@@ -129,12 +144,12 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
                 transition: 'all 0.2s',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.background = '#1f1f22';
-                e.currentTarget.style.color = '#e0e0e0';
+                e.currentTarget.style.background = 'var(--theme-panel, #2d3d2a)';
+                e.currentTarget.style.color = 'var(--theme-text-primary, #d8d0b8)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#71717a';
+                e.currentTarget.style.color = 'var(--theme-text-muted, #7a6f58)';
               }}
             >
               ← Back to Campaigns
@@ -143,18 +158,39 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
         </>
       )}
 
-      {/* Dynamic Content Portal Target */}
+      {/* Three-slot portal grid — fills remaining footer width */}
       <div
-        id="footer-portal-target"
         style={{
           flex: 1,
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          paddingLeft: '20px',
-          gap: '10px',
+          paddingLeft: '12px',
         }}
-      ></div>
+      >
+        <div
+          id="footer-slot-left"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            justifyContent: 'flex-start',
+          }}
+        />
+        <div
+          id="footer-slot-center"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+        />
+        <div
+          id="footer-slot-right"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            justifyContent: 'flex-end',
+          }}
+        />
+      </div>
     </div>
   );
 }
