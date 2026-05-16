@@ -48,3 +48,7 @@ Before opening the PR, spawn an opus advisor on the diff. The advisor must verif
 - **Meaningful tests** — tests exercise behaviour and edge cases, not just mirror the implementation.
 
 Address the advisor's findings (or push back with a reason) before opening the PR.
+
+# File Naming Convention
+
+kebab-case for all files and folders.
