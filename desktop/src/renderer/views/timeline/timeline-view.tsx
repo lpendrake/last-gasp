@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { timelinePort, ConflictError } from '../../timeline/data/ports';
 import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
 import {
@@ -27,9 +27,22 @@ import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
 import { AdvanceTimePopover } from '../../timeline/render/AdvanceTimePopover';
+import {
+  applySessionUpdate,
+  applySessionSave,
+  applySessionDelete,
+} from '../../timeline/interactions/session-transforms';
+import {
+  computeEventsNeedingSeshTagUpdate,
+  mergeSeshTags,
+} from '../../timeline/interactions/session-tag-sync';
+import { useSessionMode } from '../../timeline/session-editor/use-session-mode';
+import { useSessionEditor } from '../../timeline/session-editor/use-session-editor';
+import { SessionEditorModal } from '../../timeline/session-editor/session-editor-modal';
 import { FooterPortal } from '../../components/footer-portal';
 import { FooterButton } from '../../components/footer-button';
 import { loadSavedViewState, saveViewState } from './view-state-persistence';
+import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
 interface TimelineViewProps {
@@ -94,6 +107,112 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
     }
   }, [campaignPath]);
 
+  // ---- Session persistence ----
+
+  const applySessionTagsToEvent = useCallback(
+    async (filename: string, sessions: Session[]): Promise<boolean> => {
+      const ev = eventsRef.current.find((e) => e.filename === filename);
+      if (!ev) return false;
+      let secs: number;
+      try {
+        secs = toAbsoluteSeconds(parseISOString(ev.date));
+      } catch {
+        return false;
+      }
+      const computed = sessionTagsForSeconds(secs, sessions);
+      const updatedTags = mergeSeshTags(ev.tags, computed);
+      const { event: full, lastModified } = await timelinePort.getEvent(campaignPath, filename);
+      await timelinePort.updateEvent(
+        campaignPath,
+        filename,
+        {
+          title: full.title,
+          date: full.date,
+          ...(updatedTags.length > 0 ? { tags: updatedTags } : {}),
+          ...(full.color ? { color: full.color } : {}),
+          ...(full.status ? { status: full.status } : {}),
+        },
+        full.body,
+        lastModified,
+      );
+      return true;
+    },
+    [campaignPath],
+  );
+
+  const applySessionTagsToAllEvents = useCallback(
+    async (sessions: Session[]): Promise<void> => {
+      const toUpdate = computeEventsNeedingSeshTagUpdate(eventsRef.current, sessions);
+      if (toUpdate.length === 0) return;
+      for (const filename of toUpdate) {
+        await applySessionTagsToEvent(filename, sessions);
+      }
+      await refreshEvents();
+    },
+    [applySessionTagsToEvent, refreshEvents],
+  );
+
+  const saveSessionUpdate = useCallback(
+    async (updated: Session) => {
+      const newSessions = applySessionUpdate(sessionsRef.current, updated);
+      await timelinePort.putSessions(campaignPath, newSessions);
+      setLoadedData((d) => ({ ...d, sessions: newSessions }));
+      await applySessionTagsToAllEvents(newSessions);
+    },
+    [campaignPath, applySessionTagsToAllEvents],
+  );
+
+  const handleSessionSave = useCallback(
+    async (saved: Session) => {
+      const newSessions = applySessionSave(sessionsRef.current, saved);
+      await timelinePort.putSessions(campaignPath, newSessions);
+      setLoadedData((d) => ({ ...d, sessions: newSessions }));
+      await applySessionTagsToAllEvents(newSessions);
+    },
+    [campaignPath, applySessionTagsToAllEvents],
+  );
+
+  const handleSessionDelete = useCallback(
+    async (sessionId: string) => {
+      const newSessions = applySessionDelete(sessionsRef.current, sessionId);
+      await timelinePort.putSessions(campaignPath, newSessions);
+      setLoadedData((d) => ({ ...d, sessions: newSessions }));
+      await applySessionTagsToAllEvents(newSessions);
+    },
+    [campaignPath, applySessionTagsToAllEvents],
+  );
+
+  // ---- Session editor (modal state) ----
+
+  const sessionEditor = useSessionEditor();
+
+  // ---- Session mode (interaction controller) ----
+
+  // Stable ref for use in pan's shouldIgnore callback
+  const sessionModeActiveRef = useRef(false);
+
+  const sessionMode = useSessionMode(viewportRef, viewRef, sizeRef, () => sessionsRef.current, {
+    onSaveSession: saveSessionUpdate,
+    onCreateSessionPrefill: (inGameStart, inGameEnd) => {
+      sessionEditor.openCreate({ inGameStart, inGameEnd });
+    },
+  });
+
+  // Keep stable ref in sync with React state
+  sessionModeActiveRef.current = sessionMode.active;
+
+  // Re-render handles synchronously after each DOM commit so handles stay
+  // glued to their session endpoints during pan/zoom (useLayoutEffect fires
+  // before the browser paints, matching legacy's synchronous renderTimeline).
+  const renderSessionHandles = sessionMode.renderHandles;
+  const sessionModeActive = sessionMode.active;
+  useLayoutEffect(() => {
+    if (!sessionModeActive) return;
+    renderSessionHandles();
+  }, [sessionModeActive, viewState, viewportSize, loadedData.sessions, renderSessionHandles]);
+
+  // ---- Reschedule / pan ----
+
   const saveReschedule = useCallback(
     async (filename: string, newSeconds: number) => {
       try {
@@ -142,10 +261,14 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
 
   const pan = usePan(viewportRef, viewRef, setViewState, {
     shouldIgnore: useCallback(
-      (e: MouseEvent) => e.shiftKey && !!(e.target as HTMLElement).closest('.event-card'),
+      (e: MouseEvent) =>
+        (e.shiftKey && !!(e.target as HTMLElement).closest('.event-card')) ||
+        (sessionModeActiveRef.current &&
+          !!(e.target as HTMLElement).closest('.session-drag-handle, .session-pill')),
       [],
     ),
-    isOtherDragActive: () => resizingRef.current || reschedule.isActive(),
+    isOtherDragActive: () =>
+      resizingRef.current || reschedule.isActive() || sessionMode.isHandleDragging(),
   });
   useZoom(viewportRef, viewRef, sizeRef, setViewState);
 
@@ -161,8 +284,10 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
   useQuickAddZones(viewportRef, {
     getView: () => viewRef.current,
     getViewport: () => sizeRef.current,
-    isInteractionActive: () => pan.isDragging() || reschedule.isActive(),
-    shouldSuppressClick: () => pan.wasMoved() || reschedule.wasActivated(),
+    isInteractionActive: () =>
+      pan.isDragging() || reschedule.isActive() || sessionModeActiveRef.current,
+    shouldSuppressClick: () =>
+      pan.wasMoved() || reschedule.wasActivated() || sessionModeActiveRef.current,
     onQuickAdd: (seconds) => {
       editor.openCreate(toISOString(fromAbsoluteSeconds(seconds)));
     },
@@ -260,6 +385,8 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
+  const anyModalOpen = !!(editor.editorMode || sessionEditor.mode);
+
   return (
     <>
       <div
@@ -269,6 +396,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
         data-height={viewportSize.height}
         data-center={viewState.centerSeconds}
         data-scale={viewState.secondsPerPixel}
+        className={sessionMode.active ? 'is-session-mode' : undefined}
         onContextMenu={(e) => e.preventDefault()}
         style={{
           position: 'relative',
@@ -288,6 +416,10 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
             events={loadedData.events}
             view={viewState}
             size={viewportSize}
+            sessionMode={sessionMode.active}
+            onPillClick={(sessionId) => {
+              if (!sessionMode.isHandleDragging()) sessionEditor.openEdit(sessionId);
+            }}
           />
         )}
         {palette && (
@@ -299,11 +431,11 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
             inGameNowSeconds={inGameNowSeconds}
             expansion={expansion}
             previewSize={previewSize}
-            onCardClick={handleCardClick}
+            onCardClick={sessionModeActiveRef.current ? undefined : handleCardClick}
             onPreviewSizeChange={savePreviewSize}
-            onResizeDragChange={handleResizeDragChange}
-            onEditClick={editor.openEdit}
-            onDeleteClick={editor.requestDeleteFromCard}
+            onResizeDragChange={sessionModeActiveRef.current ? undefined : handleResizeDragChange}
+            onEditClick={sessionModeActiveRef.current ? undefined : editor.openEdit}
+            onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
           />
         )}
         {palette && inGameNow && (
@@ -404,20 +536,53 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
         />
       )}
 
-      {/* Footer buttons — center slot, hidden while event editor is open */}
-      {!editor.editorMode && (
-        <FooterPortal slot="center">
-          <FooterButton
-            variant="primary"
-            onClick={() => editor.openCreate()}
-            title="Create a new event"
-          >
-            + Event
-          </FooterButton>
-          <FooterButton onClick={handleJumpToNow} title="Jump to in-game now">
-            Now
-          </FooterButton>
-        </FooterPortal>
+      {/* Session editor modal — rendered outside viewport */}
+      {sessionEditor.mode && (
+        <SessionEditorModal
+          mode={sessionEditor.mode}
+          sessions={loadedData.sessions}
+          onClose={sessionEditor.close}
+          onSave={async (saved) => {
+            await handleSessionSave(saved);
+            sessionEditor.close();
+          }}
+          onDelete={async (sessionId) => {
+            await handleSessionDelete(sessionId);
+            sessionEditor.close();
+          }}
+        />
+      )}
+
+      {/* Footer buttons — hidden while any modal is open */}
+      {!anyModalOpen && (
+        <>
+          <FooterPortal slot="left">
+            <FooterButton
+              variant={sessionMode.active ? 'active' : 'default'}
+              onClick={() => {
+                if (!sessionMode.active) collapse();
+                sessionMode.toggle();
+              }}
+              title="Manage sessions"
+            >
+              {sessionMode.active ? 'Session X' : 'Session'}
+            </FooterButton>
+          </FooterPortal>
+          <FooterPortal slot="center">
+            <FooterButton
+              variant="primary"
+              onClick={() => editor.openCreate()}
+              title="Create a new event"
+            >
+              + Event
+            </FooterButton>
+          </FooterPortal>
+          <FooterPortal slot="right">
+            <FooterButton onClick={handleJumpToNow} title="Jump to in-game now">
+              Now
+            </FooterButton>
+          </FooterPortal>
+        </>
       )}
     </>
   );

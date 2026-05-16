@@ -1,3 +1,9 @@
+.is-session-mode .event-card {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
 .timeline-error-toast {
   position: absolute;
   bottom: 16px;

@@ -164,6 +164,7 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
           flex: 1,
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
+          columnGap: '8px',
           alignItems: 'center',
           paddingLeft: '12px',
         }}
@@ -174,7 +175,7 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            justifyContent: 'flex-start',
+            justifyContent: 'flex-end',
           }}
         />
         <div
@@ -187,7 +188,7 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            justifyContent: 'flex-end',
+            justifyContent: 'flex-start',
           }}
         />
       </div>
