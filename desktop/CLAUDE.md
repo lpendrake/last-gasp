@@ -42,7 +42,7 @@ If you're about to edit a file without an active todo covering that work, that's
 
 Before opening the PR, spawn an opus advisor on the diff. The advisor must verify, on top of any ticket-specific checks:
 
-- **Spec coverage** — every "Features to preserve" / "New features" / "Acceptance" bullet from the issue body is actually implemented.
+- **Spec coverage** — whatever the ticket body specifies as the work to be done is actually implemented.
 - **De-duplication** — flag repeated logic that should be a shared helper, hook, or component.
 - **Abstraction & pattern adherence** — render / interaction / IO / state stay cleanly separated; the change follows the patterns documented in the nearest `AGENTS.md` / `CLAUDE.md`.
 - **Meaningful tests** — tests exercise behaviour and edge cases, not just mirror the implementation.
