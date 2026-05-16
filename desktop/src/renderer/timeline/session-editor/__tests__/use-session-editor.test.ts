@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSessionEditor } from '../useSessionEditor';
+import { useSessionEditor } from '../use-session-editor';
 
 describe('useSessionEditor', () => {
   it('starts with mode null', () => {

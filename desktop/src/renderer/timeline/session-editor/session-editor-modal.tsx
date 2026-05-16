@@ -12,7 +12,7 @@ import {
   fromDatetimeLocal,
   recordColorUsed,
 } from './session-domain';
-import './SessionEditorModal.css';
+import './session-editor-modal.css';
 
 export interface SessionEditorModalProps {
   mode: SessionEditorMode;

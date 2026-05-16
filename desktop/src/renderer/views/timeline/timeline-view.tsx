@@ -27,9 +27,14 @@ import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
 import { AdvanceTimePopover } from '../../timeline/render/AdvanceTimePopover';
-import { useSessionMode } from '../../timeline/session-editor/useSessionMode';
-import { useSessionEditor } from '../../timeline/session-editor/useSessionEditor';
-import { SessionEditorModal } from '../../timeline/session-editor/SessionEditorModal';
+import {
+  applySessionUpdate,
+  applySessionSave,
+  applySessionDelete,
+} from '../../timeline/interactions/session-persistence';
+import { useSessionMode } from '../../timeline/session-editor/use-session-mode';
+import { useSessionEditor } from '../../timeline/session-editor/use-session-editor';
+import { SessionEditorModal } from '../../timeline/session-editor/session-editor-modal';
 import { FooterPortal } from '../../components/footer-portal';
 import { FooterButton } from '../../components/footer-button';
 import { loadSavedViewState, saveViewState } from './view-state-persistence';
@@ -102,7 +107,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
 
   const saveSessionUpdate = useCallback(
     async (updated: Session) => {
-      const newSessions = sessionsRef.current.map((s) => (s.id === updated.id ? updated : s));
+      const newSessions = applySessionUpdate(sessionsRef.current, updated);
       await timelinePort.putSessions(campaignPath, newSessions);
       setLoadedData((d) => ({ ...d, sessions: newSessions }));
     },
@@ -111,10 +116,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
 
   const handleSessionSave = useCallback(
     async (saved: Session) => {
-      const existing = sessionsRef.current.find((s) => s.id === saved.id);
-      const newSessions = existing
-        ? sessionsRef.current.map((s) => (s.id === saved.id ? saved : s))
-        : [...sessionsRef.current, saved];
+      const newSessions = applySessionSave(sessionsRef.current, saved);
       await timelinePort.putSessions(campaignPath, newSessions);
       setLoadedData((d) => ({ ...d, sessions: newSessions }));
     },
@@ -123,7 +125,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
 
   const handleSessionDelete = useCallback(
     async (sessionId: string) => {
-      const newSessions = sessionsRef.current.filter((s) => s.id !== sessionId);
+      const newSessions = applySessionDelete(sessionsRef.current, sessionId);
       await timelinePort.putSessions(campaignPath, newSessions);
       setLoadedData((d) => ({ ...d, sessions: newSessions }));
     },
