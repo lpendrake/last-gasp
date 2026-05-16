@@ -34,7 +34,8 @@
       {
         "provider": "github",
         "owner": "lpendrake",
-        "repo": "last-gasp"
+        "repo": "last-gasp",
+        "releaseType": "prerelease"
       }
     ],
     "directories": {
