@@ -10,7 +10,6 @@ import { BreadcrumbNav } from './components/breadcrumb-nav.tsx';
 import { FolderSidebar } from './components/folder-sidebar.tsx';
 import { MetaPanel } from './components/meta-panel.tsx';
 import { FooterPortal } from '../components/footer-portal.tsx';
-import { resolveNoteOpenPath } from '../components/search-overlay';
 
 import './styles/index.css';
 import './styles/sidebar.css';
@@ -55,14 +54,11 @@ export function NotesApp({
   const dropLinkConfig = useMemo(() => makeDropLinkConfig(), []);
 
   // Open a note when navigated here from the search overlay.
-  // pendingOpenNotePath is a campaign-relative path with a "notes/" prefix (e.g. "notes/Lore/places.md").
   useEffect(() => {
     if (!pendingOpenNotePath) return;
-    const resolved = resolveNoteOpenPath(pendingOpenNotePath);
-    if (!resolved) return;
-    ctrl.openFile(resolved.folder, resolved.filePath);
+    ctrl.openNoteByPath(pendingOpenNotePath);
     onNoteOpenHandled?.();
-    // ctrl.openFile is stable; only re-run when the pending path changes.
+    // ctrl.openNoteByPath is stable; only re-run when the pending path changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingOpenNotePath]);
 

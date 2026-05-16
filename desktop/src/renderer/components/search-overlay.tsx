@@ -43,23 +43,12 @@ export function extractSnippet(text: string, query: string): string {
   return snippet;
 }
 
-/**
- * Resolve a campaign-relative note path (e.g. "notes/Lore/places.md") into
- * the (folder, filePath) pair expected by useNotesController.openFile.
- * Returns null if the path cannot be resolved.
- */
-export function resolveNoteOpenPath(
-  campaignRelativePath: string,
-): { folder: string; filePath: string } | null {
+function noteSubfolder(campaignRelativePath: string): string | null {
   const withoutPrefix = campaignRelativePath.startsWith('notes/')
     ? campaignRelativePath.slice('notes/'.length)
     : campaignRelativePath;
   const slashIdx = withoutPrefix.indexOf('/');
-  if (slashIdx === -1) return null;
-  return {
-    folder: withoutPrefix.slice(0, slashIdx),
-    filePath: withoutPrefix.slice(slashIdx + 1),
-  };
+  return slashIdx === -1 ? null : withoutPrefix.slice(0, slashIdx);
 }
 
 export function SearchOverlay({
@@ -234,7 +223,7 @@ export function SearchOverlay({
   if (!isOpen) return null;
 
   function noteFolderLabel(note: SearchableNote): string {
-    return resolveNoteOpenPath(note.path)?.folder ?? note.title;
+    return noteSubfolder(note.path) ?? note.title;
   }
 
   return (
