@@ -18,6 +18,8 @@ interface SessionBandsProps {
   events: EventListItem[];
   view: ViewState;
   size: ViewportSize;
+  sessionMode?: boolean;
+  onPillClick?: (sessionId: string) => void;
 }
 
 interface TooltipState extends TooltipPosition {
@@ -52,16 +54,28 @@ function SessionTooltip({ session, left, bottom }: SessionTooltipProps): ReactEl
 interface SessionPillProps {
   pill: SessionPillLayout;
   session: Session;
+  sessionMode?: boolean;
   onHover: (state: TooltipState | null) => void;
+  onPillClick?: (sessionId: string) => void;
 }
 
-function SessionPill({ pill, session, onHover }: SessionPillProps): ReactElement {
+function SessionPill({
+  pill,
+  session,
+  sessionMode,
+  onHover,
+  onPillClick,
+}: SessionPillProps): ReactElement {
   const className =
-    'session-pill' + (pill.leftFlat ? ' left-flat' : '') + (pill.rightFlat ? ' right-flat' : '');
+    'session-pill' +
+    (pill.leftFlat ? ' left-flat' : '') +
+    (pill.rightFlat ? ' right-flat' : '') +
+    (sessionMode ? ' session-pill--editable' : '');
 
   return (
     <div
       className={className}
+      data-session-id={pill.sessionId}
       style={
         {
           left: pill.left,
@@ -70,6 +84,7 @@ function SessionPill({ pill, session, onHover }: SessionPillProps): ReactElement
           height: pill.height,
           '--pill-color': pill.color,
           pointerEvents: 'auto',
+          cursor: sessionMode ? 'pointer' : undefined,
         } as CSSProperties
       }
       onMouseEnter={(e) => {
@@ -81,6 +96,9 @@ function SessionPill({ pill, session, onHover }: SessionPillProps): ReactElement
         onHover({ session, ...pos });
       }}
       onMouseLeave={() => onHover(null)}
+      onClick={() => {
+        if (sessionMode && onPillClick) onPillClick(pill.sessionId);
+      }}
     >
       {pill.label !== null && <span className="session-pill-label">{pill.label}</span>}
       {pill.leftFlat && <div className="session-pill-seam" />}
@@ -93,6 +111,8 @@ export function SessionBands({
   events,
   view,
   size,
+  sessionMode,
+  onPillClick,
 }: SessionBandsProps): ReactElement | null {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
@@ -116,12 +136,19 @@ export function SessionBands({
 
   return (
     <>
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <div data-session-layer style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {pills.map((pill) => {
           const session = sessionMap.get(pill.sessionId);
           if (!session) return null;
           return (
-            <SessionPill key={pill.sessionId} pill={pill} session={session} onHover={setTooltip} />
+            <SessionPill
+              key={pill.sessionId}
+              pill={pill}
+              session={session}
+              sessionMode={sessionMode}
+              onHover={setTooltip}
+              onPillClick={onPillClick}
+            />
           );
         })}
       </div>
