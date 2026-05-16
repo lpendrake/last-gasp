@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { timelinePort, ConflictError } from '../../timeline/data/ports';
 import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
 import {
@@ -201,11 +201,12 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
   // Keep stable ref in sync with React state
   sessionModeActiveRef.current = sessionMode.active;
 
-  // Re-render handles whenever view, size, or sessions change while active.
-  // sessionMode.renderHandles is stable (useMemo in useSessionMode).
+  // Re-render handles synchronously after each DOM commit so handles stay
+  // glued to their session endpoints during pan/zoom (useLayoutEffect fires
+  // before the browser paints, matching legacy's synchronous renderTimeline).
   const renderSessionHandles = sessionMode.renderHandles;
   const sessionModeActive = sessionMode.active;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!sessionModeActive) return;
     renderSessionHandles();
   }, [sessionModeActive, viewState, viewportSize, loadedData.sessions, renderSessionHandles]);
@@ -395,6 +396,7 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
         data-height={viewportSize.height}
         data-center={viewState.centerSeconds}
         data-scale={viewState.secondsPerPixel}
+        className={sessionMode.active ? 'is-session-mode' : undefined}
         onContextMenu={(e) => e.preventDefault()}
         style={{
           position: 'relative',
@@ -429,11 +431,11 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
             inGameNowSeconds={inGameNowSeconds}
             expansion={expansion}
             previewSize={previewSize}
-            onCardClick={handleCardClick}
+            onCardClick={sessionModeActiveRef.current ? undefined : handleCardClick}
             onPreviewSizeChange={savePreviewSize}
-            onResizeDragChange={handleResizeDragChange}
-            onEditClick={editor.openEdit}
-            onDeleteClick={editor.requestDeleteFromCard}
+            onResizeDragChange={sessionModeActiveRef.current ? undefined : handleResizeDragChange}
+            onEditClick={sessionModeActiveRef.current ? undefined : editor.openEdit}
+            onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
           />
         )}
         {palette && inGameNow && (
@@ -551,27 +553,36 @@ export function TimelineView({ campaignPath, palette }: TimelineViewProps) {
         />
       )}
 
-      {/* Footer buttons — center slot, hidden while any modal is open */}
+      {/* Footer buttons — hidden while any modal is open */}
       {!anyModalOpen && (
-        <FooterPortal slot="center">
-          <FooterButton
-            variant="primary"
-            onClick={() => editor.openCreate()}
-            title="Create a new event"
-          >
-            + Event
-          </FooterButton>
-          <FooterButton onClick={handleJumpToNow} title="Jump to in-game now">
-            Now
-          </FooterButton>
-          <FooterButton
-            variant={sessionMode.active ? 'active' : 'default'}
-            onClick={sessionMode.toggle}
-            title="Manage sessions"
-          >
-            {sessionMode.active ? '⎋ Sessions' : 'Sessions'}
-          </FooterButton>
-        </FooterPortal>
+        <>
+          <FooterPortal slot="left">
+            <FooterButton
+              variant={sessionMode.active ? 'active' : 'default'}
+              onClick={() => {
+                if (!sessionMode.active) collapse();
+                sessionMode.toggle();
+              }}
+              title="Manage sessions"
+            >
+              {sessionMode.active ? '⎋ Session' : 'Session'}
+            </FooterButton>
+          </FooterPortal>
+          <FooterPortal slot="center">
+            <FooterButton
+              variant="primary"
+              onClick={() => editor.openCreate()}
+              title="Create a new event"
+            >
+              + Event
+            </FooterButton>
+          </FooterPortal>
+          <FooterPortal slot="right">
+            <FooterButton onClick={handleJumpToNow} title="Jump to in-game now">
+              Now
+            </FooterButton>
+          </FooterPortal>
+        </>
       )}
     </>
   );

@@ -514,7 +514,9 @@ export function createSessionMode(
     const sessionLayer = getSessionLayer();
     if (!sessionLayer) return;
     sessionLayer
-      .querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill')
+      .querySelectorAll(
+        '.session-drag-handle, .session-drag-guide, .session-ghost-pill, .session-wash',
+      )
       .forEach((el) => el.remove());
 
     if (!active) return;
@@ -537,6 +539,17 @@ export function createSessionMode(
 
       if (startX < -HANDLE_ZONE && endX < -HANDLE_ZONE) continue;
       if (startX > size.width + HANDLE_ZONE && endX > size.width + HANDLE_ZONE) continue;
+
+      const clampedLeft = Math.max(startX, -10);
+      const clampedRight = Math.min(endX, size.width + 10);
+      const pillW = Math.max(clampedRight - clampedLeft, 12);
+
+      const wash = document.createElement('div');
+      wash.className = 'session-wash';
+      wash.style.left = `${clampedLeft}px`;
+      wash.style.width = `${pillW}px`;
+      wash.style.setProperty('--wash-color', session.color);
+      sessionLayer.appendChild(wash);
 
       for (const [which, x] of [
         ['start', startX],
@@ -585,7 +598,9 @@ export function createSessionMode(
       clearPendingCreation();
       const sessionLayer = getSessionLayer();
       sessionLayer
-        ?.querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill')
+        ?.querySelectorAll(
+          '.session-drag-handle, .session-drag-guide, .session-ghost-pill, .session-wash',
+        )
         .forEach((el) => el.remove());
     },
     renderHandles,
@@ -602,7 +617,9 @@ export function createSessionMode(
       dragLabel.remove();
       const sessionLayer = getSessionLayer();
       sessionLayer
-        ?.querySelectorAll('.session-drag-handle, .session-drag-guide, .session-ghost-pill')
+        ?.querySelectorAll(
+          '.session-drag-handle, .session-drag-guide, .session-ghost-pill, .session-wash',
+        )
         .forEach((el) => el.remove());
     },
   };

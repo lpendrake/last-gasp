@@ -1,16 +1,11 @@
-import { useMemo, useState, type CSSProperties, type ReactElement } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo, type CSSProperties, type ReactElement } from 'react';
 import './session-bands.css';
 import type { EventListItem, Session } from '../data/types';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import {
   computeSessionBandsFromSessions,
   computeSessionPills,
-  computeTooltipPosition,
-  formatRealRange,
-  formatGameRange,
   type SessionPillLayout,
-  type TooltipPosition,
 } from './session-bands';
 
 interface SessionBandsProps {
@@ -22,50 +17,13 @@ interface SessionBandsProps {
   onPillClick?: (sessionId: string) => void;
 }
 
-interface TooltipState extends TooltipPosition {
-  session: Session;
-}
-
-interface SessionTooltipProps extends TooltipPosition {
-  session: Session;
-}
-
-function SessionTooltip({ session, left, bottom }: SessionTooltipProps): ReactElement {
-  return (
-    <div
-      className="session-tooltip"
-      style={{ left, bottom, '--tooltip-border': session.color } as CSSProperties}
-    >
-      <div className="session-tooltip-header">
-        session · <span style={{ color: session.color }}>■</span> {session.id}
-      </div>
-      <div className="session-tooltip-row">
-        <span className="session-tooltip-key">real:</span>
-        {formatRealRange(session.realStart, session.realEnd)}
-      </div>
-      <div className="session-tooltip-row">
-        <span className="session-tooltip-key">game:</span>
-        {formatGameRange(session.inGameStart, session.inGameEnd)}
-      </div>
-    </div>
-  );
-}
-
 interface SessionPillProps {
   pill: SessionPillLayout;
-  session: Session;
   sessionMode?: boolean;
-  onHover: (state: TooltipState | null) => void;
   onPillClick?: (sessionId: string) => void;
 }
 
-function SessionPill({
-  pill,
-  session,
-  sessionMode,
-  onHover,
-  onPillClick,
-}: SessionPillProps): ReactElement {
+function SessionPill({ pill, sessionMode, onPillClick }: SessionPillProps): ReactElement {
   const className =
     'session-pill' +
     (pill.leftFlat ? ' left-flat' : '') +
@@ -83,19 +41,10 @@ function SessionPill({
           width: pill.width,
           height: pill.height,
           '--pill-color': pill.color,
-          pointerEvents: 'auto',
-          cursor: sessionMode ? 'pointer' : undefined,
+          pointerEvents: sessionMode ? 'auto' : 'none',
+          cursor: sessionMode ? 'pointer' : 'default',
         } as CSSProperties
       }
-      onMouseEnter={(e) => {
-        const pos = computeTooltipPosition(
-          e.currentTarget.getBoundingClientRect(),
-          window.innerWidth,
-          window.innerHeight,
-        );
-        onHover({ session, ...pos });
-      }}
-      onMouseLeave={() => onHover(null)}
       onClick={() => {
         if (sessionMode && onPillClick) onPillClick(pill.sessionId);
       }}
@@ -114,13 +63,6 @@ export function SessionBands({
   sessionMode,
   onPillClick,
 }: SessionBandsProps): ReactElement | null {
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-
-  const sessionMap = useMemo(
-    () => new Map<string, Session>(sessions.map((s) => [s.id, s])),
-    [sessions],
-  );
-
   const bands = useMemo(
     () => computeSessionBandsFromSessions(sessions, events),
     [sessions, events],
@@ -135,28 +77,19 @@ export function SessionBands({
   if (pills.length === 0) return null;
 
   return (
-    <>
-      <div data-session-layer style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-        {pills.map((pill) => {
-          const session = sessionMap.get(pill.sessionId);
-          if (!session) return null;
-          return (
-            <SessionPill
-              key={pill.sessionId}
-              pill={pill}
-              session={session}
-              sessionMode={sessionMode}
-              onHover={setTooltip}
-              onPillClick={onPillClick}
-            />
-          );
-        })}
-      </div>
-      {tooltip !== null &&
-        createPortal(
-          <SessionTooltip session={tooltip.session} left={tooltip.left} bottom={tooltip.bottom} />,
-          document.body,
-        )}
-    </>
+    <div
+      data-session-layer
+      data-session-mode={sessionMode || undefined}
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+    >
+      {pills.map((pill) => (
+        <SessionPill
+          key={pill.sessionId}
+          pill={pill}
+          sessionMode={sessionMode}
+          onPillClick={onPillClick}
+        />
+      ))}
+    </div>
   );
 }

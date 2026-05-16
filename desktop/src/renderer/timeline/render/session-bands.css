@@ -50,38 +50,3 @@
   pointer-events: none;
 }
 
-/* ===== Session tooltip ===== */
-
-.session-tooltip {
-  position: fixed;
-  z-index: 9999;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--tooltip-border, #6b7c5a);
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: var(--theme-text-primary, #d8d0b8);
-  max-width: 360px;
-  pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  line-height: 1.4;
-}
-
-.session-tooltip-header {
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: var(--theme-text-primary, #d8d0b8);
-}
-
-.session-tooltip-row {
-  display: flex;
-  gap: 8px;
-  color: var(--theme-text-secondary, #a89a80);
-  line-height: 1.5;
-}
-
-.session-tooltip-key {
-  color: var(--theme-text-muted, #7a6f58);
-  min-width: 36px;
-  flex-shrink: 0;
-}
