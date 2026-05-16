@@ -23,12 +23,12 @@ Before doing anything else, fetch both the **body** and the **labels** of the is
 
 ### 2. Read the oversight tier from the labels
 
-| Label | Plan stage | Pre-PR review |
-| --- | --- | --- |
-| `oversight:none` | Sonnet plans inline. | No opus review required. |
-| `oversight:basic` | Sonnet plans inline. | Opus advisor reviews the diff before the PR is opened. |
-| `oversight:extended` | Spawn the `Plan` subagent first and post its plan as a comment on the issue. | Opus advisor reviews the diff before the PR is opened. |
-| (no `oversight:*` label) | Treat as `oversight:basic`. | Treat as `oversight:basic`. |
+| Label | Plan stage                                                                       | Pre-PR review |
+| --- |----------------------------------------------------------------------------------| --- |
+| `oversight:none` | Sonnet plans inline.                                                             | No opus review required. |
+| `oversight:basic` | Sonnet plans inline.                                                             | Opus advisor reviews the diff before the PR is opened. |
+| `oversight:extended` | Spawn an Opus `Plan` subagent first and post its plan as a comment on the issue. | Opus advisor reviews the diff before the PR is opened. |
+| (no `oversight:*` label) | Treat as `oversight:basic`.                                                      | Treat as `oversight:basic`. |
 
 The ticket body may add **extra** reviewer criteria (e.g. "zero changes outside `./desktop/`"). It cannot waive the ones below.
 
