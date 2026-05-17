@@ -80,4 +80,18 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.invoke('timeline:getTags', campaignPath),
   timelineLoadPalette: (campaignPath: string) =>
     ipcRenderer.invoke('timeline:loadPalette', campaignPath),
+
+  // App
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
+  installUpdate: () => ipcRenderer.invoke('app:installUpdate'),
+  onUpdateAvailable: (callback: (info: { version: string; releaseNotes: string }) => void) => {
+    const listener = (_e: unknown, info: { version: string; releaseNotes: string }) => callback(info);
+    ipcRenderer.on('app:updateAvailable', listener);
+    return () => ipcRenderer.removeListener('app:updateAvailable', listener);
+  },
+  onUpdateDownloaded: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('app:updateDownloaded', listener);
+    return () => ipcRenderer.removeListener('app:updateDownloaded', listener);
+  },
 });

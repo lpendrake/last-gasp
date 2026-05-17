@@ -55,9 +55,31 @@ app.whenReady().then(() => {
     return true;
   });
 
-  // Automatically check for updates silently
+  autoUpdater.autoDownload = false;
+
+  autoUpdater.on('update-available', (info) => {
+    const notes =
+      typeof info.releaseNotes === 'string'
+        ? info.releaseNotes
+        : Array.isArray(info.releaseNotes)
+          ? (info.releaseNotes as { note: string }[]).map((r) => r.note).join('\n')
+          : '';
+    mainWindow.webContents.send('app:updateAvailable', {
+      version: info.version,
+      releaseNotes: notes,
+    });
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-updater error:', err.message);
+  });
+
   if (app.isPackaged) {
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdates();
   }
 
   app.on('activate', () => {

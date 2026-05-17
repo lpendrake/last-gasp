@@ -2,9 +2,12 @@ import { ipcMain, dialog, app, shell } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import matter from 'gray-matter';
+import pkg from 'electron-updater';
 import { generateShortId } from '../shared/ids.js';
 import { buildLinkIndex } from './linkIndex.js';
 import { registerTimelineIpcHandlers } from './timelineIpcHandlers.js';
+
+const { autoUpdater } = pkg;
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
@@ -271,4 +274,9 @@ ${description}
   });
 
   registerTimelineIpcHandlers();
+
+  ipcMain.handle('app:getVersion', () => app.getVersion());
+  ipcMain.handle('app:installUpdate', async () => {
+    await autoUpdater.downloadUpdate();
+  });
 }

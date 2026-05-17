@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Campaign } from '../../../types/global';
 
 interface CampaignManagerProps {
@@ -7,6 +7,10 @@ interface CampaignManagerProps {
   onCreate: (name: string, description: string) => Promise<{ success: boolean; error?: string }>;
   onChangeDir: () => void;
   rootDir: string;
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').trim();
 }
 
 export function CampaignManager({
@@ -19,6 +23,21 @@ export function CampaignManager({
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [appVersion, setAppVersion] = useState('');
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; releaseNotes: string } | null>(
+    null,
+  );
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [installing, setInstalling] = useState(false);
+
+  useEffect(() => {
+    window.fsApi.getAppVersion().then(setAppVersion);
+
+    const unsub = window.fsApi.onUpdateAvailable((info) => {
+      setUpdateInfo(info);
+    });
+    return unsub;
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +52,15 @@ export function CampaignManager({
     }
   };
 
+  const handleInstall = async () => {
+    setInstalling(true);
+    try {
+      await window.fsApi.installUpdate();
+    } catch {
+      setInstalling(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -44,6 +72,105 @@ export function CampaignManager({
         overflow: 'hidden',
       }}
     >
+      {/* Update modal */}
+      {showUpdateModal && updateInfo && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowUpdateModal(false);
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#18181b',
+              border: '1px solid #27272a',
+              borderRadius: '16px',
+              padding: '32px',
+              width: '480px',
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <div>
+              <h2 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: 700 }}>
+                Update available
+              </h2>
+              <div style={{ fontSize: '13px', color: '#71717a' }}>
+                v{appVersion} → v{updateInfo.version}
+              </div>
+            </div>
+
+            {updateInfo.releaseNotes && (
+              <div
+                style={{
+                  background: '#09090b',
+                  border: '1px solid #27272a',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  fontSize: '13px',
+                  color: '#a1a1aa',
+                  lineHeight: '1.6',
+                  overflowY: 'auto',
+                  maxHeight: '300px',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {stripHtml(updateInfo.releaseNotes)}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                disabled={installing}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #27272a',
+                  color: '#a1a1aa',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  cursor: installing ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Later
+              </button>
+              <button
+                onClick={handleInstall}
+                disabled={installing}
+                style={{
+                  background: installing ? '#4338ca' : '#6366f1',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: installing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                {installing ? 'Downloading…' : 'Download & Install'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header
         style={{
@@ -58,6 +185,28 @@ export function CampaignManager({
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>My Campaigns</h1>
           <div style={{ fontSize: '13px', color: '#71717a', marginTop: '4px' }}>
             Workspace: <span style={{ color: '#a1a1aa' }}>{rootDir}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+            {appVersion && (
+              <span style={{ fontSize: '12px', color: '#3f3f46' }}>v{appVersion}</span>
+            )}
+            {updateInfo && (
+              <button
+                onClick={() => setShowUpdateModal(true)}
+                style={{
+                  fontSize: '11px',
+                  color: '#f59e0b',
+                  background: 'rgba(245,158,11,0.1)',
+                  border: '1px solid rgba(245,158,11,0.3)',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                  lineHeight: '1.6',
+                }}
+              >
+                Update available
+              </button>
+            )}
           </div>
         </div>
         <button
