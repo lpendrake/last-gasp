@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { MarkdownEditor, FormatToolbar } from '../../shared/markdown-editor';
+import type { WikiLinkSuggestion } from '../../shared/markdown-editor';
 import { FooterPortal } from '../../components/footer-portal';
 import { timelinePort, ConflictError } from '../data/ports';
+import { notesData } from '../../notes/data';
 import {
   emptyBuffer,
   bufferFromEvent,
@@ -48,6 +50,32 @@ export function EventEditorModal({
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [conflictPending, setConflictPending] = useState<ConflictPending | null>(null);
+  const [linkIndex, setLinkIndex] = useState<Awaited<ReturnType<typeof notesData.getLinkIndex>>>(
+    [],
+  );
+
+  useEffect(() => {
+    notesData
+      .getLinkIndex(campaignPath)
+      .then(setLinkIndex)
+      .catch(() => {});
+  }, [campaignPath]);
+
+  const suggestLinks = useCallback(
+    async (query: string): Promise<WikiLinkSuggestion[]> => {
+      const q = query.toLowerCase();
+      return linkIndex
+        .filter((e) => e.title.toLowerCase().includes(q) || e.id.toLowerCase().includes(q))
+        .map((e) =>
+          e.type === 'asset'
+            ? { id: '', label: e.title, detail: e.path, assetPath: e.path }
+            : { id: e.id, label: e.title, detail: e.path },
+        );
+    },
+    [linkIndex],
+  );
+
+  const knownIds = useMemo(() => new Set(linkIndex.map((e) => e.id)), [linkIndex]);
 
   // Refs for stable access inside async callbacks without needing deps
   const lastModifiedRef = useRef<string | null>(null);
@@ -453,6 +481,7 @@ export function EventEditorModal({
                   content={buffer.body}
                   onChange={(s) => updateBuffer({ body: s })}
                   viewRef={viewRef}
+                  wikiLinks={{ suggest: suggestLinks, onOpen: () => {}, knownIds }}
                 />
               </div>
             </>
