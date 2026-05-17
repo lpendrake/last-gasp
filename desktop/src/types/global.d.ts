@@ -92,6 +92,14 @@ declare global {
       timelinePutState: (campaignPath: string, state: State) => Promise<{ ok: true }>;
       timelineGetTags: (campaignPath: string) => Promise<TagsRegistry>;
       timelineLoadPalette: (campaignPath: string) => Promise<Palette>;
+
+      // App
+      getAppVersion: () => Promise<string>;
+      installUpdate: () => Promise<void>;
+      onUpdateAvailable: (
+        callback: (info: { version: string; releaseNotes: string }) => void,
+      ) => () => void;
+      onUpdateDownloaded: (callback: () => void) => () => void;
     };
   }
 }

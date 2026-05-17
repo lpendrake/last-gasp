@@ -8,7 +8,7 @@ export class WindowManager {
     this.mainWindow = new BrowserWindow({
       show: false, // Create hidden to avoid a "flicker" while maximizing
       autoHideMenuBar: true, // Clean "App" look, press Alt to show it
-      icon: path.join(app.getAppPath(), 'src/assets/images/icon.ico'),
+      icon: path.join(app.getAppPath(), 'src/assets/images/TTT.ico'),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
