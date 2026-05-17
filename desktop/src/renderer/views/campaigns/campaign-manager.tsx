@@ -186,21 +186,21 @@ export function CampaignManager({
           <img
             src={tttIconUrl}
             alt="TableTop Timeline"
-            style={{ height: '48px', width: 'auto', flexShrink: 0 }}
+            style={{ height: '160px', width: 'auto', flexShrink: 0 }}
           />
           <div>
-            <div style={{ fontSize: '20px', fontWeight: 700, lineHeight: 1.2 }}>
+            <div style={{ fontSize: '60px', fontWeight: 700, lineHeight: 1.2 }}>
               TableTop Timeline
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
               {appVersion && (
-                <span style={{ fontSize: '12px', color: '#3f3f46' }}>v{appVersion}</span>
+                <span style={{ fontSize: '20px', color: '#3f3f46' }}>v{appVersion}</span>
               )}
               {updateInfo && (
                 <button
                   onClick={() => setShowUpdateModal(true)}
                   style={{
-                    fontSize: '11px',
+                    fontSize: '20px',
                     color: '#f59e0b',
                     background: 'rgba(245,158,11,0.1)',
                     border: '1px solid rgba(245,158,11,0.3)',
@@ -214,7 +214,7 @@ export function CampaignManager({
                 </button>
               )}
             </div>
-            <div style={{ fontSize: '12px', color: '#52525b', marginTop: '3px' }}>
+            <div style={{ fontSize: '20px', color: '#52525b', marginTop: '3px' }}>
               <span style={{ color: '#3f3f46' }}>Workspace: </span>
               <span style={{ color: '#52525b' }}>{rootDir}</span>
             </div>
