@@ -112,6 +112,7 @@ export function CardExpansion({
           className="exp-body"
           content={body}
           images={{ resolveSrc: resolveEventImageSrc }}
+          baseDir="events"
         />
       ) : (
         <div className="exp-body">

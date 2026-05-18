@@ -40,12 +40,19 @@ export default function App() {
 
   useEffect(() => {
     if (!activeCampaign) return;
+    const campaignPath = activeCampaign.path;
+    linkIndexRef.current = [];
+    let active = true;
     notesData
-      .getLinkIndex(activeCampaign.path)
+      .getLinkIndex(campaignPath)
       .then((index) => {
-        linkIndexRef.current = index;
+        if (active) linkIndexRef.current = index;
       })
       .catch(() => {});
+    return () => {
+      active = false;
+      linkIndexRef.current = [];
+    };
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
