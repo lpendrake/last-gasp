@@ -146,9 +146,6 @@ export default function App() {
       {/* Main View Area */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>{renderView()}</div>
 
-      {/* Filter panel slot — filled by FilterPanel via portal when open */}
-      <div id="filter-panel-root" />
-
       {/* Persistent Footer */}
       <Footer
         currentView={currentView}
