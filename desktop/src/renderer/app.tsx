@@ -10,6 +10,7 @@ import { useCampaignPalette } from './hooks/useCampaignPalette';
 import { paletteToCssVars } from './timeline/palette';
 import { SearchOverlay } from './components/search-overlay';
 import type { EventListItem } from './timeline/data/types';
+import { showPeek } from './peek/show';
 import '../../src/index.css';
 
 export default function App() {
@@ -43,6 +44,31 @@ export default function App() {
     // Capture phase so we intercept before CM6's bubble-phase keydown handler.
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [activeCampaign]);
+
+  // DEBUG — remove before shipping sub-issue 2
+  // Usage: window.__peekDebug('notes/npcs/bob.md')
+  //        window.__peekDebug('timeline/some-event.md', 'event')
+  useEffect(() => {
+    if (!activeCampaign) return;
+    const campaignPath = activeCampaign.path;
+    (window as Record<string, unknown>)['__peekDebug'] = (
+      path: string,
+      kind: 'note' | 'event' = 'note',
+      targetEl: HTMLElement = document.body,
+    ) =>
+      showPeek({
+        targetEl,
+        linkInfo: { kind, path },
+        fetcher: (p) =>
+          window.fsApi.read(`${campaignPath}/${p}`).then((r) => {
+            if (r === null) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+            return r;
+          }),
+      });
+    return () => {
+      delete (window as Record<string, unknown>)['__peekDebug'];
+    };
   }, [activeCampaign]);
 
   const handleJumpToEvent = useCallback((ev: EventListItem) => {
