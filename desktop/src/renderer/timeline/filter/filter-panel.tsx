@@ -1,24 +1,10 @@
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { EventListItem, Session } from '../data/types';
 import type { DateFilter, Filter, FilterState, TagFilter } from './types';
 import { newFilterId, nowForField } from './logic';
 import { FilterChip } from './filter-chip';
 import './filter-panel.css';
-
-const FOOTER_HEIGHT = 50;
-
-const panelStyle: CSSProperties = {
-  position: 'fixed',
-  bottom: FOOTER_HEIGHT,
-  left: 0,
-  right: 0,
-  background: 'var(--theme-panel, #2d3d2a)',
-  borderTop: '1px solid var(--theme-border, #3a3a30)',
-  padding: '8px 12px',
-  zIndex: 200,
-  boxShadow: '0 -4px 12px rgba(0,0,0,0.5)',
-};
 
 export interface FilterPanelProps {
   filterState: FilterState;
@@ -91,7 +77,7 @@ export function FilterPanel({
   }, [addMenuOpen]);
 
   const content = (
-    <div style={panelStyle}>
+    <div className="filter-panel">
       <div className="filter-bar">
         {/* Add filter button */}
         <div className="filter-add-wrap">

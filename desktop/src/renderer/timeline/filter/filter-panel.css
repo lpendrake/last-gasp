@@ -1,3 +1,14 @@
+.filter-panel {
+  position: fixed;
+  bottom: 50px;
+  left: 0;
+  right: 0;
+  background: var(--theme-panel, #2d3d2a);
+  border-top: 1px solid var(--theme-border, #3a3a30);
+  padding: 8px 12px;
+  z-index: 200;
+}
+
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
