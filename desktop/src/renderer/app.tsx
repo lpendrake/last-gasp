@@ -45,9 +45,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [activeCampaign]);
 
-  const handleJumpToEvent = useCallback((ev: EventListItem) => {
+  const handleJumpToEvent = useCallback((target: string | EventListItem) => {
+    const filename = typeof target === 'string' ? target : target.filename;
     setCurrentView('timeline');
-    setPendingJumpFilename(ev.filename);
+    setPendingJumpFilename(filename);
   }, []);
 
   const handleOpenNote = useCallback((path: string, matchOffset?: number) => {
@@ -103,6 +104,7 @@ export default function App() {
             onNoteOpenHandled={() => setPendingOpenNotePath(null)}
             pendingNoteMatchOffset={pendingNoteMatchOffset}
             onNoteMatchOffsetHandled={() => setPendingNoteMatchOffset(null)}
+            onOpenEvent={handleJumpToEvent}
           />
         );
       case 'timeline':
@@ -125,6 +127,7 @@ export default function App() {
             onNoteOpenHandled={() => setPendingOpenNotePath(null)}
             pendingNoteMatchOffset={pendingNoteMatchOffset}
             onNoteMatchOffsetHandled={() => setPendingNoteMatchOffset(null)}
+            onOpenEvent={handleJumpToEvent}
           />
         );
     }

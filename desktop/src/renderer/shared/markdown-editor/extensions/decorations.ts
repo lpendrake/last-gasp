@@ -39,8 +39,11 @@ function buildDecorations(state: EditorState): DecorationSet {
     enter: (node) => {
       const parent = node.node.parent;
       const parentName = parent?.name ?? '';
-      // For marks: reveal when cursor is near the containing element (parent), not just anywhere on the line
-      const nearCursor = isCursorNear(cursorHead, parent?.from ?? node.from, parent?.to ?? node.to);
+      // For marks: reveal when cursor is near the containing element (parent), not just anywhere on the line.
+      // In readonly mode the cursor position is irrelevant — always render the polished view.
+      const nearCursor =
+        !state.readOnly &&
+        isCursorNear(cursorHead, parent?.from ?? node.from, parent?.to ?? node.to);
 
       // Headings — always styled; mark hidden unless cursor is on this heading
       if (node.name === 'HeaderMark') {

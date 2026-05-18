@@ -203,6 +203,12 @@ ${description}
     }
   });
 
+  ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+    if (!/^(?:https?|mailto):/i.test(url)) return false;
+    await shell.openExternal(url);
+    return true;
+  });
+
   ipcMain.handle('fs:trash', async (event, filePath: string) => {
     try {
       const normalized = path.resolve(filePath);

@@ -29,6 +29,7 @@ interface NotesAppProps {
   onNoteOpenHandled?: () => void;
   pendingNoteMatchOffset?: number | null;
   onNoteMatchOffsetHandled?: () => void;
+  onOpenEvent?: (filename: string) => void;
 }
 
 export function NotesApp({
@@ -38,8 +39,9 @@ export function NotesApp({
   onNoteOpenHandled,
   pendingNoteMatchOffset,
   onNoteMatchOffsetHandled,
+  onOpenEvent,
 }: NotesAppProps) {
-  const ctrl = useNotesController({ campaignId, campaignPath });
+  const ctrl = useNotesController({ campaignId, campaignPath, onOpenEvent });
   const knownIds = useMemo(() => new Set(ctrl.linkIndex.map((e) => e.id)), [ctrl.linkIndex]);
 
   const editorStateCache = useRef(new Map<string, SavedEditorInstance>());
@@ -190,6 +192,7 @@ export function NotesApp({
                   onOpen: ctrl.handleOpenLink,
                   knownIds,
                 }}
+                mdLinks={{ onOpenInternal: ctrl.openMarkdownLink }}
                 imagePaste={imagePasteConfig}
                 dropLink={dropLinkConfig}
               />

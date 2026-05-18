@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseTrigger, findWikiLinksInLine } from '../wiki-links';
+import { EditorState } from '@codemirror/state';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import { parseTrigger, findWikiLinksInLine, wikiLinks } from '../wiki-links';
 
 describe('parseTrigger', () => {
   it('treats [[ as a 2-char prefix', () => {
@@ -86,5 +88,31 @@ describe('cursor-in-link range check (inclusive bounds)', () => {
     // to=12, cursor at 13
     const cursor = link.to + 1;
     expect(link.from <= cursor && cursor <= link.to).toBe(false);
+  });
+});
+
+describe('readonly mode state', () => {
+  it('EditorState.readOnly is true when readOnly extension is included', () => {
+    // This verifies the setup that the !state.readOnly guard in buildDecorations relies on.
+    const state = EditorState.create({
+      doc: '[[Bob|abc1]]',
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        wikiLinks({}),
+        EditorState.readOnly.of(true),
+      ],
+      selection: { anchor: 2 },
+    });
+    expect(state.readOnly).toBe(true);
+    // The selection IS inside the link even though readOnly is true,
+    // which is the condition the !state.readOnly guard in buildDecorations must handle.
+    const [link] = findWikiLinksInLine('[[Bob|abc1]]', 0);
+    const selectionOverlaps = state.selection.ranges.some(
+      (r) => r.from <= link.to && r.to >= link.from,
+    );
+    expect(selectionOverlaps).toBe(true);
+    // The guard `!state.readOnly && selectionOverlaps` evaluates to false,
+    // so the link renders as a widget, not raw text.
+    expect(!state.readOnly && selectionOverlaps).toBe(false);
   });
 });

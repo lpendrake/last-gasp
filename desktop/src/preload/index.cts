@@ -81,6 +81,8 @@ contextBridge.exposeInMainWorld('fsApi', {
   timelineLoadPalette: (campaignPath: string) =>
     ipcRenderer.invoke('timeline:loadPalette', campaignPath),
 
+  openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+
   // App
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   installUpdate: () => ipcRenderer.invoke('app:installUpdate'),

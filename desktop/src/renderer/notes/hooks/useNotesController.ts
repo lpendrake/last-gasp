@@ -20,9 +20,14 @@ import type { ContextMenuTarget } from '../components/note-context-menu';
 interface NotesControllerOptions {
   campaignId: string;
   campaignPath: string;
+  onOpenEvent?: (filename: string) => void;
 }
 
-export function useNotesController({ campaignId, campaignPath }: NotesControllerOptions) {
+export function useNotesController({
+  campaignId,
+  campaignPath,
+  onOpenEvent,
+}: NotesControllerOptions) {
   // ---- Data ----
   const [folders, setFolders] = useState<string[]>([]);
   const [folderFiles, setFolderFiles] = useState<Record<string, NoteEntry[] | null>>({});
@@ -641,10 +646,30 @@ export function useNotesController({ campaignId, campaignPath }: NotesController
       pushToast(`Note not found: ${id}`, true);
       return;
     }
+    if (entry.type === 'event') {
+      if (!onOpenEvent) {
+        pushToast('Cannot navigate to event from here', true);
+        return;
+      }
+      // entry.path is 'timeline/filename.md' — strip the leading 'timeline/' segment
+      const filename = entry.path.split('/').slice(1).join('/');
+      onOpenEvent(filename);
+      return;
+    }
     const parts = entry.path.split('/');
     const folder = parts[1];
     const path = parts.slice(2).join('/');
     openFile(folder, path).catch(() => pushToast(`Failed to open linked note`, true));
+  }
+
+  function openMarkdownLink(rawUrl: string) {
+    const target = rawUrl.replace(/^\.?\//, '');
+    const match = linkIndex.find((e) => e.path === target || e.path.endsWith('/' + target));
+    if (!match) {
+      console.warn('Unresolved internal link:', rawUrl);
+      return;
+    }
+    handleOpenLink(match.id);
   }
 
   async function suggestLinks(query: string) {
@@ -767,6 +792,7 @@ export function useNotesController({ campaignId, campaignPath }: NotesController
     handleRenameFolder,
     handleMove,
     handleOpenLink,
+    openMarkdownLink,
     suggestLinks,
     handleQuickAddCreate,
     pushToast,

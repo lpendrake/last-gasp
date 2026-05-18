@@ -271,7 +271,9 @@ function buildDecorations(state: EditorState, _config: WikiLinksConfig): Decorat
       // Inclusive bounds: cursor AT link.from or link.to counts as "inside" the link.
       // This matters because Decoration.replace (used below) is atomic — the cursor
       // can only land at the two boundary positions, never strictly inside.
-      const isSelected = state.selection.ranges.some((r) => r.from <= link.to && r.to >= link.from);
+      const isSelected =
+        !state.readOnly &&
+        state.selection.ranges.some((r) => r.from <= link.to && r.to >= link.from);
       const broken = hasIndex && !knownIds.has(link.id);
 
       if (isSelected) {

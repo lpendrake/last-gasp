@@ -52,6 +52,7 @@ declare global {
       writeBuffer: (path: string, buffer: Uint8Array) => Promise<boolean>;
       delete: (path: string) => Promise<boolean>;
       trash: (path: string) => Promise<boolean>;
+      openExternal: (url: string) => Promise<boolean>;
       rename: (oldPath: string, newPath: string) => Promise<boolean>;
 
       // Notes
