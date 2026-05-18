@@ -158,6 +158,12 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
         </>
       )}
 
+      {/* Far-left portal slot — directly to the right of the view menu */}
+      <div
+        id="footer-slot-far-left"
+        style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}
+      />
+
       {/* Three-slot portal grid — fills remaining footer width */}
       <div
         style={{

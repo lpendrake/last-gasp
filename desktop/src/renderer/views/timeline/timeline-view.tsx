@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { timelinePort, ConflictError } from '../../timeline/data/ports';
 import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
 import {
@@ -42,6 +42,9 @@ import { SessionEditorModal } from '../../timeline/session-editor/session-editor
 import { FooterPortal } from '../../components/footer-portal';
 import { FooterButton } from '../../components/footer-button';
 import { loadSavedViewState, saveViewState } from './view-state-persistence';
+import { useFilterState } from '../../timeline/filter/use-filter-state';
+import { applyFilters } from '../../timeline/filter/logic';
+import { FilterPanel } from '../../timeline/filter/filter-panel';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
@@ -79,6 +82,17 @@ export function TimelineView({
   });
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [advanceTimeAnchor, setAdvanceTimeAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  const {
+    filterState,
+    activeCount,
+    addFilter,
+    removeFilter,
+    toggleFilter,
+    pinFilter,
+    updateFilter,
+  } = useFilterState(campaignPath);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
 
   const isInitialized = useRef(false);
   const resizingRef = useRef(false);
@@ -413,6 +427,11 @@ export function TimelineView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingJumpFilename, loadedData.events.length]);
 
+  const filteredEvents = useMemo(
+    () => applyFilters(loadedData.events, filterState, loadedData.sessions),
+    [loadedData.events, filterState, loadedData.sessions],
+  );
+
   const bgColor = palette?.theme.background ?? '#09090b';
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
@@ -445,7 +464,7 @@ export function TimelineView({
         {palette && (
           <SessionBands
             sessions={loadedData.sessions}
-            events={loadedData.events}
+            events={filteredEvents}
             view={viewState}
             size={viewportSize}
             sessionMode={sessionMode.active}
@@ -456,7 +475,7 @@ export function TimelineView({
         )}
         {palette && (
           <Cards
-            events={loadedData.events}
+            events={filteredEvents}
             view={viewState}
             size={viewportSize}
             palette={palette}
@@ -545,6 +564,21 @@ export function TimelineView({
         )}
       </div>
 
+      {/* Filter panel — rendered above the footer when open, hidden while modals are open */}
+      {filterPanelOpen && !anyModalOpen && palette && (
+        <FilterPanel
+          filterState={filterState}
+          events={loadedData.events}
+          sessions={loadedData.sessions}
+          inGameNow={inGameNow ?? ''}
+          onAdd={addFilter}
+          onRemove={removeFilter}
+          onToggle={toggleFilter}
+          onPin={pinFilter}
+          onUpdate={updateFilter}
+        />
+      )}
+
       {/* Advance-time popover — rendered outside viewport via portal */}
       {advanceTimeAnchor && inGameNow && (
         <AdvanceTimePopover
@@ -588,6 +622,15 @@ export function TimelineView({
       {/* Footer buttons — hidden while any modal is open */}
       {!anyModalOpen && (
         <>
+          <FooterPortal slot="far-left">
+            <FooterButton
+              variant={filterPanelOpen ? 'active' : 'default'}
+              onClick={() => setFilterPanelOpen((open) => !open)}
+              title="Filter events"
+            >
+              {activeCount > 0 ? `Filter (${activeCount})` : 'Filter'}
+            </FooterButton>
+          </FooterPortal>
           <FooterPortal slot="left">
             <FooterButton
               variant={sessionMode.active ? 'active' : 'default'}
