@@ -112,3 +112,11 @@
   color: #c06040;
   font-size: 13px;
 }
+
+/* Prevent CodeMirror from placing a cursor on click, which would reveal raw
+   markdown at the cursor position via the decorations extension. Clicks fall
+   through to .peek-body and bubble up for pin handling. */
+.peek-body .cm-editor {
+  pointer-events: none;
+  user-select: none;
+}
