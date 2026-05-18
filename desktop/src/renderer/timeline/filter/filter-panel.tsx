@@ -7,16 +7,9 @@ import { FilterChip } from './filter-chip';
 import './filter-panel.css';
 
 const panelStyle: CSSProperties = {
-  position: 'fixed',
-  bottom: 50,
-  left: 0,
-  right: 0,
   background: 'var(--theme-panel, #2d3d2a)',
   borderTop: '1px solid var(--theme-border, #3a3a30)',
   padding: '8px 12px',
-  zIndex: 500,
-  maxHeight: 200,
-  overflowY: 'auto',
 };
 
 export interface FilterPanelProps {
@@ -42,9 +35,15 @@ export function FilterPanel({
   onPin,
   onUpdate,
 }: FilterPanelProps) {
+  const [mounted, setMounted] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   function openEditor(id: string) {
     setEditingId((prev) => (prev === id ? null : id));
@@ -88,6 +87,10 @@ export function FilterPanel({
       document.removeEventListener('click', handleClick);
     };
   }, [addMenuOpen]);
+
+  if (!mounted) return null;
+  const target = document.getElementById('filter-panel-root');
+  if (!target) return null;
 
   const content = (
     <div style={panelStyle}>
@@ -145,5 +148,5 @@ export function FilterPanel({
     </div>
   );
 
-  return createPortal(content, document.body);
+  return createPortal(content, target);
 }
