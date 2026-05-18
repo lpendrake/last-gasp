@@ -1,0 +1,45 @@
+# `src/renderer/peek/` — Hover-Preview Windows (React)
+
+Floating preview windows that appear when hovering links in notes or
+timeline cards. A small, self-contained system. Stack and hover wiring
+land in sub-issue 2; this module only covers data resolution and rendering.
+
+## Files
+
+- `resolve.ts` — turns a link href or wiki-link id into a `PeekTarget` (kind + path).
+- `parse-md.ts` — extracts title, body, and baseDir from raw markdown (pure).
+- `peek-window.tsx` — React component rendered into a `document.body` portal.
+- `show.ts` — imperative `showPeek()` API used by callers outside React trees.
+- `peek.css` — styles for `.peek-window`, `.peek-header`, `.peek-body`, etc.
+
+## Layer rules
+
+- May import `../shared/markdown-editor/markdown-preview` — the only allowed
+  cross-module import from outside `peek/`.
+- Receives file content via an injected `fetcher(path, signal)` callback.
+  Does NOT import `window.fsApi` directly.
+- May NOT import from `../notes/`, `../timeline/`, `../views/`.
+  The initiating slice wires in peek; peek doesn't know who initiated.
+
+## Add a peek target
+
+The system already handles `kind: 'note' | 'event'` via `PeekWindow`. To add
+rendering differentiation by kind, pass it through to `PeekWindow` and branch
+inside the component. To handle a new link format in `resolve.ts`, add a new
+resolution path before the plain-href fallback.
+
+## Conventions
+
+- Windows position via `anchorRect: DOMRect` passed in at call time — no direct
+  DOM measurement of the trigger element inside peek.
+- The z-index counter (`zCounter`) in `peek-window.tsx` is the single source of
+  truth for layering. Don't add a parallel registry.
+- `show.ts` is the imperative entry point for non-React callers.
+  React surfaces can render `<PeekWindow>` directly.
+
+## Don't
+
+- Don't fetch directly in `peek-window.tsx` outside the established `fetcher`
+  prop pattern. Resolution + fetcher injection happens at the call site.
+- Don't add hover delay, Esc handling, or stacking here. Those land in the
+  stack manager in sub-issue 2.
