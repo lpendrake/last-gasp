@@ -12,11 +12,9 @@ import {
 import { createPortal } from 'react-dom';
 import { MarkdownPreview } from '../shared/markdown-editor/markdown-preview';
 import { parseMd } from './parse-md';
-import type { PeekKind } from './resolve';
 
 export interface PeekWindowProps {
   path: string;
-  kind: PeekKind;
   anchorRect: DOMRect;
   stackDepth: number;
   /**
@@ -74,7 +72,7 @@ function isNotFound(err: unknown): boolean {
 }
 
 export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function PeekWindow(
-  { path, kind: _kind, anchorRect, stackDepth: _stackDepth, fetcher, onPin, onClose },
+  { path, anchorRect, stackDepth: _stackDepth, fetcher, onPin, onClose },
   ref,
 ) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });

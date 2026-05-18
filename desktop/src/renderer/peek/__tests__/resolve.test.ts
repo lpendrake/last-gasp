@@ -11,14 +11,12 @@ const linkIndex: LinkIndexEntry[] = [
 describe('resolvePeekTarget — plain href', () => {
   it('resolves relative .md from timeline to notes', () => {
     expect(resolvePeekTarget('../notes/npcs/bob.md', 'timeline', [])).toEqual({
-      kind: 'note',
       path: 'notes/npcs/bob.md',
     });
   });
 
   it('resolves relative .md within timeline', () => {
     expect(resolvePeekTarget('./other.md', 'timeline', [])).toEqual({
-      kind: 'event',
       path: 'timeline/other.md',
     });
   });
@@ -45,7 +43,6 @@ describe('resolvePeekTarget — plain href', () => {
 
   it('resolves deep relative path across folders', () => {
     expect(resolvePeekTarget('../../timeline/event.md', 'notes/npcs', [])).toEqual({
-      kind: 'event',
       path: 'timeline/event.md',
     });
   });
@@ -54,14 +51,12 @@ describe('resolvePeekTarget — plain href', () => {
 describe('resolvePeekTarget — wiki-link id', () => {
   it('resolves note id', () => {
     expect(resolvePeekTarget('bob', 'notes', linkIndex)).toEqual({
-      kind: 'note',
       path: 'notes/npcs/bob.md',
     });
   });
 
   it('resolves event id', () => {
     expect(resolvePeekTarget('battle', 'notes', linkIndex)).toEqual({
-      kind: 'event',
       path: 'timeline/battle.md',
     });
   });
@@ -80,7 +75,6 @@ describe('resolvePeekTarget — wiki-link id', () => {
 
   it('baseDir does not affect wiki-id resolution', () => {
     expect(resolvePeekTarget('bob', 'timeline', linkIndex)).toEqual({
-      kind: 'note',
       path: 'notes/npcs/bob.md',
     });
   });

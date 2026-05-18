@@ -28,10 +28,8 @@ land in sub-issue 2; this module only covers data resolution and rendering.
 
 To handle a new link format, add a resolution path in `resolve.ts` before the
 plain-href fallback. `PeekWindow` renders all targets identically — both notes
-and events are markdown files and the fetcher abstraction means the component
-doesn't branch on `kind`. The `kind` field on `PeekTarget` / `PeekWindowProps`
-is threaded through for the sub-issue 2 stack manager to use if it needs to
-(e.g. dismiss-on-navigate logic), not for rendering.
+and events are plain markdown files; the fetcher abstraction means the component
+doesn't need to know what kind of entity it's showing.
 
 ## Conventions
 

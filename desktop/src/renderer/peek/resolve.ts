@@ -1,9 +1,6 @@
 import type { LinkIndexEntry } from '../../types/global';
 
-export type PeekKind = 'note' | 'event';
-
 export interface PeekTarget {
-  kind: PeekKind;
   path: string;
 }
 
@@ -31,7 +28,7 @@ export function resolvePeekTarget(
     const entry = linkIndex.find((e) => e.id === href);
     if (!entry) return null;
     if (entry.type === 'asset') return null;
-    return { kind: entry.type === 'event' ? 'event' : 'note', path: entry.path };
+    return { path: entry.path };
   }
 
   // Plain href — mirror legacy resolveHref line-for-line
@@ -40,9 +37,7 @@ export function resolvePeekTarget(
 
   try {
     const resolved = new URL(href, `http://x/${baseDir}/`);
-    const path = resolved.pathname.slice(1);
-    const kind: PeekKind = path.startsWith('timeline/') ? 'event' : 'note';
-    return { kind, path };
+    return { path: resolved.pathname.slice(1) };
   } catch {
     return null;
   }

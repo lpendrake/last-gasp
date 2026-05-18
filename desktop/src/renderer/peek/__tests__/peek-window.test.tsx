@@ -66,7 +66,6 @@ describe('mounting & states', () => {
       root.render(
         <PeekWindow
           path="notes/npcs/bob.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -83,7 +82,6 @@ describe('mounting & states', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -101,7 +99,6 @@ describe('mounting & states', () => {
       root.render(
         <PeekWindow
           path="notes/npcs/bob.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -120,7 +117,6 @@ describe('mounting & states', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -138,7 +134,6 @@ describe('mounting & states', () => {
       root.render(
         <PeekWindow
           path="notes/npcs/bob.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={fetcher}
@@ -160,7 +155,6 @@ describe('error states', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeRejectedFetcher(new Error('boom'))}
@@ -183,7 +177,6 @@ describe('error states', () => {
       root.render(
         <PeekWindow
           path="notes/missing.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeRejectedFetcher(notFound)}
@@ -252,7 +245,6 @@ describe('close behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -272,7 +264,6 @@ describe('close behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -291,7 +282,6 @@ describe('close behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -313,7 +303,6 @@ describe('pin behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -333,7 +322,6 @@ describe('pin behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -353,7 +341,6 @@ describe('pin behavior', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -378,7 +365,6 @@ describe('positioning', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect({ left: 100, bottom: 120 })}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -398,7 +384,6 @@ describe('positioning', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect({ left: 500, bottom: 120 })}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -420,7 +405,6 @@ describe('drag', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect({ left: 100, bottom: 120 })}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -454,7 +438,6 @@ describe('drag', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect({ left: 100, bottom: 120 })}
           stackDepth={0}
           fetcher={makeNeverFetcher()}
@@ -483,7 +466,6 @@ describe('drag', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect({ left: 100, bottom: 120 })}
           stackDepth={0}
           fetcher={makeResolvedFetcher()}
@@ -526,7 +508,6 @@ describe('abort and cleanup', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={fetcher}
@@ -554,7 +535,6 @@ describe('abort and cleanup', () => {
       root.render(
         <PeekWindow
           path="notes/foo.md"
-          kind="note"
           anchorRect={makeAnchorRect()}
           stackDepth={0}
           fetcher={fetcher}

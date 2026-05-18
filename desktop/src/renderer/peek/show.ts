@@ -2,7 +2,6 @@ import { createElement, createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PeekWindow } from './peek-window';
 import type { PeekWindowHandle } from './peek-window';
-import type { PeekKind } from './resolve';
 
 export interface PeekHandle {
   pin(): void;
@@ -17,7 +16,7 @@ export interface PeekHandle {
 
 export interface ShowPeekOptions {
   targetEl: HTMLElement;
-  linkInfo: { kind: PeekKind; path: string };
+  linkInfo: { path: string };
   fetcher: (path: string, signal: AbortSignal) => Promise<string>;
   stackDepth?: number;
   onPin?: () => void;
@@ -45,7 +44,6 @@ export function showPeek(opts: ShowPeekOptions): PeekHandle {
     createElement(PeekWindow, {
       ref: windowRef,
       path: linkInfo.path,
-      kind: linkInfo.kind,
       anchorRect,
       stackDepth,
       fetcher,
