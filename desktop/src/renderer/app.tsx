@@ -12,7 +12,6 @@ import { SearchOverlay } from './components/search-overlay';
 import { notesData } from './notes/data';
 import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
-import { resolvePeekTarget } from './peek/resolve';
 import type { EventListItem } from './timeline/data/types';
 import type { LinkIndexEntry } from '../types/global';
 import '../../src/index.css';
@@ -69,7 +68,7 @@ export default function App() {
         return `# ${event.title}\n\n${event.body}`;
       },
       getLinkIndex: () => linkIndexRef.current,
-      onOpenNote: handleOpenNoteById,
+      onOpenById: handleOpenById,
     });
     return () => teardownPeek();
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -99,12 +98,17 @@ export default function App() {
     setPendingNoteMatchOffset(matchOffset ?? null);
   }, []);
 
-  const handleOpenNoteById = useCallback(
+  const handleOpenById = useCallback(
     (id: string) => {
-      const target = resolvePeekTarget(id, '', linkIndexRef.current);
-      if (target) handleOpenNote(target.path);
+      const entry = linkIndexRef.current.find((e) => e.id === id);
+      if (!entry) return;
+      if (entry.type === 'event') {
+        handleJumpToEvent(entry.path.split('/').pop()!);
+      } else if (entry.type === 'note') {
+        handleOpenNote(entry.path);
+      }
     },
-    [handleOpenNote],
+    [handleJumpToEvent, handleOpenNote],
   );
 
   if (isLoading) {
@@ -164,7 +168,7 @@ export default function App() {
             palette={palette}
             pendingJumpFilename={pendingJumpFilename}
             onJumpHandled={() => setPendingJumpFilename(null)}
-            onOpenNote={handleOpenNoteById}
+            onOpenById={handleOpenById}
           />
         );
       case 'relationships':

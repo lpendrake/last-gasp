@@ -24,7 +24,7 @@ export interface PeekWindowProps {
    * showing an error state.
    */
   fetcher: (path: string, signal: AbortSignal) => Promise<string>;
-  onOpenNote?: (id: string) => void;
+  onOpenById?: (id: string) => void;
   onPin?: () => void;
   onClose?: () => void;
 }
@@ -73,7 +73,7 @@ function isNotFound(err: unknown): boolean {
 }
 
 export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function PeekWindow(
-  { path, anchorRect, stackDepth: _stackDepth, fetcher, onOpenNote, onPin, onClose },
+  { path, anchorRect, stackDepth: _stackDepth, fetcher, onOpenById, onPin, onClose },
   ref,
 ) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
@@ -235,7 +235,7 @@ export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function
             content={loadState.body}
             images={{ resolveSrc: makeResolveSrc(loadState.baseDir) }}
             baseDir={loadState.baseDir}
-            wikiLinks={onOpenNote ? { onOpen: onOpenNote } : undefined}
+            wikiLinks={onOpenById ? { onOpen: onOpenById } : undefined}
           />
         )}
       </div>
