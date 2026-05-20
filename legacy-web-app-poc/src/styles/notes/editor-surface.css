@@ -1,0 +1,81 @@
+/* ---- Editor surface ----
+ *
+ * Layout for the contentEditable host (.live-editor), the source
+ * textarea, and the asset / loading panes. The markdown rendering
+ * inside .live-editor is in markdown.css. */
+
+.editor-surface {
+  flex: 1 1 auto;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+}
+.editor-surface.mode-live,
+.editor-surface.mode-source { grid-template-columns: 1fr; }
+.editor-surface.mode-split  { grid-template-columns: 1fr 1fr; }
+
+.editor-pane {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.editor-pane + .editor-pane { border-left: 1px solid var(--theme-border, #3a3a30); }
+
+.live-editor {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: auto;
+  padding: 28px 60px 100px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--theme-text-primary, #d8d0b8);
+}
+.live-editor[contenteditable] {
+  outline: none;
+  caret-color: var(--theme-accent-gold, #c9a860);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.source-editor {
+  flex: 1 1 auto;
+  width: 100%;
+  background: var(--theme-background, #1a1a1a);
+  color: var(--theme-text-primary, #d8d0b8);
+  border: none;
+  outline: none;
+  padding: 28px 60px 100px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 15px;
+  line-height: 1.65;
+  resize: none;
+}
+
+.image-pane {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  background: var(--theme-background, #1a1a1a);
+}
+.image-pane img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.loading-pane {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--theme-text-muted, #7a6f58);
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 13px;
+}

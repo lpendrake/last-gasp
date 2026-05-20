@@ -1,0 +1,72 @@
+/* ---- Markdown rendering inside the live editor ----
+ *
+ * .ml-* classes are emitted by editor/markdown/{inline,line}.ts.
+ * Markers (`#`, `**`, `[…](…)`) are wrapped in `.ml-marker`
+ * spans which CSS hides on inactive lines for a clean read view. */
+
+.live-editor .ml-line {
+  min-height: 1.65em;
+  position: relative;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 16px;
+  color: var(--theme-text-primary, #d8d0b8);
+  transition: background 0.08s;
+}
+.live-editor .ml-line.is-active { background: rgba(201, 168, 96, 0.05); }
+.live-editor .ml-line.is-blank  { min-height: 1.65em; }
+
+.live-editor .ml-line.is-h1 { font-size: 28px; font-weight: 600; color: var(--theme-accent-gold, #c9a860); margin: 0.6em 0 0.2em; line-height: 1.3; font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif; }
+.live-editor .ml-line.is-h2 { font-size: 22px; font-weight: 600; color: var(--theme-accent-gold, #c9a860); margin: 0.6em 0 0.2em; line-height: 1.3; font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif; }
+.live-editor .ml-line.is-h3 { font-size: 18px; font-weight: 600; color: var(--theme-accent-gold, #c9a860); margin: 0.5em 0 0.2em; line-height: 1.3; font-family: -apple-system, 'Helvetica Neue', Helvetica, sans-serif; }
+
+.live-editor .ml-line.is-h1.is-active .ml-marker,
+.live-editor .ml-line.is-h2.is-active .ml-marker,
+.live-editor .ml-line.is-h3.is-active .ml-marker {
+  color: var(--theme-text-muted, #7a6f58);
+  opacity: 0.55;
+  font-weight: 400;
+}
+
+.live-editor .ml-marker { color: var(--theme-text-muted, #7a6f58); opacity: 0.55; }
+.live-editor .ml-line:not(.is-active) .ml-marker.is-hideable { display: none; }
+
+.live-editor .ml-bold   { font-weight: 700; color: var(--theme-text-primary, #d8d0b8); }
+.live-editor .ml-italic { font-style: italic; }
+.live-editor .ml-code {
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 14px;
+  background: var(--theme-panel, #2d3d2a);
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid var(--theme-border, #3a3a30);
+}
+
+.live-editor .ml-image { max-width: 100%; max-height: 320px; display: block; margin: 4px 0; border-radius: 3px; }
+.live-editor .ml-line.is-active .ml-image { display: none; }
+
+.live-editor .ml-link { color: var(--theme-link, #4fb8d0); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.live-editor .ml-link.kind-npc            { color: var(--kind-npc); }
+.live-editor .ml-link.kind-location       { color: var(--kind-location); }
+.live-editor .ml-link.kind-faction        { color: var(--kind-faction); }
+.live-editor .ml-link.kind-plot           { color: var(--kind-plot); }
+.live-editor .ml-link.kind-rule           { color: var(--kind-rule); }
+.live-editor .ml-link.kind-session        { color: var(--kind-session); }
+.live-editor .ml-link.kind-player-facing  { color: var(--kind-player-facing); }
+.live-editor .ml-link.kind-broken         { color: var(--theme-danger, #c06040); text-decoration: underline wavy; }
+
+.live-editor .ml-line.is-bullet { padding-left: 18px; position: relative; }
+.live-editor .ml-line.is-bullet:not(.is-active)::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  color: var(--theme-text-muted, #7a6f58);
+}
+
+.live-editor .ml-line.is-quote {
+  border-left: 3px solid var(--theme-accent-warm, #b87840);
+  padding-left: 12px;
+  color: var(--theme-text-secondary, #a89a80);
+  font-style: italic;
+}

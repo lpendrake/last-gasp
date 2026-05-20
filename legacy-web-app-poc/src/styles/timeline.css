@@ -1,0 +1,536 @@
+/* ===== Timeline container ===== */
+
+.timeline-container {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.timeline-session-layer,
+.timeline-axis-layer,
+.timeline-cards-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.timeline-cards-layer .event-card {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ===== Session rail ===== */
+
+.session-pill {
+  position: absolute;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--pill-color, #6b7c5a);
+  opacity: 0.72;
+  pointer-events: none;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: opacity 0.12s;
+  box-sizing: border-box;
+}
+.is-session-mode .session-pill {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.session-pill:hover {
+  opacity: 1;
+}
+.session-pill.left-flat {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.session-pill.right-flat {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.session-pill-label {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: #fff;
+  white-space: nowrap;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* 1px seam between touching sessions */
+.session-pill-seam {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--theme-background, #1a1a1a);
+  pointer-events: none;
+}
+
+/* ===== Session mode wash ===== */
+
+.session-wash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--wash-color, #6b7c5a) 18%, transparent) 100%
+  );
+  opacity: 0.85;
+}
+
+/* ===== Shift-drag ghost pill ===== */
+
+.session-ghost-pill {
+  position: absolute;
+  background: var(--pill-color, #6b7c5a);
+  opacity: 0.4;
+  pointer-events: none;
+  border: 2px dashed var(--pill-color, #6b7c5a);
+  box-sizing: border-box;
+}
+
+/* ===== Session drag handles ===== */
+
+.session-drag-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--handle-color, #6b7c5a);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.session-drag-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--theme-surface, #242420);
+  border: 2px solid var(--handle-color, #6b7c5a);
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 5;
+}
+
+/* ===== Two-click creation preview pill ===== */
+
+.session-creation-pill {
+  position: absolute;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--theme-accent-gold, #c9a860);
+  opacity: 0.55;
+  pointer-events: none;
+  box-sizing: border-box;
+  transition: left 0.05s, width 0.05s;
+}
+.session-creation-pill.left-flat {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.session-creation-pill.right-flat {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+/* ===== Session exit chip ===== */
+
+.session-exit-chip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--theme-border-strong, #5a4530);
+  border-radius: 4px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-secondary, #a89a80);
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+/* ===== Session hover tooltip ===== */
+
+.session-tooltip {
+  position: fixed;
+  z-index: 200;
+  background: var(--theme-surface, #242420);
+  border: 1px solid var(--tooltip-border, #5a4530);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-primary, #d8d0b8);
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  min-width: 260px;
+}
+
+.session-tooltip-header {
+  font-weight: 600;
+  color: var(--theme-accent-gold, #c9a860);
+  margin-bottom: 5px;
+}
+
+.session-tooltip-row {
+  line-height: 1.7;
+}
+
+.session-tooltip-key {
+  color: var(--theme-text-muted, #7a6f58);
+  margin-right: 4px;
+}
+
+/* ===== Session mode — fade events ===== */
+
+.timeline-cards-layer.is-session-mode .event-card {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+/* ===== Axis ===== */
+
+.axis-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--theme-border-strong, #5a4530);
+}
+
+.axis-tick {
+  position: absolute;
+  pointer-events: none;
+}
+
+.axis-tick-mark {
+  width: 2px;
+  height: 21px;
+  background: var(--theme-border-strong, #5a4530);
+  margin-top: -4px;
+}
+
+.axis-tick-label {
+  font-size: 15px;
+  color: var(--theme-text-secondary, #a89a80);
+  font-family: ui-monospace, 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+.axis-day-pin {
+  position: absolute;
+  font-size: 15px;
+  color: var(--theme-text-secondary, #a89a80);
+  font-family: ui-monospace, 'Consolas', monospace;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.axis-month-band {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+}
+.axis-month-band.is-even {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.axis-month-label {
+  position: absolute;
+  pointer-events: none;
+  line-height: 1.2;
+}
+
+.axis-month-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--theme-text-secondary, #a89a80);
+  white-space: nowrap;
+}
+
+.axis-month-year {
+  font-size: 13px;
+  color: var(--theme-text-muted, #7a6f58);
+  white-space: nowrap;
+}
+
+/* ===== Time dividers (intraday tick marks) ===== */
+
+.axis-time-tick {
+  position: absolute;
+  pointer-events: none;
+}
+
+.axis-time-mark {
+  width: 1px;
+}
+
+.axis-time-label {
+  font-family: ui-monospace, 'Consolas', monospace;
+  white-space: nowrap;
+  margin-top: 2px;
+  transform: translateX(-50%);
+}
+
+
+/* Midday (12:00) — most prominent intraday marker */
+.axis-time-midday .axis-time-mark {
+  height: 12px;
+  margin-top: -6px;
+  background: var(--theme-border-strong, #5a4530);
+  opacity: 0.9;
+}
+.axis-time-midday .axis-time-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--theme-text-secondary, #a89a80);
+}
+
+/* Hours */
+.axis-time-hour .axis-time-mark {
+  height: 8px;
+  margin-top: -4px;
+  background: var(--theme-border-strong, #5a4530);
+  opacity: 0.65;
+}
+.axis-time-hour .axis-time-label {
+  font-size: 10px;
+  color: var(--theme-text-secondary, #a89a80);
+  opacity: 0.85;
+}
+
+/* Half-hours */
+.axis-time-half .axis-time-mark {
+  height: 5px;
+  margin-top: -2px;
+  background: var(--theme-text-muted, #7a6f58);
+  opacity: 0.6;
+}
+.axis-time-half .axis-time-label {
+  font-size: 9px;
+  color: var(--theme-text-muted, #7a6f58);
+}
+
+/* Quarter-hours */
+.axis-time-quarter .axis-time-mark {
+  height: 3px;
+  margin-top: -1px;
+  background: var(--theme-text-muted, #7a6f58);
+  opacity: 0.5;
+}
+.axis-time-quarter .axis-time-label {
+  font-size: 9px;
+  color: var(--theme-text-muted, #7a6f58);
+  opacity: 0.75;
+}
+
+/* Minutes */
+.axis-time-minute .axis-time-mark {
+  height: 2px;
+  margin-top: -1px;
+  background: var(--theme-text-muted, #7a6f58);
+  opacity: 0.4;
+}
+.axis-time-minute .axis-time-label {
+  font-size: 8px;
+  color: var(--theme-text-muted, #7a6f58);
+  opacity: 0.6;
+}
+
+/* ===== Now marker ===== */
+
+.now-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--theme-accent-warm, #b87840);
+  transform: translateX(-1px);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.now-marker-labels {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  pointer-events: auto;
+  cursor: context-menu;
+}
+
+.now-marker-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px 0;
+  white-space: nowrap;
+}
+
+.now-marker-year {
+  font-size: 14px;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 0 6px 2px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.now-marker-time {
+  font-size: 14px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* ===== Shift-click: set-now preview ===== */
+
+.shift-now-preview {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--theme-accent-warm, #b87840) 0px,
+    var(--theme-accent-warm, #b87840) 5px,
+    transparent 5px,
+    transparent 9px
+  );
+  transform: translateX(-1px);
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.shift-now-labels {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shift-now-hint {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-background, #1a1a1a);
+  padding: 1px 6px 2px;
+  white-space: nowrap;
+}
+
+.shift-now-date {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px 0;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.shift-now-year {
+  font-size: 14px;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 0 6px 2px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.shift-now-time {
+  font-size: 14px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-accent-warm, #b87840);
+  background: var(--theme-background, #1a1a1a);
+  padding: 2px 6px;
+  margin-top: 3px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* ===== Quick-add event indicator ===== */
+
+.quick-add {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 50;
+}
+
+.quick-add-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--theme-accent, #6a9a4a);
+  color: #fff;
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  opacity: 0.9;
+}
+
+.quick-add-label {
+  font-size: 11px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background, #1a1a1a);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+/* ===== Ctrl+drag reschedule ===== */
+
+.event-card.is-ctrl-dragging {
+  opacity: 0.8;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--theme-accent-gold, #c9a860);
+  z-index: 50;
+  cursor: ew-resize !important;
+  transition: none;
+}
+
+.ctrl-drag-label {
+  position: absolute;
+  transform: translateX(-50%);
+  background: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-background, #1a1a1a);
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 51;
+}

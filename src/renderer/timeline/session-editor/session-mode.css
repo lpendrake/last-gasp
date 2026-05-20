@@ -1,0 +1,106 @@
+/* ===== Session mode overlays (imperative DOM, appended by session-mode.ts) ===== */
+
+.session-drag-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--handle-color, #6b7c5a);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.session-drag-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--theme-surface, #1e1e1a);
+  border: 2px solid var(--handle-color, #6b7c5a);
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: ew-resize;
+  z-index: 5;
+}
+
+.session-drag-handle:hover {
+  background: var(--handle-color, #6b7c5a);
+}
+
+.session-ghost-pill {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.4;
+  border: 2px dashed var(--pill-color, #6b7c5a);
+  background: var(--pill-color, #6b7c5a);
+  border-radius: 12px;
+  box-sizing: border-box;
+  z-index: 4;
+}
+
+.session-creation-pill {
+  position: absolute;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--theme-accent-gold, #c9a860);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.session-creation-pill.left-flat {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+.session-creation-pill.right-flat {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.session-wash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--wash-color, #c9a860) 18%, transparent) 100%
+  );
+  opacity: 0.85;
+  z-index: 3;
+}
+
+.session-exit-chip {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-background, #1a1a1a);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 51;
+  font-family: ui-monospace, 'Consolas', monospace;
+}
+
+.session-drag-label {
+  position: absolute;
+  transform: translateX(-50%);
+  background: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-background, #1a1a1a);
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 51;
+}
