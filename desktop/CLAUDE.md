@@ -52,3 +52,7 @@ Address the advisor's findings (or push back with a reason) before opening the P
 # File Naming Convention
 
 kebab-case for all files and folders.
+
+# PR Template
+
+The template is in [pull-request-template.md](../.github/pull_request_template.md)
