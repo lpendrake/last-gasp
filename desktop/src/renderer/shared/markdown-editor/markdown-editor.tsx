@@ -124,14 +124,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       markdownDecorations(),
       imageDecorations(imagesRef.current),
       wikiLinks({
-        suggest: wikiLinksRef.current ? (q) => wikiLinksRef.current!.suggest(q) : undefined,
-        onOpen: wikiLinksRef.current ? (id) => wikiLinksRef.current!.onOpen(id) : undefined,
-        onHover: wikiLinksRef.current?.onHover
-          ? (id, el) => wikiLinksRef.current!.onHover!(id, el)
-          : undefined,
-        onHoverEnd: wikiLinksRef.current?.onHoverEnd
-          ? (rt) => wikiLinksRef.current!.onHoverEnd!(rt)
-          : undefined,
+        suggest: (q) => wikiLinksRef.current?.suggest(q) ?? Promise.resolve([]),
+        onOpen: (id) => wikiLinksRef.current?.onOpen(id),
+        onHover: (id, el) => wikiLinksRef.current?.onHover?.(id, el),
+        onHoverEnd: (rt) => wikiLinksRef.current?.onHoverEnd?.(rt),
       }),
       markdownLinkClick({
         onOpenExternal: (u) => mdLinksRef.current?.onOpenExternal?.(u),

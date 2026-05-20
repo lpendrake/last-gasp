@@ -233,6 +233,7 @@ export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function
           <MarkdownPreview
             content={loadState.body}
             images={{ resolveSrc: makeResolveSrc(loadState.baseDir) }}
+            baseDir={loadState.baseDir}
           />
         )}
       </div>

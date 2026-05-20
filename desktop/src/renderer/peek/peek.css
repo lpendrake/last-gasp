@@ -120,3 +120,12 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* Re-enable pointer events on link elements so the peek stack's document-level
+   mouseover listener can open nested previews on hover. */
+.peek-body .cm-editor .cm-note-link,
+.peek-body .cm-editor .cm-md-link,
+.peek-body .cm-editor a[href] {
+  pointer-events: auto;
+  cursor: pointer;
+}
