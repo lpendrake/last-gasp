@@ -31,14 +31,13 @@ notes/
   styles/
 ```
 
-Note: link suggestion (`suggestLinks`) lives in `src/renderer/shared/suggest-links.ts` — it is
-an editor feature shared with the event editor, not a notes-specific concern.
-
 ## Layer rules
 
-- **`domain/`** — pure functions, no IO. Tested directly in `domain/__tests__/`.
-- **Top-level `.ts` files** (`scan-folder.ts`, `editor-bindings.ts`, `data.ts`) — non-React IO or
-  config logic. May import `notesData`. No React. Tested in `__tests__/` with `vi.mock`.
+- **`domain/`** — pure functions. No IO, no React. Each function is a deterministic transform on
+  its inputs. Tested directly in `domain/__tests__/`.
+- **Top-level `.ts` files** (`scan-folder.ts`, `editor-bindings.ts`, `data.ts`) — logic that has
+  IO side effects (filesystem calls via `notesData` / `window.fsApi`). Unlike `domain/`, these are
+  not pure — tests mock the IO boundary with `vi.mock`.
 - **`hooks/`** — React state and effects. May import `domain/` and the top-level helpers.
 - **`components/`** — `.tsx` files that render markup and surface events via props. No business
   logic, no direct imports of `notesData`.
