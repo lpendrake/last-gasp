@@ -1,5 +1,5 @@
 import type { LinkIndexEntry } from '../../types/global';
-import type { WikiLinkSuggestion } from './markdown-editor/extensions/wiki-links';
+import type { WikiLinkSuggestion } from './markdown-editor';
 
 export function suggestLinks(
   linkIndex: readonly LinkIndexEntry[],
