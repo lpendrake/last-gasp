@@ -1,10 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useReducer, useEffect, useCallback, useRef } from 'react';
 import { notesData } from '../data';
 import { slugify } from '../domain/slugify';
 import { parseNotePath } from '../domain/open-note-by-path';
 import { suggestLinks as suggestLinksDomain } from '../../shared/suggest-links';
 import { resolveLinkById, resolveMarkdownHref } from '../domain/link-resolution';
 import { scanFolderContents } from '../scan-folder';
+import {
+  removeFileFromFolderFiles,
+  removeFolderFromFolderFiles,
+  renameFileInFolderFiles,
+  renameFileInOpenFiles,
+  renameFolderInFolderFiles,
+  renameFolderInOpenFiles,
+  computeRenamedPath,
+} from '../domain/file-ops';
+import { tabsReducer, type TabsState } from '../domain/tabs-reducer';
 import { splitFrontmatter, joinFrontmatter } from '../../../shared/frontmatter';
 import { generateShortId } from '../../../shared/ids';
 import { useSaveSync } from './useSaveSync';
@@ -39,20 +49,17 @@ export function useNotesController({
   const [linkIndex, setLinkIndex] = useState<LinkIndexEntry[]>([]);
 
   // ---- Tabs ----
-  const [tabs, setTabs] = useState<OpenTab[]>(() => {
+  const [tabsState, dispatch] = useReducer(tabsReducer, campaignId, (id): TabsState => {
     try {
-      return JSON.parse(localStorage.getItem(`${campaignId}:notes:tabs`) ?? '[]');
+      return {
+        tabs: JSON.parse(localStorage.getItem(`${id}:notes:tabs`) ?? '[]'),
+        activeTab: JSON.parse(localStorage.getItem(`${id}:notes:active-tab`) ?? 'null'),
+      };
     } catch {
-      return [];
+      return { tabs: [], activeTab: null };
     }
   });
-  const [activeTab, setActiveTab] = useState<OpenTab | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(`${campaignId}:notes:active-tab`) ?? 'null');
-    } catch {
-      return null;
-    }
-  });
+  const { tabs, activeTab } = tabsState;
 
   // ---- Sidebar ----
   const [openFolderPaths, setOpenFolderPaths] = useState<Set<string>>(new Set());
@@ -200,19 +207,8 @@ export function useNotesController({
         if (parts.length >= 3 && parts[0] === 'notes') {
           const folder = parts[1];
           const filePath = parts.slice(2).join('/');
-          setFolderFiles((prev) => {
-            if (!(folder in prev)) return prev;
-            return { ...prev, [folder]: (prev[folder] ?? []).filter((e) => e.path !== filePath) };
-          });
-          setTabs((prev) => {
-            const newTabs = prev.filter((t) => !(t.folder === folder && t.path === filePath));
-            setActiveTab((at) => {
-              if (at?.folder === folder && at.path === filePath)
-                return newTabs[newTabs.length - 1] ?? null;
-              return at;
-            });
-            return newTabs;
-          });
+          setFolderFiles((prev) => removeFileFromFolderFiles(prev, folder, filePath));
+          dispatch({ type: 'close', folder, path: filePath });
         }
       }
     });
@@ -227,11 +223,9 @@ export function useNotesController({
 
   // ---- Persist tabs to localStorage ----
   useEffect(() => {
-    localStorage.setItem(`${campaignId}:notes:tabs`, JSON.stringify(tabs));
-  }, [tabs, campaignId]);
-  useEffect(() => {
-    localStorage.setItem(`${campaignId}:notes:active-tab`, JSON.stringify(activeTab));
-  }, [activeTab, campaignId]);
+    localStorage.setItem(`${campaignId}:notes:tabs`, JSON.stringify(tabsState.tabs));
+    localStorage.setItem(`${campaignId}:notes:active-tab`, JSON.stringify(tabsState.activeTab));
+  }, [tabsState, campaignId]);
 
   // ---- Global hotkeys ----
   useEffect(() => {
@@ -303,12 +297,7 @@ export function useNotesController({
     path: string,
     fileKind?: 'note' | 'asset' | 'unsupported',
   ) {
-    setTabs((prev) =>
-      prev.some((t) => t.folder === folder && t.path === path)
-        ? prev
-        : [...prev, { folder, path, fileKind }],
-    );
-    setActiveTab({ folder, path, fileKind });
+    dispatch({ type: 'open', folder, path, fileKind });
     if (fileKind !== 'asset' && fileKind !== 'unsupported') ensureLoaded(folder, path);
   }
 
@@ -347,16 +336,7 @@ export function useNotesController({
   }
 
   function doCloseTab(tab: OpenTab) {
-    setTabs((prev) => {
-      const newTabs = prev.filter((t) => !(t.folder === tab.folder && t.path === tab.path));
-      setActiveTab((at) => {
-        if (at?.folder === tab.folder && at.path === tab.path) {
-          return newTabs[newTabs.length - 1] ?? null;
-        }
-        return at;
-      });
-      return newTabs;
-    });
+    dispatch({ type: 'close', folder: tab.folder, path: tab.path });
   }
 
   const handleQuickAddCreate = useCallback(
@@ -385,12 +365,7 @@ export function useNotesController({
           ...prev,
           [`${folder}/${filename}`]: { content: body, frontmatter, dirty: false, loading: false },
         }));
-        setTabs((prev) =>
-          prev.some((t) => t.folder === folder && t.path === filename)
-            ? prev
-            : [...prev, { folder, path: filename }],
-        );
-        setActiveTab({ folder, path: filename });
+        dispatch({ type: 'open', folder, path: filename });
         pushToast(`Created ${folder}/${filename}`);
       } catch (err) {
         pushToast(`Failed to create note: ${String(err)}`, true);
@@ -468,19 +443,8 @@ export function useNotesController({
       onConfirm: async () => {
         try {
           await notesData.deleteNote(fullPath);
-          setFolderFiles((prev) => {
-            const entries = prev[folder] ?? [];
-            return { ...prev, [folder]: entries.filter((e) => e.path !== path) };
-          });
-          setTabs((prev) => {
-            const newTabs = prev.filter((t) => !(t.folder === folder && t.path === path));
-            setActiveTab((at) => {
-              if (!at) return at;
-              const removed = at.folder === folder && at.path === path;
-              return removed ? (newTabs[newTabs.length - 1] ?? null) : at;
-            });
-            return newTabs;
-          });
+          setFolderFiles((prev) => removeFileFromFolderFiles(prev, folder, path));
+          dispatch({ type: 'close', folder, path });
           pushToast(`Deleted ${folder}/${path}`);
         } catch (err) {
           pushToast(`Delete failed: ${String(err)}`, true);
@@ -500,20 +464,8 @@ export function useNotesController({
         try {
           await notesData.deleteNote(fullPath);
           setFolders((prev) => prev.filter((f) => f !== folder));
-          setFolderFiles((prev) => {
-            const { [folder]: _, ...rest } = prev;
-            return rest;
-          });
-          setTabs((prev) => {
-            const newTabs = prev.filter((t) => t.folder !== folder);
-            setActiveTab((at) => {
-              if (at?.folder === folder) {
-                return newTabs[newTabs.length - 1] ?? null;
-              }
-              return at;
-            });
-            return newTabs;
-          });
+          setFolderFiles((prev) => removeFolderFromFolderFiles(prev, folder));
+          dispatch({ type: 'close-folder', folder });
           pushToast(`Deleted folder ${folder}`);
         } catch (err) {
           pushToast(`Delete failed: ${String(err)}`, true);
@@ -525,45 +477,17 @@ export function useNotesController({
   async function handleRename(folder: string, path: string, newName: string) {
     setRenamingKey(null);
     const trimmed = newName.trim();
-    if (!trimmed) return;
-    // Directories have no extension in their last path segment; files always do.
-    const isDir = !(path.split('/').pop() ?? path).includes('.');
-    const slug = slugify(trimmed);
-    const newBaseName = isDir ? slug : slug.endsWith('.md') ? slug : `${slug}.md`;
-    const parts = path.split('/');
-    parts[parts.length - 1] = newBaseName;
-    const newPath = parts.join('/');
-
-    if (newPath === path) return;
+    const newPath = computeRenamedPath(path, trimmed);
+    if (!newPath) return;
 
     try {
       const oldFullPath = `${campaignPath}/notes/${folder}/${path}`;
       const newFullPath = `${campaignPath}/notes/${folder}/${newPath}`;
       await notesData.renameNote(oldFullPath, newFullPath);
 
-      setFolderFiles((prev) => {
-        const entries = prev[folder] ?? [];
-        return {
-          ...prev,
-          [folder]: entries.map((e) =>
-            e.path === path ? { ...e, path: newPath, title: trimmed } : e,
-          ),
-        };
-      });
-
-      const oldKey = `${folder}/${path}`;
-      const newKey = `${folder}/${newPath}`;
-      setOpenFiles((prev) => {
-        if (!prev[oldKey]) return prev;
-        const { [oldKey]: data, ...rest } = prev;
-        return { ...rest, [newKey]: data };
-      });
-      setTabs((prev) =>
-        prev.map((t) => (t.folder === folder && t.path === path ? { ...t, path: newPath } : t)),
-      );
-      setActiveTab((at) =>
-        at?.folder === folder && at.path === path ? { ...at, path: newPath } : at,
-      );
+      setFolderFiles((prev) => renameFileInFolderFiles(prev, folder, path, newPath, trimmed));
+      setOpenFiles((prev) => renameFileInOpenFiles(prev, folder, path, newPath));
+      dispatch({ type: 'rename-file', folder, oldPath: path, newPath });
 
       pushToast(`Renamed to ${newPath}`);
     } catch (err) {
@@ -635,25 +559,9 @@ export function useNotesController({
       await notesData.renameNote(oldPath, newPath);
 
       setFolders((prev) => prev.map((f) => (f === oldFolderName ? trimmed : f)).sort());
-      setFolderFiles((prev) => {
-        const { [oldFolderName]: data, ...rest } = prev;
-        return { ...rest, [trimmed]: data };
-      });
-      setTabs((prev) =>
-        prev.map((t) => (t.folder === oldFolderName ? { ...t, folder: trimmed } : t)),
-      );
-      setActiveTab((at) => (at?.folder === oldFolderName ? { ...at, folder: trimmed } : at));
-      setOpenFiles((prev) => {
-        const next: Record<string, FileState> = {};
-        for (const [key, val] of Object.entries(prev)) {
-          if (key.startsWith(`${oldFolderName}/`)) {
-            next[key.replace(`${oldFolderName}/`, `${trimmed}/`)] = val;
-          } else {
-            next[key] = val;
-          }
-        }
-        return next;
-      });
+      setFolderFiles((prev) => renameFolderInFolderFiles(prev, oldFolderName, trimmed));
+      setOpenFiles((prev) => renameFolderInOpenFiles(prev, oldFolderName, trimmed));
+      dispatch({ type: 'rename-folder', oldFolder: oldFolderName, newFolder: trimmed });
 
       pushToast(`Renamed folder to ${trimmed}`);
     } catch (err) {
