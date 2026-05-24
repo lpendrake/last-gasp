@@ -5,15 +5,15 @@ import { ASSET_EXTENSIONS } from '../shared/fileKinds.js';
 
 export { ASSET_EXTENSIONS };
 
-export interface LinkIndexEntry {
+export interface EntityIndexEntry {
   id: string;
   path: string; // Campaign-relative path (using forward slashes)
   title: string;
   type: 'note' | 'event' | 'asset';
 }
 
-export function buildLinkIndex(campaignPath: string): LinkIndexEntry[] {
-  const index: LinkIndexEntry[] = [];
+export function buildEntityIndex(campaignPath: string): EntityIndexEntry[] {
+  const index: EntityIndexEntry[] = [];
   const notesDir = path.join(campaignPath, 'notes');
   const timelineDir = path.join(campaignPath, 'timeline');
 
@@ -32,7 +32,7 @@ export function buildLinkIndex(campaignPath: string): LinkIndexEntry[] {
  * Writes back frontmatter if id/title were auto-generated.
  * Returns null if the file is not a tracked markdown file.
  */
-export function indexSingleFile(fullPath: string, campaignPath: string): LinkIndexEntry | null {
+export function indexSingleEntity(fullPath: string, campaignPath: string): EntityIndexEntry | null {
   const ext = path.extname(fullPath).toLowerCase();
   const rel = path.relative(campaignPath, fullPath).replace(/\\/g, '/');
   const isNote = rel.startsWith('notes/');
@@ -66,7 +66,7 @@ function scanDir(
   currentDir: string,
   type: 'note' | 'event',
   baseDir: string,
-  index: LinkIndexEntry[],
+  index: EntityIndexEntry[],
 ) {
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 

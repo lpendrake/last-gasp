@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('fsApi', {
   rename: (oldPath: string, newPath: string) => ipcRenderer.invoke('fs:rename', oldPath, newPath),
 
   // Notes
-  buildIndex: (campaignPath: string) => ipcRenderer.invoke('notes:buildIndex', campaignPath),
+  buildIndex: (campaignPath: string) => ipcRenderer.invoke('entity:buildIndex', campaignPath),
   ensureDirs: (notesDir: string) => ipcRenderer.invoke('notes:ensureDirs', notesDir),
 
   // Watcher
@@ -34,10 +34,10 @@ contextBridge.exposeInMainWorld('fsApi', {
     return () => ipcRenderer.removeListener('fs:changed', listener);
   },
 
-  onIndexDelta: (callback: (delta: unknown) => void) => {
+  onEntityDelta: (callback: (delta: unknown) => void) => {
     const listener = (_event: unknown, delta: unknown) => callback(delta);
-    ipcRenderer.on('notes:indexDelta', listener);
-    return () => ipcRenderer.removeListener('notes:indexDelta', listener);
+    ipcRenderer.on('entity:indexDelta', listener);
+    return () => ipcRenderer.removeListener('entity:indexDelta', listener);
   },
 
   // Timeline

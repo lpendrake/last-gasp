@@ -1,12 +1,12 @@
-import type { LinkIndexEntry } from '../../../types/global';
+import type { EntityIndexEntry } from '../../../types/global';
 
 export type ResolvedLink =
   | { kind: 'not-found' }
   | { kind: 'event'; filename: string }
   | { kind: 'note'; folder: string; path: string };
 
-export function resolveLinkById(linkIndex: readonly LinkIndexEntry[], id: string): ResolvedLink {
-  const entry = linkIndex.find((e) => e.id === id);
+export function resolveLinkById(entityIndex: readonly EntityIndexEntry[], id: string): ResolvedLink {
+  const entry = entityIndex.find((e) => e.id === id);
   if (!entry) return { kind: 'not-found' };
   if (entry.type === 'event') {
     const filename = entry.path.split('/').slice(1).join('/');
@@ -17,9 +17,9 @@ export function resolveLinkById(linkIndex: readonly LinkIndexEntry[], id: string
 }
 
 export function resolveMarkdownHref(
-  linkIndex: readonly LinkIndexEntry[],
+  entityIndex: readonly EntityIndexEntry[],
   rawUrl: string,
-): LinkIndexEntry | null {
+): EntityIndexEntry | null {
   const target = rawUrl.replace(/^\.?\//, '');
-  return linkIndex.find((e) => e.path === target || e.path.endsWith('/' + target)) ?? null;
+  return entityIndex.find((e) => e.path === target || e.path.endsWith('/' + target)) ?? null;
 }

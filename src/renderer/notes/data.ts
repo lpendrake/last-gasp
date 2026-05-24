@@ -1,4 +1,4 @@
-import { LinkIndexEntry } from '../../types/global';
+import { EntityIndexEntry } from '../../types/global';
 
 export const notesData = {
   async readNote(path: string): Promise<string | null> {
@@ -17,7 +17,7 @@ export const notesData = {
     return window.fsApi.rename(oldPath, newPath);
   },
 
-  async getLinkIndex(campaignPath: string): Promise<LinkIndexEntry[]> {
+  async getEntityIndex(campaignPath: string): Promise<EntityIndexEntry[]> {
     return window.fsApi.buildIndex(campaignPath);
   },
 

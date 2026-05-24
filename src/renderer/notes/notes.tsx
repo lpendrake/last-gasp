@@ -46,7 +46,7 @@ export function NotesApp({
   onOpenEvent,
 }: NotesAppProps) {
   const ctrl = useNotesController({ campaignId, campaignPath, onOpenEvent });
-  const knownIds = useMemo(() => new Set(ctrl.linkIndex.map((e) => e.id)), [ctrl.linkIndex]);
+  const knownIds = useMemo(() => new Set(ctrl.entityIndex.map((e) => e.id)), [ctrl.entityIndex]);
 
   const editorStateCache = useRef(new Map<string, SavedEditorInstance>());
   const editorViewRef = useRef<EditorView | null>(null);

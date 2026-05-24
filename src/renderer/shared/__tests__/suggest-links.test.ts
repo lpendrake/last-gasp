@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { suggestLinks } from '../suggest-links';
-import type { LinkIndexEntry } from '../../../types/global';
+import type { EntityIndexEntry } from '../../../types/global';
 
-const idx: LinkIndexEntry[] = [
+const idx: EntityIndexEntry[] = [
   { id: 'a1', path: 'notes/Lore/bob.md', title: 'Bob the Brave', type: 'note' },
   { id: 'a2', path: 'notes/Lore/places.md', title: 'Places', type: 'note' },
   { id: 'e1', path: 'timeline/sess-01.md', title: 'Session 1', type: 'event' },

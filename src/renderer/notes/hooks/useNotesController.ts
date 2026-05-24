@@ -28,7 +28,7 @@ import {
   type Toast,
   type ConfirmState,
 } from '../types';
-import type { LinkIndexEntry } from '../../../types/global';
+import type { EntityIndexEntry } from '../../../types/global';
 import type { ContextMenuTarget } from '../components/note-context-menu';
 
 interface NotesControllerOptions {
@@ -46,7 +46,7 @@ export function useNotesController({
   const [folders, setFolders] = useState<string[]>([]);
   const [folderFiles, setFolderFiles] = useState<Record<string, NoteEntry[] | null>>({});
   const [openFiles, setOpenFiles] = useState<Record<string, FileState>>({});
-  const [linkIndex, setLinkIndex] = useState<LinkIndexEntry[]>([]);
+  const [entityIndex, setEntityIndex] = useState<EntityIndexEntry[]>([]);
 
   // ---- Tabs ----
   const [tabsState, dispatch] = useReducer(tabsReducer, campaignId, (id): TabsState => {
@@ -135,7 +135,7 @@ export function useNotesController({
   }, [activeTab]);
 
   const scanFolderContentsForCampaign = useCallback(
-    (folder: string, index: LinkIndexEntry[]) => scanFolderContents(campaignPath, folder, index),
+    (folder: string, index: EntityIndexEntry[]) => scanFolderContents(campaignPath, folder, index),
     [campaignPath],
   );
 
@@ -149,8 +149,8 @@ export function useNotesController({
         const folderNames = entries.filter((e) => e.isDirectory).map((e) => e.name);
         setFolders(folderNames);
 
-        const index = await notesData.getLinkIndex(campaignPath);
-        setLinkIndex(index);
+        const index = await notesData.getEntityIndex(campaignPath);
+        setEntityIndex(index);
 
         // Scan each folder from the filesystem so empty dirs and unrecognised
         // files appear in the sidebar alongside notes and assets.
@@ -173,10 +173,10 @@ export function useNotesController({
 
   // ---- A3: Live index delta listener ----
   useEffect(() => {
-    const unsub = window.fsApi.onIndexDelta((delta) => {
+    const unsub = window.fsApi.onEntityDelta((delta) => {
       if (delta.op === 'add' || delta.op === 'update') {
         const { entry } = delta;
-        setLinkIndex((prev) => {
+        setEntityIndex((prev) => {
           const filtered = prev.filter((e) => e.id !== entry.id && e.path !== entry.path);
           return [...filtered, entry];
         });
@@ -202,7 +202,7 @@ export function useNotesController({
         }
       } else if (delta.op === 'remove') {
         const relPath = delta.path;
-        setLinkIndex((prev) => prev.filter((e) => e.path !== relPath));
+        setEntityIndex((prev) => prev.filter((e) => e.path !== relPath));
         const parts = relPath.split('/');
         if (parts.length >= 3 && parts[0] === 'notes') {
           const folder = parts[1];
@@ -253,7 +253,7 @@ export function useNotesController({
     if (folderFiles[folder] !== undefined) return;
     setFolderFiles((prev) => ({ ...prev, [folder]: null }));
     try {
-      const entries = await scanFolderContentsForCampaign(folder, linkIndex);
+      const entries = await scanFolderContentsForCampaign(folder, entityIndex);
       setFolderFiles((prev) => ({ ...prev, [folder]: entries }));
     } catch (err) {
       pushToast(`Failed to load ${folder}: ${String(err)}`, true);
@@ -345,7 +345,7 @@ export function useNotesController({
       if (!slug) return;
       const filename = `${slug}.md`;
       setQuickAddOpen(false);
-      // Write frontmatter from the start so the link-index watcher finds needsWrite:false
+      // Write frontmatter from the start so the entity-index watcher finds needsWrite:false
       // and does not rewrite the file, which would create a race with our autosave.
       const id = generateShortId();
       const frontmatter = `id: ${id}\ntitle: ${title}`;
@@ -382,7 +382,7 @@ export function useNotesController({
     const base = slug.endsWith('.md') ? slug : `${slug}.md`;
     const filePath = ctx.subdir ? `${ctx.subdir}/${base}` : base;
     try {
-      // Write frontmatter from the start so the link-index watcher finds needsWrite:false
+      // Write frontmatter from the start so the entity-index watcher finds needsWrite:false
       // and does not rewrite the file, which would race with ensureLoaded's disk read.
       const id = generateShortId();
       const frontmatter = `id: ${id}\ntitle: ${trimmed}`;
@@ -517,7 +517,7 @@ export function useNotesController({
   }
 
   function handleOpenLink(id: string) {
-    const resolved = resolveLinkById(linkIndex, id);
+    const resolved = resolveLinkById(entityIndex, id);
     if (resolved.kind === 'not-found') {
       pushToast(`Note not found: ${id}`, true);
       return;
@@ -536,7 +536,7 @@ export function useNotesController({
   }
 
   function openMarkdownLink(rawUrl: string) {
-    const match = resolveMarkdownHref(linkIndex, rawUrl);
+    const match = resolveMarkdownHref(entityIndex, rawUrl);
     if (!match) {
       pushToast(`Could not resolve link: ${rawUrl}`, true);
       return;
@@ -545,7 +545,7 @@ export function useNotesController({
   }
 
   function suggestLinks(query: string) {
-    return suggestLinksDomain(linkIndex, query);
+    return suggestLinksDomain(entityIndex, query);
   }
 
   async function handleRenameFolder(oldFolderName: string, newName: string) {
@@ -583,7 +583,7 @@ export function useNotesController({
     folders,
     folderFiles,
     openFiles,
-    linkIndex,
+    entityIndex,
     // Tabs
     tabs,
     activeTab,

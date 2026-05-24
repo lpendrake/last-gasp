@@ -18,15 +18,15 @@ export interface Campaign {
   path: string;
 }
 
-export interface LinkIndexEntry {
+export interface EntityIndexEntry {
   id: string;
   path: string;
   title: string;
   type: 'note' | 'event' | 'asset';
 }
 
-export type IndexDeltaEvent =
-  | { op: 'add' | 'update'; entry: LinkIndexEntry }
+export type EntityIndexDelta =
+  | { op: 'add' | 'update'; entry: EntityIndexEntry }
   | { op: 'remove'; path: string };
 
 declare global {
@@ -55,12 +55,12 @@ declare global {
       rename: (oldPath: string, newPath: string) => Promise<boolean>;
 
       // Notes
-      buildIndex: (campaignPath: string) => Promise<LinkIndexEntry[]>;
+      buildIndex: (campaignPath: string) => Promise<EntityIndexEntry[]>;
       ensureDirs: (notesDir: string) => Promise<boolean>;
 
       // Watcher
       onFileChange: (callback: (data: { event: string; path: string }) => void) => () => void;
-      onIndexDelta: (callback: (delta: IndexDeltaEvent) => void) => () => void;
+      onEntityDelta: (callback: (delta: EntityIndexDelta) => void) => () => void;
 
       // Dialog
       selectDirectory: () => Promise<string | null>;

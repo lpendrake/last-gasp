@@ -1,4 +1,4 @@
-import type { LinkIndexEntry } from '../../types/global';
+import type { EntityIndexEntry } from '../../types/global';
 
 export interface PeekTarget {
   path: string;
@@ -7,14 +7,14 @@ export interface PeekTarget {
 /**
  * Resolve a link (plain href or wiki-link id) to a peekable target.
  *
- * @param href      Raw href or wiki-link id
- * @param baseDir   Campaign-relative directory of the source file (e.g. "notes/npcs")
- * @param linkIndex Current link index entries (for wiki-link id lookup)
+ * @param href        Raw href or wiki-link id
+ * @param baseDir     Campaign-relative directory of the source file (e.g. "notes/npcs")
+ * @param entityIndex Current entity index entries (for wiki-link id lookup)
  */
 export function resolvePeekTarget(
   href: string,
   baseDir: string,
-  linkIndex: readonly LinkIndexEntry[],
+  entityIndex: readonly EntityIndexEntry[],
 ): PeekTarget | null {
   if (!href) return null;
 
@@ -25,7 +25,7 @@ export function resolvePeekTarget(
     !href.includes('://') &&
     !href.endsWith('.md')
   ) {
-    const entry = linkIndex.find((e) => e.id === href);
+    const entry = entityIndex.find((e) => e.id === href);
     if (!entry) return null;
     if (entry.type === 'asset') return null;
     return { path: entry.path };

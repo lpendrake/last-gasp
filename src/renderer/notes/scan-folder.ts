@@ -1,11 +1,11 @@
 import { notesData } from './data';
-import type { LinkIndexEntry } from '../../types/global';
+import type { EntityIndexEntry } from '../../types/global';
 import type { NoteEntry } from './types';
 
 export async function scanFolderContents(
   campaignPath: string,
   folder: string,
-  index: readonly LinkIndexEntry[],
+  index: readonly EntityIndexEntry[],
 ): Promise<NoteEntry[]> {
   const results: NoteEntry[] = [];
 
