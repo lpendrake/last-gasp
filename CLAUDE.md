@@ -49,6 +49,15 @@ Before opening the PR, spawn an opus advisor on the diff. The advisor must verif
 
 Address the advisor's findings (or push back with a reason) before opening the PR.
 
+## No logic inside hooks or components
+
+Do not declare functions containing business logic inside a React hook or component body.
+Functions defined this way close over state and become untestable without mounting React.
+
+- Pure logic (no IO, no React) belongs in `domain/`
+- Non-React IO logic belongs as a named `.ts` file alongside `data.ts`
+- The hook body wires those up to React state — it does not contain the logic itself
+
 # File Naming Convention
 
 kebab-case for all files and folders.
