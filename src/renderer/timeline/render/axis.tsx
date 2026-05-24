@@ -3,13 +3,17 @@ import './axis.css';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { xToSeconds, secondsToX, SECONDS_PER_DAY } from '../math/zoom';
 import {
+  type GolarianDate,
   fromAbsoluteDays,
   toAbsoluteDays,
   daysInMonth,
   monthName,
   fromAbsoluteSeconds,
+  weekday,
 } from '../calendar/golarian';
-import { formatAxisDayTick, formatAxisHour } from '../calendar/format';
+import { formatAxisHour } from '../calendar/format';
+import type { WeekdayColors } from '../../theme';
+import { weekdayColor } from './cards';
 
 export interface TimeTier {
   readonly id: 'midday' | 'hour' | 'half' | 'quarter' | 'minute';
@@ -55,12 +59,29 @@ export function naturalTier(withinDay: number, tiers: readonly TimeTier[]): Time
   return null;
 }
 
+function renderDayTickLabel(
+  date: GolarianDate,
+  level: 'full' | 'short',
+  weekdays: WeekdayColors,
+): ReactElement {
+  if (level === 'short') return <>{date.day}</>;
+  const abbrev = weekday(date).slice(0, 3);
+  const color = weekdayColor(date, weekdays);
+  return (
+    <>
+      <span style={{ color }}>{abbrev}</span>
+      {` ${date.day}`}
+    </>
+  );
+}
+
 interface AxisProps {
   view: ViewState;
   size: ViewportSize;
+  weekdays: WeekdayColors;
 }
 
-export function Axis({ view, size }: AxisProps): ReactElement | null {
+export function Axis({ view, size, weekdays }: AxisProps): ReactElement | null {
   if (size.width === 0 || size.height === 0) return null;
 
   const axisY = Math.floor(size.height * 0.8);
@@ -87,7 +108,7 @@ export function Axis({ view, size }: AxisProps): ReactElement | null {
     dayTicks.push(
       <div key={d} className="axis-tick" style={{ left: x, top: axisY }}>
         <div className="axis-tick-mark" />
-        <div className="axis-tick-label">{formatAxisDayTick(date, dayLabelLevel)}</div>
+        <div className="axis-tick-label">{renderDayTickLabel(date, dayLabelLevel, weekdays)}</div>
       </div>,
     );
   }
@@ -102,7 +123,7 @@ export function Axis({ view, size }: AxisProps): ReactElement | null {
       pinnedDay = (
         // +17px: clears the axis-tick-mark height (21px) minus the tick offset (-4px)
         <div className="axis-day-pin" style={{ left: 8, top: axisY + 17 }}>
-          {formatAxisDayTick(date, 'full')}
+          {renderDayTickLabel(date, 'full', weekdays)}
         </div>
       );
     }

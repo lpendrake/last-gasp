@@ -5,10 +5,10 @@ import {
   bufferToFrontmatter,
   validateBuffer,
   deriveFilename,
-  COLOR_PRESETS,
   getColorPresetValue,
   type EditorBuffer,
 } from '../domain';
+import { ThemeProvider } from '../../../theme';
 import type { Event } from '../../data/types';
 
 // ---- helpers ----
@@ -209,19 +209,23 @@ describe('deriveFilename', () => {
   });
 });
 
-// ---- COLOR_PRESETS ----
+// ---- ThemeProvider.get().timeline.eventColorPresets ----
 
-describe('COLOR_PRESETS', () => {
+describe('ThemeProvider.get().timeline.eventColorPresets', () => {
   it('contains the default (empty) preset', () => {
-    expect(COLOR_PRESETS.some((p) => p.value === '')).toBe(true);
+    expect(ThemeProvider.get().timeline.eventColorPresets.some((p) => p.value === '')).toBe(true);
   });
 
   it('contains the custom sentinel', () => {
-    expect(COLOR_PRESETS.some((p) => p.value === '__custom__')).toBe(true);
+    expect(
+      ThemeProvider.get().timeline.eventColorPresets.some((p) => p.value === '__custom__'),
+    ).toBe(true);
   });
 
   it('has named color presets', () => {
-    expect(COLOR_PRESETS.some((p) => p.value === '#a83030')).toBe(true);
+    expect(ThemeProvider.get().timeline.eventColorPresets.some((p) => p.value === '#a83030')).toBe(
+      true,
+    );
   });
 });
 

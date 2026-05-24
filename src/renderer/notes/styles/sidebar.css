@@ -1,8 +1,8 @@
 /* ---- Sidebar ---- */
 .notes-sidebar {
   flex: 0 0 280px;
-  background: var(--theme-surface, #242420);
-  border-right: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  border-right: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -10,7 +10,7 @@
 
 .sidebar-header {
   padding: 10px 12px 8px;
-  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  border-bottom: 1px solid var(--theme-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -20,14 +20,14 @@
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-family: ui-monospace, 'Consolas', monospace;
 }
 
 .sidebar-filter {
-  background: var(--theme-background, #1a1a1a);
-  border: 1px solid var(--theme-border, #3a3a30);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
   padding: 5px 8px;
@@ -36,7 +36,7 @@
 }
 .sidebar-filter:focus {
   outline: none;
-  border-color: var(--theme-accent-gold, #c9a860);
+  border-color: var(--theme-accent-gold);
 }
 
 .sidebar-tree {
@@ -58,13 +58,13 @@
   border-radius: 2px;
   padding: 4px 6px 4px 4px;
   cursor: pointer;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   font-family: inherit;
   font-size: 13px;
   text-align: left;
 }
-.folder-row:hover { background: var(--theme-panel, #2d3d2a); color: var(--theme-text-primary, #d8d0b8); }
-.folder-row.is-open { color: var(--theme-text-primary, #d8d0b8); }
+.folder-row:hover { background: var(--theme-panel); color: var(--theme-text-primary); }
+.folder-row.is-open { color: var(--theme-text-primary); }
 
 .folder-caret {
   display: inline-block;
@@ -72,7 +72,7 @@
   text-align: center;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 10px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   flex: 0 0 10px;
 }
 
@@ -84,7 +84,7 @@
 
 .folder-count {
   font-size: 12px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-family: ui-monospace, 'Consolas', monospace;
 }
 
@@ -92,7 +92,7 @@
   flex: 0 0 auto;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   width: 22px;
   height: 22px;
   border-radius: 2px;
@@ -108,13 +108,13 @@
   font-family: inherit;
 }
 .folder-row:hover .folder-add { opacity: 1; }
-.folder-add:hover { background: var(--theme-panel-accent, #3a4d35); color: var(--theme-accent-gold, #c9a860); }
+.folder-add:hover { background: var(--theme-panel-accent); color: var(--theme-accent-gold); }
 
 .folder-children {
   display: flex;
   flex-direction: column;
   margin-left: 12px;
-  border-left: 1px dashed var(--theme-border, #3a3a30);
+  border-left: 1px dashed var(--theme-border);
   padding-left: 4px;
 }
 
@@ -131,14 +131,14 @@
   cursor: pointer;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   text-align: left;
 }
-.file-row:hover { background: var(--theme-panel, #2d3d2a); color: var(--theme-text-primary, #d8d0b8); }
+.file-row:hover { background: var(--theme-panel); color: var(--theme-text-primary); }
 .file-row.is-active {
-  background: var(--theme-panel, #2d3d2a);
-  color: var(--theme-accent-gold, #c9a860);
-  border-color: var(--theme-border-strong, #5a4530);
+  background: var(--theme-panel);
+  color: var(--theme-accent-gold);
+  border-color: var(--theme-border-strong);
 }
 
 .file-dot {
@@ -146,12 +146,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--kind-color, var(--theme-text-muted, #7a6f58));
+  background: var(--kind-color, var(--theme-text-muted));
   opacity: 0.85;
 }
 
 .file-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.file-dirty { font-size: 12px; color: var(--theme-accent-warm, #b87840); }
+.file-dirty { font-size: 12px; color: var(--theme-accent-warm); }
 
 .file-row.is-asset { opacity: 0.7; }
 .file-row.is-asset:hover { opacity: 1; }
@@ -169,9 +169,9 @@
 }
 .new-file-input {
   flex: 1 1 auto;
-  background: var(--theme-background, #1a1a1a);
-  border: 1px solid var(--theme-accent-gold, #c9a860);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background);
+  border: 1px solid var(--theme-accent-gold);
+  color: var(--theme-text-primary);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
   padding: 2px 5px;
@@ -182,8 +182,8 @@
 .new-folder-btn {
   margin: 6px 8px 4px;
   background: transparent;
-  border: 1px dashed var(--theme-border-strong, #5a4530);
-  color: var(--theme-text-secondary, #a89a80);
+  border: 1px dashed var(--theme-border-strong);
+  color: var(--theme-text-secondary);
   font-size: 13px;
   font-family: inherit;
   padding: 4px 8px;
@@ -192,7 +192,7 @@
   width: calc(100% - 16px);
   text-align: left;
 }
-.new-folder-btn:hover { background: var(--theme-panel, #2d3d2a); color: var(--theme-text-primary, #d8d0b8); }
+.new-folder-btn:hover { background: var(--theme-panel); color: var(--theme-text-primary); }
 
 .new-folder-row {
   display: flex;
@@ -202,9 +202,9 @@
 }
 .new-folder-input {
   flex: 1 1 auto;
-  background: var(--theme-background, #1a1a1a);
-  border: 1px solid var(--theme-accent-gold, #c9a860);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background);
+  border: 1px solid var(--theme-accent-gold);
+  color: var(--theme-text-primary);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
   padding: 3px 5px;
@@ -214,7 +214,7 @@
 
 /* ---- Drag-and-drop ---- */
 .folder-row.is-drag-over {
-  background: var(--theme-panel, #2d3d2a);
-  outline: 1px solid var(--theme-accent-gold, #c9a860);
+  background: var(--theme-panel);
+  outline: 1px solid var(--theme-accent-gold);
   outline-offset: -1px;
 }

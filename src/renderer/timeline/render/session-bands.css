@@ -2,7 +2,7 @@
 
 .session-pill {
   position: absolute;
-  background: var(--pill-color, #6b7c5a);
+  background: var(--pill-color);
   border-radius: 4px;
   overflow: hidden;
   opacity: 0.85;

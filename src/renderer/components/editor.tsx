@@ -1,4 +1,5 @@
 import { FileEntry } from '../hooks/useFiles';
+import { ThemeProvider } from '../theme';
 
 interface EditorProps {
   activeFile: string | null;
@@ -17,6 +18,8 @@ export function Editor({
   onAddLine,
   onDelete,
 }: EditorProps) {
+  const bs = ThemeProvider.get().bootstrap;
+
   if (!activeFile) {
     return (
       <div
@@ -25,7 +28,7 @@ export function Editor({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#71717a',
+          color: bs.textDim,
         }}
       >
         Select a file from the sidebar to view its contents.
@@ -50,7 +53,7 @@ export function Editor({
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           borderRadius: '12px',
           padding: '30px',
-          border: '1px solid #27272a',
+          border: `1px solid ${bs.cardBorder}`,
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -64,13 +67,13 @@ export function Editor({
             marginBottom: '20px',
           }}
         >
-          <h1 style={{ margin: 0, fontSize: '24px', color: '#fff' }}>{activeFileName}</h1>
+          <h1 style={{ margin: 0, fontSize: '24px', color: bs.text }}>{activeFileName}</h1>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               onClick={onAddLine}
               style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: `linear-gradient(135deg, ${bs.success} 0%, #059669 100%)`,
                 color: 'white',
                 border: 'none',
                 padding: '8px 16px',
@@ -85,8 +88,8 @@ export function Editor({
               onClick={onDelete}
               style={{
                 background: 'transparent',
-                color: '#ef4444',
-                border: '1px solid #ef4444',
+                color: bs.danger,
+                border: `1px solid ${bs.danger}`,
                 padding: '8px 16px',
                 borderRadius: '6px',
                 cursor: 'pointer',
@@ -101,15 +104,15 @@ export function Editor({
         <div
           style={{
             flex: 1,
-            backgroundColor: '#000',
+            backgroundColor: bs.codeBackground,
             borderRadius: '8px',
             padding: '20px',
-            border: '1px solid #27272a',
+            border: `1px solid ${bs.codeBorder}`,
             overflowY: 'auto',
           }}
         >
           {isLoading ? (
-            <div style={{ color: '#71717a' }}>Loading content...</div>
+            <div style={{ color: bs.textDim }}>Loading content...</div>
           ) : (
             <pre
               style={{
@@ -119,7 +122,7 @@ export function Editor({
                 lineHeight: '1.6',
                 whiteSpace: 'pre-wrap',
                 wordWrap: 'break-word',
-                color: '#d4d4d8',
+                color: bs.codeText,
               }}
             >
               {content}

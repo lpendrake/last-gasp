@@ -2,6 +2,7 @@ import { EditorView } from '@codemirror/view';
 import { Extension } from '@codemirror/state';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
+import { ThemeProvider } from '../../theme';
 
 export const lastGaspTheme = EditorView.theme(
   {
@@ -14,7 +15,7 @@ export const lastGaspTheme = EditorView.theme(
     },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--theme-accent-gold)' },
     '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'rgba(201, 168, 96, 0.2)',
+      backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.2)',
     },
 
     '.cm-panels': { backgroundColor: 'var(--theme-surface)', color: 'var(--theme-text-primary)' },
@@ -22,18 +23,18 @@ export const lastGaspTheme = EditorView.theme(
     '.cm-panels.cm-panels-bottom': { borderTop: '1px solid var(--theme-border)' },
 
     '.cm-searchMatch': {
-      backgroundColor: 'rgba(201, 168, 96, 0.3)',
+      backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.3)',
       outline: '1px solid var(--theme-accent-gold)',
     },
     '.cm-searchMatch.cm-searchMatch-selected': {
-      backgroundColor: 'rgba(201, 168, 96, 0.5)',
+      backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.5)',
     },
 
     '.cm-activeLine': { backgroundColor: 'rgba(255, 255, 255, 0.03)' },
-    '.cm-selectionMatch': { backgroundColor: 'rgba(201, 168, 96, 0.1)' },
+    '.cm-selectionMatch': { backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.1)' },
 
     '&.cm-focused .cm-matchingBracket, &.cm-focused .cm-nonmatchingBracket': {
-      backgroundColor: 'rgba(201, 168, 96, 0.2)',
+      backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.2)',
       outline: '1px solid var(--theme-accent-gold)',
     },
 
@@ -51,7 +52,7 @@ export const lastGaspTheme = EditorView.theme(
     '.cm-foldPlaceholder': {
       backgroundColor: 'transparent',
       border: 'none',
-      color: '#ddd',
+      color: ThemeProvider.get().editor.foldPlaceholder,
     },
 
     '.cm-tooltip': {
@@ -110,7 +111,7 @@ export const lastGaspHighlightStyle = HighlightStyle.define([
   { tag: t.heading, fontWeight: 'bold', color: 'var(--theme-accent-gold)' },
   { tag: [t.atom, t.bool, t.special(t.variableName)], color: 'var(--theme-accent-warm)' },
   { tag: [t.processingInstruction, t.string, t.inserted], color: 'var(--theme-text-secondary)' },
-  { tag: t.invalid, color: '#ff0000' },
+  { tag: t.invalid, color: ThemeProvider.get().editor.invalid },
 ]);
 
 export const lastGaspThemeExtensions: Extension = [

@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { timelinePort, ConflictError } from '../ports';
-import type {
-  EventListItem,
-  EventWithMtime,
-  Session,
-  State,
-  TagsRegistry,
-  Palette,
-} from '../types';
+import type { EventListItem, EventWithMtime, Session, State, TagsRegistry } from '../types';
 
 const mockFsApi = {
   timelineListEvents: vi.fn(),
@@ -20,7 +13,6 @@ const mockFsApi = {
   timelineGetState: vi.fn(),
   timelinePutState: vi.fn(),
   timelineGetTags: vi.fn(),
-  timelineLoadPalette: vi.fn(),
 };
 
 vi.stubGlobal('window', { fsApi: mockFsApi });
@@ -167,25 +159,6 @@ describe('getTags', () => {
     const tags: TagsRegistry = { 'plot:beast': { color: '#8b0000', description: 'Beast arc' } };
     mockFsApi.timelineGetTags.mockResolvedValue(tags);
     expect(await timelinePort.getTags(CAMPAIGN)).toEqual(tags);
-  });
-});
-
-describe('loadPalette', () => {
-  it('delegates to fsApi', async () => {
-    const palette: Palette = {
-      theme: { background: '#1a1a1a' },
-      weekdays: {
-        monday: '#8da8c4',
-        tuesday: '#a07850',
-        wednesday: '#d4a850',
-        thursday: '#5a8090',
-        friday: '#c06040',
-        saturday: '#7560a0',
-        sunday: '#e5b860',
-      },
-    };
-    mockFsApi.timelineLoadPalette.mockResolvedValue(palette);
-    expect(await timelinePort.loadPalette(CAMPAIGN)).toEqual(palette);
   });
 });
 

@@ -1,13 +1,6 @@
 import { parseISOString, toAbsoluteSeconds, tryParseDate } from '../calendar/golarian';
 import type { Session } from '../data/types';
-
-export const SESSION_COLORS: readonly string[] = [
-  '#6b7c5a', // sage
-  '#7a5c7a', // plum
-  '#7a6448', // tobacco
-  '#3d7068', // dusty teal
-  '#7a4840', // muted brick
-];
+import { ThemeProvider } from '../../theme';
 
 export const COLOR_STORAGE_KEY = 'last-gasp:session-color-idx';
 
@@ -26,13 +19,15 @@ export type SessionEditorMode =
   | { kind: 'edit'; sessionId: string };
 
 export function nextDefaultColor(): string {
+  const colors = ThemeProvider.get().timeline.sessions;
   const stored = localStorage.getItem(COLOR_STORAGE_KEY);
   const last = stored !== null ? parseInt(stored, 10) : -1;
-  return SESSION_COLORS[(last + 1) % SESSION_COLORS.length];
+  return colors[(last + 1) % colors.length];
 }
 
 export function recordColorUsed(color: string): void {
-  const idx = SESSION_COLORS.indexOf(color);
+  const colors = ThemeProvider.get().timeline.sessions;
+  const idx = colors.indexOf(color);
   if (idx >= 0) localStorage.setItem(COLOR_STORAGE_KEY, String(idx));
 }
 

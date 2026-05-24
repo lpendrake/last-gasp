@@ -3,7 +3,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--theme-accent-warm, #b87840);
+  background: var(--theme-accent-warm);
   transform: translateX(-1px);
   pointer-events: none;
   opacity: 0.7;
@@ -22,16 +22,16 @@
 .now-marker-date {
   font-size: 15px;
   font-weight: 600;
-  color: var(--theme-accent-warm, #b87840);
-  background: var(--theme-background, #1a1a1a);
+  color: var(--theme-accent-warm);
+  background: var(--theme-background);
   padding: 2px 6px 0;
   white-space: nowrap;
 }
 
 .now-marker-year {
   font-size: 14px;
-  color: var(--theme-accent-warm, #b87840);
-  background: var(--theme-background, #1a1a1a);
+  color: var(--theme-accent-warm);
+  background: var(--theme-background);
   padding: 0 6px 2px;
   opacity: 0.75;
   white-space: nowrap;
@@ -40,8 +40,8 @@
 .now-marker-time {
   font-size: 14px;
   font-family: ui-monospace, 'Consolas', monospace;
-  color: var(--theme-accent-warm, #b87840);
-  background: var(--theme-background, #1a1a1a);
+  color: var(--theme-accent-warm);
+  background: var(--theme-background);
   padding: 2px 6px;
   margin-top: 3px;
   white-space: nowrap;

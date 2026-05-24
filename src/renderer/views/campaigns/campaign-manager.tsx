@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Campaign } from '../../../types/global';
+import { ThemeProvider } from '../../theme';
 import tttIconUrl from '../../../assets/images/TTT.svg';
 
 interface CampaignManagerProps {
@@ -21,6 +22,8 @@ export function CampaignManager({
   onChangeDir,
   rootDir,
 }: CampaignManagerProps) {
+  const bs = ThemeProvider.get().bootstrap;
+
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -66,8 +69,8 @@ export function CampaignManager({
     <div
       style={{
         height: '100vh',
-        backgroundColor: '#09090b',
-        color: '#fff',
+        backgroundColor: bs.bg,
+        color: bs.text,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -91,8 +94,8 @@ export function CampaignManager({
         >
           <div
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid #27272a',
+              backgroundColor: bs.cardBg,
+              border: `1px solid ${bs.cardBorder}`,
               borderRadius: '16px',
               padding: '32px',
               width: '480px',
@@ -107,7 +110,7 @@ export function CampaignManager({
               <h2 style={{ margin: '0 0 6px 0', fontSize: '20px', fontWeight: 700 }}>
                 Update available
               </h2>
-              <div style={{ fontSize: '13px', color: '#71717a' }}>
+              <div style={{ fontSize: '13px', color: bs.textDim }}>
                 v{appVersion} → v{updateInfo.version}
               </div>
             </div>
@@ -115,12 +118,12 @@ export function CampaignManager({
             {updateInfo.releaseNotes && (
               <div
                 style={{
-                  background: '#09090b',
-                  border: '1px solid #27272a',
+                  background: bs.bg,
+                  border: `1px solid ${bs.cardBorder}`,
                   borderRadius: '8px',
                   padding: '16px',
                   fontSize: '13px',
-                  color: '#a1a1aa',
+                  color: bs.textMuted,
                   lineHeight: '1.6',
                   overflowY: 'auto',
                   maxHeight: '300px',
@@ -138,8 +141,8 @@ export function CampaignManager({
                 disabled={installing}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #27272a',
-                  color: '#a1a1aa',
+                  border: `1px solid ${bs.cardBorder}`,
+                  color: bs.textMuted,
                   padding: '10px 20px',
                   borderRadius: '6px',
                   fontSize: '13px',
@@ -152,9 +155,9 @@ export function CampaignManager({
                 onClick={handleInstall}
                 disabled={installing}
                 style={{
-                  background: installing ? '#4338ca' : '#6366f1',
+                  background: installing ? bs.primaryActive : bs.primary,
                   border: 'none',
-                  color: '#fff',
+                  color: bs.text,
                   padding: '10px 20px',
                   borderRadius: '6px',
                   fontSize: '13px',
@@ -176,7 +179,7 @@ export function CampaignManager({
       <header
         style={{
           padding: '20px 40px',
-          borderBottom: '1px solid #18181b',
+          borderBottom: `1px solid ${bs.cardBg}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -194,16 +197,16 @@ export function CampaignManager({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
               {appVersion && (
-                <span style={{ fontSize: '20px', color: '#3f3f46' }}>v{appVersion}</span>
+                <span style={{ fontSize: '20px', color: bs.hoverBorder }}>v{appVersion}</span>
               )}
               {updateInfo && (
                 <button
                   onClick={() => setShowUpdateModal(true)}
                   style={{
                     fontSize: '20px',
-                    color: '#f59e0b',
-                    background: 'rgba(245,158,11,0.1)',
-                    border: '1px solid rgba(245,158,11,0.3)',
+                    color: bs.warning,
+                    background: `${bs.warning}1a`,
+                    border: `1px solid ${bs.warning}4d`,
                     borderRadius: '4px',
                     padding: '2px 8px',
                     cursor: 'pointer',
@@ -214,9 +217,9 @@ export function CampaignManager({
                 </button>
               )}
             </div>
-            <div style={{ fontSize: '20px', color: '#52525b', marginTop: '3px' }}>
-              <span style={{ color: '#3f3f46' }}>Workspace: </span>
-              <span style={{ color: '#52525b' }}>{rootDir}</span>
+            <div style={{ fontSize: '20px', color: bs.dimLabel, marginTop: '3px' }}>
+              <span style={{ color: bs.hoverBorder }}>Workspace: </span>
+              <span style={{ color: bs.dimLabel }}>{rootDir}</span>
             </div>
           </div>
         </div>
@@ -224,16 +227,16 @@ export function CampaignManager({
           onClick={onChangeDir}
           style={{
             background: 'transparent',
-            border: '1px solid #27272a',
-            color: '#a1a1aa',
+            border: `1px solid ${bs.cardBorder}`,
+            color: bs.textMuted,
             padding: '8px 16px',
             borderRadius: '6px',
             fontSize: '13px',
             cursor: 'pointer',
             transition: 'all 0.2s',
           }}
-          onMouseOver={(e) => (e.currentTarget.style.borderColor = '#3f3f46')}
-          onMouseOut={(e) => (e.currentTarget.style.borderColor = '#27272a')}
+          onMouseOver={(e) => (e.currentTarget.style.borderColor = bs.hoverBorder)}
+          onMouseOut={(e) => (e.currentTarget.style.borderColor = bs.cardBorder)}
         >
           Change Directory
         </button>
@@ -255,8 +258,8 @@ export function CampaignManager({
         <div
           onClick={() => !isCreating && setIsCreating(true)}
           style={{
-            backgroundColor: isCreating ? '#18181b' : 'transparent',
-            border: isCreating ? '1px solid #27272a' : '2px dashed #27272a',
+            backgroundColor: isCreating ? bs.cardBg : 'transparent',
+            border: isCreating ? `1px solid ${bs.cardBorder}` : `2px dashed ${bs.cardBorder}`,
             borderRadius: '16px',
             padding: '32px',
             display: 'flex',
@@ -268,13 +271,13 @@ export function CampaignManager({
           }}
           onMouseOver={(e) => {
             if (!isCreating) {
-              e.currentTarget.style.borderColor = '#3f3f46';
+              e.currentTarget.style.borderColor = bs.hoverBorder;
               e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)';
             }
           }}
           onMouseOut={(e) => {
             if (!isCreating) {
-              e.currentTarget.style.borderColor = '#27272a';
+              e.currentTarget.style.borderColor = bs.cardBorder;
               e.currentTarget.style.backgroundColor = 'transparent';
             }
           }}
@@ -282,8 +285,8 @@ export function CampaignManager({
           {!isCreating ? (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>✨</div>
-              <div style={{ fontWeight: 600, color: '#e0e0e0' }}>Start New Campaign</div>
-              <div style={{ fontSize: '13px', color: '#71717a', marginTop: '4px' }}>
+              <div style={{ fontWeight: 600, color: bs.text }}>Start New Campaign</div>
+              <div style={{ fontSize: '13px', color: bs.textDim, marginTop: '4px' }}>
                 Create a fresh story world
               </div>
             </div>
@@ -297,9 +300,9 @@ export function CampaignManager({
                 onChange={(e) => setNewName(e.target.value)}
                 style={{
                   width: '100%',
-                  background: '#09090b',
-                  border: '1px solid #27272a',
-                  color: '#fff',
+                  background: bs.bg,
+                  border: `1px solid ${bs.cardBorder}`,
+                  color: bs.text,
                   padding: '10px 12px',
                   borderRadius: '6px',
                   marginBottom: '12px',
@@ -312,9 +315,9 @@ export function CampaignManager({
                 onChange={(e) => setNewDesc(e.target.value)}
                 style={{
                   width: '100%',
-                  background: '#09090b',
-                  border: '1px solid #27272a',
-                  color: '#fff',
+                  background: bs.bg,
+                  border: `1px solid ${bs.cardBorder}`,
+                  color: bs.text,
                   padding: '10px 12px',
                   borderRadius: '6px',
                   marginBottom: '16px',
@@ -329,8 +332,8 @@ export function CampaignManager({
                   type="submit"
                   style={{
                     flex: 1,
-                    background: '#6366f1',
-                    color: '#fff',
+                    background: bs.primary,
+                    color: bs.text,
                     border: 'none',
                     padding: '10px',
                     borderRadius: '6px',
@@ -348,7 +351,7 @@ export function CampaignManager({
                   }}
                   style={{
                     background: 'transparent',
-                    color: '#a1a1aa',
+                    color: bs.textMuted,
                     border: 'none',
                     padding: '10px',
                     cursor: 'pointer',
@@ -367,8 +370,8 @@ export function CampaignManager({
             key={campaign.path}
             onClick={() => onOpen(campaign)}
             style={{
-              backgroundColor: '#18181b',
-              border: '1px solid #27272a',
+              backgroundColor: bs.cardBg,
+              border: `1px solid ${bs.cardBorder}`,
               borderRadius: '16px',
               padding: '32px',
               display: 'flex',
@@ -379,11 +382,11 @@ export function CampaignManager({
               transition: 'all 0.2s',
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.borderColor = '#3f3f46';
+              e.currentTarget.style.borderColor = bs.hoverBorder;
               e.currentTarget.style.transform = 'translateY(-4px)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.borderColor = '#27272a';
+              e.currentTarget.style.borderColor = bs.cardBorder;
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
@@ -395,7 +398,7 @@ export function CampaignManager({
               <p
                 style={{
                   fontSize: '14px',
-                  color: '#a1a1aa',
+                  color: bs.textMuted,
                   margin: 0,
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
@@ -406,7 +409,7 @@ export function CampaignManager({
                 {campaign.description || 'No description provided.'}
               </p>
             </div>
-            <div style={{ fontSize: '11px', color: '#3f3f46', fontFamily: 'monospace' }}>
+            <div style={{ fontSize: '11px', color: bs.hoverBorder, fontFamily: 'monospace' }}>
               /{campaign.folderName}
             </div>
           </div>

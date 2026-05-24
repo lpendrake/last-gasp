@@ -42,19 +42,6 @@ export interface Session {
   notes?: string;
 }
 
-export interface Palette {
-  theme: Record<string, string>;
-  weekdays: {
-    monday: string;
-    tuesday: string;
-    wednesday: string;
-    thursday: string;
-    friday: string;
-    saturday: string;
-    sunday: string;
-  };
-}
-
 export type ConflictResult = { conflict: true };
 
 export interface EventWithMtime {

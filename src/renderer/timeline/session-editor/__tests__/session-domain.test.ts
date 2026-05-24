@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ThemeProvider } from '../../../theme';
 import {
-  SESSION_COLORS,
   nextDefaultColor,
   recordColorUsed,
   COLOR_STORAGE_KEY,
@@ -54,28 +54,30 @@ beforeEach(() => {
 
 describe('nextDefaultColor', () => {
   it('returns the first color when nothing stored', () => {
-    expect(nextDefaultColor()).toBe(SESSION_COLORS[0]);
+    expect(nextDefaultColor()).toBe(ThemeProvider.get().timeline.sessions[0]);
   });
 
   it('returns the second color after the first is recorded', () => {
-    recordColorUsed(SESSION_COLORS[0]);
-    expect(nextDefaultColor()).toBe(SESSION_COLORS[1]);
+    recordColorUsed(ThemeProvider.get().timeline.sessions[0]);
+    expect(nextDefaultColor()).toBe(ThemeProvider.get().timeline.sessions[1]);
   });
 
   it('wraps around to the first color after the last', () => {
-    recordColorUsed(SESSION_COLORS[SESSION_COLORS.length - 1]);
-    expect(nextDefaultColor()).toBe(SESSION_COLORS[0]);
+    recordColorUsed(
+      ThemeProvider.get().timeline.sessions[ThemeProvider.get().timeline.sessions.length - 1],
+    );
+    expect(nextDefaultColor()).toBe(ThemeProvider.get().timeline.sessions[0]);
   });
 
   it('ignores colors not in the palette and treats storage as out-of-range', () => {
     localStorage.setItem(COLOR_STORAGE_KEY, '999');
-    expect(SESSION_COLORS).toContain(nextDefaultColor());
+    expect(ThemeProvider.get().timeline.sessions).toContain(nextDefaultColor());
   });
 });
 
 describe('recordColorUsed', () => {
   it('stores the index of the given color', () => {
-    recordColorUsed(SESSION_COLORS[2]);
+    recordColorUsed(ThemeProvider.get().timeline.sessions[2]);
     expect(localStorage.getItem(COLOR_STORAGE_KEY)).toBe('2');
   });
 
@@ -261,9 +263,9 @@ describe('emptyBuffer', () => {
   });
 
   it('picks next default color', () => {
-    recordColorUsed(SESSION_COLORS[0]);
+    recordColorUsed(ThemeProvider.get().timeline.sessions[0]);
     const buf = emptyBuffer();
-    expect(buf.color).toBe(SESSION_COLORS[1]);
+    expect(buf.color).toBe(ThemeProvider.get().timeline.sessions[1]);
   });
 });
 

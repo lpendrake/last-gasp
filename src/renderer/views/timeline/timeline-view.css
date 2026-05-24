@@ -1,9 +1,9 @@
 @keyframes card-flash {
   0% {
-    box-shadow: 0 0 0 3px var(--theme-accent-gold, #c8a040);
+    box-shadow: 0 0 0 3px var(--theme-accent-gold);
   }
   60% {
-    box-shadow: 0 0 0 3px var(--theme-accent-gold, #c8a040);
+    box-shadow: 0 0 0 3px var(--theme-accent-gold);
   }
   100% {
     box-shadow: none;
@@ -25,11 +25,11 @@
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--theme-surface, #1e1e1a);
-  border: 1px solid var(--theme-danger, #c06040);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-danger);
   border-radius: 4px;
   padding: 8px 16px;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   font-size: 13px;
   z-index: 100;
   pointer-events: none;

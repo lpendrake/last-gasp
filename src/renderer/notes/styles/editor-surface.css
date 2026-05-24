@@ -19,7 +19,7 @@
   flex-direction: column;
   min-width: 0;
 }
-.editor-pane + .editor-pane { border-left: 1px solid var(--theme-border, #3a3a30); }
+.editor-pane + .editor-pane { border-left: 1px solid var(--theme-border); }
 
 .live-editor {
   flex: 1 1 auto;
@@ -28,11 +28,11 @@
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 16px;
   line-height: 1.65;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
 }
 .live-editor[contenteditable] {
   outline: none;
-  caret-color: var(--theme-accent-gold, #c9a860);
+  caret-color: var(--theme-accent-gold);
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -40,8 +40,8 @@
 .source-editor {
   flex: 1 1 auto;
   width: 100%;
-  background: var(--theme-background, #1a1a1a);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-background);
+  color: var(--theme-text-primary);
   border: none;
   outline: none;
   font-family: ui-monospace, 'Consolas', monospace;
@@ -57,7 +57,7 @@
   justify-content: center;
   padding: 24px;
   overflow: auto;
-  background: var(--theme-background, #1a1a1a);
+  background: var(--theme-background);
 }
 .image-pane img {
   max-width: 100%;
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
 }
@@ -109,22 +109,22 @@
 .cm-heading-3 { font-size: 1.2em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
 
 .cm-wiki-link-raw {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
 }
 
 .cm-note-link {
-  color: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-accent-gold);
   text-decoration: underline;
   text-underline-offset: 4px;
   cursor: pointer;
 }
 
 .cm-note-link:hover {
-  background: rgba(201, 168, 96, 0.1);
+  background: rgb(var(--theme-accent-gold-rgb) / 0.1);
 }
 
 .cm-note-link-broken {
-  color: var(--theme-danger, #c06040);
+  color: var(--theme-danger);
   text-decoration: underline wavy;
   text-underline-offset: 2px;
 }
@@ -134,15 +134,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-style: italic;
 }
 
 /* ---- Markdown decoration classes (B1) ---- */
 
 .cm-inline-code {
-  background: rgba(201, 168, 96, 0.08);
-  border: 1px solid rgba(201, 168, 96, 0.18);
+  background: rgb(var(--theme-accent-gold-rgb) / 0.08);
+  border: 1px solid rgb(var(--theme-accent-gold-rgb) / 0.18);
   border-radius: 3px;
   padding: 0 3px;
   font-family: ui-monospace, 'Consolas', monospace;
@@ -151,27 +151,27 @@
 
 /* List markers (-, *, 1.) styled to stand out from content */
 .cm-list-mark {
-  color: var(--theme-accent-warm, #b87840);
+  color: var(--theme-accent-warm);
   opacity: 0.85;
 }
 
 .cm-blockquote-mark {
-  color: var(--theme-accent-warm, #b87840);
+  color: var(--theme-accent-warm);
   opacity: 0.7;
 }
 
 /* Blockquote lines: left bar, indent, muted italic text */
 .cm-line.cm-blockquote {
-  border-left: 3px solid var(--theme-accent-warm, #b87840);
+  border-left: 3px solid var(--theme-accent-warm);
   padding-left: 1.1em;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   font-style: italic;
 }
 
 /* ---- Table decorations ---- */
 
 .cm-line.cm-table-header {
-  color: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-accent-gold);
   font-weight: 700;
 }
 
@@ -194,12 +194,12 @@
 }
 
 .cm-code-fence-mark {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   opacity: 0.5;
 }
 
 .cm-md-link {
-  color: var(--theme-link, #4fb8d0);
+  color: var(--theme-link);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -211,7 +211,7 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  border-bottom: 1px solid var(--theme-border);
   background: rgba(0, 0, 0, 0.15);
   padding: 10px 60px 12px;
 }
@@ -222,15 +222,15 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   margin-bottom: 6px;
 }
 
 .meta-panel-editor {
   background: transparent;
-  border: 1px solid var(--theme-border, #3a3a30);
+  border: 1px solid var(--theme-border);
   border-radius: 4px;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
   line-height: 1.5;
@@ -242,11 +242,11 @@
 }
 
 .meta-panel-editor:focus {
-  border-color: var(--theme-accent-gold, #c9a860);
+  border-color: var(--theme-accent-gold);
 }
 
 .meta-panel-editor::placeholder {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   opacity: 0.5;
 }
 
@@ -287,7 +287,7 @@
 .ftb-sep {
   width: 1px;
   height: 18px;
-  background: var(--theme-border, #3a3a30);
+  background: var(--theme-border);
   margin: 0 4px;
   flex-shrink: 0;
 }
@@ -296,7 +296,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 2px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   cursor: pointer;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
@@ -308,12 +308,12 @@
   justify-content: center;
 }
 .ftb-btn:hover {
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-primary);
 }
 .ftb-btn.is-active {
-  background: var(--theme-border-strong, #5a4530);
-  color: var(--theme-accent-gold, #c9a860);
+  background: var(--theme-border-strong);
+  color: var(--theme-accent-gold);
 }
 
 /* ---- Image widget (B4) ---- */
@@ -334,14 +334,14 @@
 
 /* Collapsed label shown when cursor is away — looks like a link caption */
 .cm-image-label {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-size: 0.8em;
   font-style: italic;
 }
 
 /* Full raw markdown shown when cursor is inside the image syntax */
 .cm-image-raw {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-size: 0.8em;
   opacity: 0.6;
 }

@@ -78,8 +78,6 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.invoke('timeline:putState', campaignPath, state),
   timelineGetTags: (campaignPath: string) =>
     ipcRenderer.invoke('timeline:getTags', campaignPath),
-  timelineLoadPalette: (campaignPath: string) =>
-    ipcRenderer.invoke('timeline:loadPalette', campaignPath),
 
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
 

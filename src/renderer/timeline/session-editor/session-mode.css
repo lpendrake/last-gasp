@@ -5,7 +5,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--handle-color, #6b7c5a);
+  background: var(--handle-color);
   opacity: 0.5;
   pointer-events: none;
   z-index: 4;
@@ -16,8 +16,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--theme-surface, #1e1e1a);
-  border: 2px solid var(--handle-color, #6b7c5a);
+  background: var(--theme-surface);
+  border: 2px solid var(--handle-color);
   box-sizing: border-box;
   pointer-events: auto;
   cursor: ew-resize;
@@ -25,15 +25,15 @@
 }
 
 .session-drag-handle:hover {
-  background: var(--handle-color, #6b7c5a);
+  background: var(--handle-color);
 }
 
 .session-ghost-pill {
   position: absolute;
   pointer-events: none;
   opacity: 0.4;
-  border: 2px dashed var(--pill-color, #6b7c5a);
-  background: var(--pill-color, #6b7c5a);
+  border: 2px dashed var(--pill-color);
+  background: var(--pill-color);
   border-radius: 12px;
   box-sizing: border-box;
   z-index: 4;
@@ -43,7 +43,7 @@
   position: absolute;
   height: 24px;
   border-radius: 12px;
-  background: var(--theme-accent-gold, #c9a860);
+  background: var(--theme-accent-gold);
   opacity: 0.55;
   pointer-events: none;
   z-index: 4;
@@ -67,7 +67,7 @@
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in srgb, var(--wash-color, #c9a860) 18%, transparent) 100%
+    color-mix(in srgb, var(--wash-color) 18%, transparent) 100%
   );
   opacity: 0.85;
   z-index: 3;
@@ -78,8 +78,8 @@
   top: 6px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--theme-accent-gold, #c9a860);
-  color: var(--theme-background, #1a1a1a);
+  background: var(--theme-accent-gold);
+  color: var(--theme-background);
   font-size: 12px;
   font-weight: 600;
   padding: 3px 12px;
@@ -93,8 +93,8 @@
 .session-drag-label {
   position: absolute;
   transform: translateX(-50%);
-  background: var(--theme-accent-gold, #c9a860);
-  color: var(--theme-background, #1a1a1a);
+  background: var(--theme-accent-gold);
+  color: var(--theme-background);
   font-size: 12px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-weight: 600;

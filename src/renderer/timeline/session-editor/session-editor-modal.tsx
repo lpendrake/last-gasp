@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import type { Session } from '../data/types';
+import { ThemeProvider } from '../../theme';
 import {
-  SESSION_COLORS,
   type SessionEditorMode,
   type SessionBuffer,
   bufferFromSession,
@@ -164,7 +164,7 @@ export function SessionEditorModal({
           <div className="session-editor-color-row">
             <span className="session-editor-label">Color</span>
             <div className="session-editor-swatches">
-              {SESSION_COLORS.map((color) => (
+              {ThemeProvider.get().timeline.sessions.map((color) => (
                 <button
                   key={color}
                   type="button"

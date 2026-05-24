@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   layoutCards,
   assignRows,
-  weekdayColorFromPalette,
+  weekdayColor,
   CARD_HEIGHT,
   CARD_GAP,
   CARD_PADDING_X,
 } from '../cards';
-import type { EventListItem, Palette } from '../../data/types';
+import type { EventListItem } from '../../data/types';
+import type { WeekdayColors } from '../../../theme';
 import { type ViewState, type ViewportSize, secondsToX } from '../../math/zoom';
 import { toAbsoluteSeconds, parseISOString } from '../../calendar/golarian';
 
@@ -21,26 +22,14 @@ const REF_SECS = toAbsoluteSeconds(parseISOString(REF_DATE));
 
 const VIEW: ViewState = { centerSeconds: REF_SECS, secondsPerPixel: 432 };
 
-const MOCK_PALETTE: Palette = {
-  theme: {
-    surface: '#242420',
-    border: '#3a3a30',
-    border_strong: '#5a4530',
-    text_primary: '#d8d0b8',
-    text_secondary: '#a89a80',
-    text_muted: '#7a6f58',
-    accent_gold: '#c9a860',
-    dotted_future: '#7a6f58',
-  },
-  weekdays: {
-    monday: '#c9a860',
-    tuesday: '#7a9a4a',
-    wednesday: '#e07b39',
-    thursday: '#5a8fbf',
-    friday: '#9b7bc0',
-    saturday: '#c06060',
-    sunday: '#4a9a7a',
-  },
+const MOCK_WEEKDAYS: WeekdayColors = {
+  monday: '#c9a860',
+  tuesday: '#7a9a4a',
+  wednesday: '#e07b39',
+  thursday: '#5a8fbf',
+  friday: '#9b7bc0',
+  saturday: '#c06060',
+  sunday: '#4a9a7a',
 };
 
 function ev(
@@ -214,50 +203,36 @@ describe('assignRows', () => {
   });
 });
 
-// ---- weekdayColorFromPalette ----
+// ---- weekdayColor ----
 
-describe('weekdayColorFromPalette', () => {
+describe('weekdayColor', () => {
   it('returns monday color for a Monday date', () => {
     // 4726-05-02 is a Monday (4726-05-04 is Wednesday, 2 days earlier)
-    expect(weekdayColorFromPalette(parseISOString('4726-05-02'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.monday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-02'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.monday);
   });
 
   it('returns wednesday color for 4726-05-04 (the anchor Wednesday)', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-04'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.wednesday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-04'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.wednesday);
   });
 
   it('returns thursday color for 4726-05-05', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-05'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.thursday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-05'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.thursday);
   });
 
   it('returns friday color for 4726-05-06', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-06'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.friday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-06'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.friday);
   });
 
   it('returns saturday color for 4726-05-07', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-07'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.saturday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-07'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.saturday);
   });
 
   it('returns sunday color for 4726-05-08', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-08'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.sunday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-08'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.sunday);
   });
 
   it('returns tuesday color for 4726-05-03', () => {
-    expect(weekdayColorFromPalette(parseISOString('4726-05-03'), MOCK_PALETTE)).toBe(
-      MOCK_PALETTE.weekdays.tuesday,
-    );
+    expect(weekdayColor(parseISOString('4726-05-03'), MOCK_WEEKDAYS)).toBe(MOCK_WEEKDAYS.tuesday);
   });
 });
 

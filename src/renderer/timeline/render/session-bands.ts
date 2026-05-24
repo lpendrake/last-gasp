@@ -34,7 +34,7 @@ export const RAIL_OFFSET = 34;
 export const TOOLTIP_MAX_W = 360;
 const MIN_PILL_W = 12;
 const LABEL_MIN_W = 60;
-const DEFAULT_COLOR = '#6b7c5a';
+import { ThemeProvider } from '../../theme';
 
 // Short real-world month names — used for session labels derived from realStart.
 export const MONTHS_SHORT = [
@@ -158,7 +158,7 @@ export function computeSessionPills(
   for (let i = 0; i < sorted.length; i++) {
     const band = sorted[i];
     const session = sessionMap.get(band.sessionId);
-    const color = session?.color ?? DEFAULT_COLOR;
+    const color = session?.color ?? ThemeProvider.get().timeline.sessions[0];
 
     const startX = secondsToX(band.startSeconds, view, size);
     const rawEndX = secondsToX(band.endSeconds, view, size);

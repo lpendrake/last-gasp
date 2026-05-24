@@ -13,10 +13,10 @@ import {
   validateBuffer,
   deriveFilename,
   getColorPresetValue,
-  COLOR_PRESETS,
   type EditorBuffer,
   type EditorMode,
 } from './domain';
+import { ThemeProvider } from '../../theme';
 import './EventEditorModal.css';
 
 type SaveState = 'clean' | 'dirty' | 'saving' | 'error' | 'saved';
@@ -454,7 +454,7 @@ export function EventEditorModal({
                         updateBuffer({ color: val === '__custom__' ? '' : val });
                       }}
                     >
-                      {COLOR_PRESETS.map((p) => (
+                      {ThemeProvider.get().timeline.eventColorPresets.map((p) => (
                         <option key={p.value} value={p.value}>
                           {p.label}
                         </option>

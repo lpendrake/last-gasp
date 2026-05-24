@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { timelinePort, ConflictError } from '../../timeline/data/ports';
-import type { EventListItem, Palette, Session, State } from '../../timeline/data/types';
+import type { EventListItem, Session, State } from '../../timeline/data/types';
 import {
   DEFAULT_SECONDS_PER_PIXEL,
   type ViewState,
@@ -12,7 +12,7 @@ import {
   fromAbsoluteSeconds,
   toISOString,
 } from '../../timeline/calendar/golarian';
-import { paletteToCssVars } from '../../timeline/palette';
+import { ThemeProvider } from '../../theme';
 import { Axis } from '../../timeline/render/axis';
 import { Cards } from '../../timeline/render/cards.tsx';
 import { NowMarker } from '../../timeline/render/now-marker';
@@ -50,8 +50,6 @@ import './timeline-view.css';
 
 interface TimelineViewProps {
   campaignPath: string;
-  /** Palette loaded at the App level so theming persists across view switches. */
-  palette: Palette | null;
   /** When set, the timeline pans to this event filename and flashes the card. */
   pendingJumpFilename?: string | null;
   /** Called after the jump has been applied so the parent can clear the pending value. */
@@ -68,11 +66,11 @@ interface LoadedData {
 
 export function TimelineView({
   campaignPath,
-  palette,
   pendingJumpFilename,
   onJumpHandled,
   onOpenById,
 }: TimelineViewProps) {
+  const weekdays = ThemeProvider.get().timeline.days;
   const [viewState, setViewState] = useState<ViewState>({
     centerSeconds: 0,
     secondsPerPixel: DEFAULT_SECONDS_PER_PIXEL,
@@ -435,7 +433,6 @@ export function TimelineView({
     [loadedData.events, filterState, loadedData.sessions],
   );
 
-  const bgColor = palette?.theme.background ?? '#09090b';
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
@@ -456,44 +453,39 @@ export function TimelineView({
           position: 'relative',
           width: '100%',
           height: '100%',
-          backgroundColor: bgColor,
+          backgroundColor: 'var(--theme-background)',
           overflow: 'hidden',
           cursor: 'grab',
           userSelect: 'none',
-          ...(palette ? paletteToCssVars(palette) : {}),
         }}
       >
-        {palette && <Axis view={viewState} size={viewportSize} />}
-        {palette && (
-          <SessionBands
-            sessions={loadedData.sessions}
-            events={filteredEvents}
-            view={viewState}
-            size={viewportSize}
-            sessionMode={sessionMode.active}
-            onPillClick={(sessionId) => {
-              if (!sessionMode.isHandleDragging()) sessionEditor.openEdit(sessionId);
-            }}
-          />
-        )}
-        {palette && (
-          <Cards
-            events={filteredEvents}
-            view={viewState}
-            size={viewportSize}
-            palette={palette}
-            inGameNowSeconds={inGameNowSeconds}
-            expansion={expansion}
-            previewSize={previewSize}
-            onCardClick={sessionModeActiveRef.current ? undefined : handleCardClick}
-            onPreviewSizeChange={savePreviewSize}
-            onResizeDragChange={sessionModeActiveRef.current ? undefined : handleResizeDragChange}
-            onEditClick={sessionModeActiveRef.current ? undefined : editor.openEdit}
-            onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
-            onOpenById={onOpenById}
-          />
-        )}
-        {palette && inGameNow && (
+        <Axis view={viewState} size={viewportSize} weekdays={weekdays} />
+        <SessionBands
+          sessions={loadedData.sessions}
+          events={filteredEvents}
+          view={viewState}
+          size={viewportSize}
+          sessionMode={sessionMode.active}
+          onPillClick={(sessionId) => {
+            if (!sessionMode.isHandleDragging()) sessionEditor.openEdit(sessionId);
+          }}
+        />
+        <Cards
+          events={filteredEvents}
+          view={viewState}
+          size={viewportSize}
+          weekdays={weekdays}
+          inGameNowSeconds={inGameNowSeconds}
+          expansion={expansion}
+          previewSize={previewSize}
+          onCardClick={sessionModeActiveRef.current ? undefined : handleCardClick}
+          onPreviewSizeChange={savePreviewSize}
+          onResizeDragChange={sessionModeActiveRef.current ? undefined : handleResizeDragChange}
+          onEditClick={sessionModeActiveRef.current ? undefined : editor.openEdit}
+          onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
+          onOpenById={onOpenById}
+        />
+        {inGameNow && (
           <NowMarker
             view={viewState}
             size={viewportSize}
@@ -529,8 +521,8 @@ export function TimelineView({
           >
             <div
               style={{
-                background: 'var(--theme-surface, #1e1e1a)',
-                border: '1px solid var(--theme-border-strong, #5a4530)',
+                background: 'var(--theme-surface)',
+                border: '1px solid var(--theme-border-strong)',
                 borderRadius: 4,
                 padding: '20px 24px',
                 maxWidth: 400,
@@ -540,7 +532,7 @@ export function TimelineView({
               <p
                 style={{
                   margin: '0 0 16px',
-                  color: 'var(--theme-text-primary, #d8d0b8)',
+                  color: 'var(--theme-text-primary)',
                   fontSize: 14,
                   lineHeight: 1.5,
                 }}
