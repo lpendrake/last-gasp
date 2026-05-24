@@ -5,7 +5,10 @@ export type ResolvedLink =
   | { kind: 'event'; filename: string }
   | { kind: 'note'; folder: string; path: string };
 
-export function resolveLinkById(entityIndex: readonly EntityIndexEntry[], id: string): ResolvedLink {
+export function resolveLinkById(
+  entityIndex: readonly EntityIndexEntry[],
+  id: string,
+): ResolvedLink {
   const entry = entityIndex.find((e) => e.id === id);
   if (!entry) return { kind: 'not-found' };
   if (entry.type === 'event') {

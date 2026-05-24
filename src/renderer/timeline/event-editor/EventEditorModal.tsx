@@ -53,9 +53,9 @@ export function EventEditorModal({
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [conflictPending, setConflictPending] = useState<ConflictPending | null>(null);
-  const [entityIndex, setEntityIndex] = useState<Awaited<ReturnType<typeof notesData.getEntityIndex>>>(
-    [],
-  );
+  const [entityIndex, setEntityIndex] = useState<
+    Awaited<ReturnType<typeof notesData.getEntityIndex>>
+  >([]);
 
   useEffect(() => {
     notesData

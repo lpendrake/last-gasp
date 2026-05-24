@@ -54,8 +54,11 @@ function isLive(el: Element | null): boolean {
   const baseDir = a.closest('[data-base-dir]')?.getAttribute('data-base-dir') ?? '';
   if (!baseDir) return false;
   return (
-    resolvePeekTarget(a.getAttribute('href') ?? '', baseDir, stackConfig?.getEntityIndex() ?? []) !==
-    null
+    resolvePeekTarget(
+      a.getAttribute('href') ?? '',
+      baseDir,
+      stackConfig?.getEntityIndex() ?? [],
+    ) !== null
   );
 }
 
