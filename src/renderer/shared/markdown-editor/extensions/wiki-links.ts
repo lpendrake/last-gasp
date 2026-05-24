@@ -169,6 +169,34 @@ function wikiLinkEditKeymap(config: WikiLinksConfig): Extension {
   );
 }
 
+export interface WikiLinkApplyResult {
+  insert: string;
+  replaceFrom: number;
+  replaceTo: number;
+}
+
+export function buildWikiLinkInsert(
+  s: WikiLinkSuggestion,
+  prefixLen: number,
+  from: number,
+  to: number,
+  nextTwo: string,
+): WikiLinkApplyResult {
+  const replaceFrom = from - prefixLen;
+  if (s.assetPath) {
+    return {
+      insert: `![${s.label}](notes-asset://current/${s.assetPath})`,
+      replaceFrom,
+      replaceTo: to,
+    };
+  }
+  return {
+    insert: `[[${s.id}]]`,
+    replaceFrom,
+    replaceTo: nextTwo === ']]' ? to + 2 : to,
+  };
+}
+
 function wikiLinkCompletions(config: WikiLinksConfig): Extension {
   if (!config.suggest) return [];
 
@@ -191,16 +219,14 @@ function wikiLinkCompletions(config: WikiLinksConfig): Extension {
             label: s.label,
             detail: s.detail,
             apply: (view: EditorView, _completion: Completion, from: number, to: number) => {
-              const replaceFrom = from - prefixLen;
-              let insert: string;
-              let replaceTo: number;
-              if (s.assetPath) {
-                insert = `![${s.label}](notes-asset://current/${s.assetPath})`;
-                replaceTo = to;
-              } else {
-                insert = `[[${s.label}|${s.id}]]`;
-                replaceTo = view.state.doc.sliceString(to, to + 2) === ']]' ? to + 2 : to;
-              }
+              const nextTwo = view.state.doc.sliceString(to, to + 2);
+              const { insert, replaceFrom, replaceTo } = buildWikiLinkInsert(
+                s,
+                prefixLen,
+                from,
+                to,
+                nextTwo,
+              );
               view.dispatch({
                 changes: { from: replaceFrom, to: replaceTo, insert },
                 selection: { anchor: replaceFrom + insert.length },
