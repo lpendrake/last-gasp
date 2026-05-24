@@ -26,6 +26,8 @@ export function useZoom(
     if (!container) return;
 
     function onWheel(e: WheelEvent) {
+      // If the wheel fires over an expanded event card, let the browser scroll it.
+      if ((e.target as Element | null)?.closest('.event-card-expanded')) return;
       e.preventDefault();
       // clientX - rect.left gives position relative to container left edge,
       // which is what zoomAbout expects. offsetX is target-relative and breaks

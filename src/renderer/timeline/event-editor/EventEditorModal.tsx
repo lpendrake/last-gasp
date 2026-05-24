@@ -88,6 +88,7 @@ export function EventEditorModal({
   const savedTimerRef = useRef<number | null>(null);
 
   const viewRef = useRef<EditorView | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimerRef = useRef<number | null>(null);
 
   // Clear pending timers if the modal unmounts mid-flight
@@ -96,6 +97,14 @@ export function EventEditorModal({
       if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
       if (autoSaveTimerRef.current !== null) window.clearTimeout(autoSaveTimerRef.current);
     };
+  }, []);
+
+  // Focus the title on new event creation. This runs after children's effects
+  // (including MarkdownEditor's mode-toggle effect that calls view.focus()),
+  // so it reliably wins the focus race.
+  useEffect(() => {
+    if (mode.kind === 'create') titleInputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Capture mount-time values in a ref so the effect can have an empty deps array.
@@ -409,6 +418,7 @@ export function EventEditorModal({
                 <label className="event-editor-field">
                   <span className="event-editor-field-label">Title</span>
                   <input
+                    ref={titleInputRef}
                     type="text"
                     className="event-editor-input"
                     value={buffer.title}

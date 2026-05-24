@@ -17,7 +17,7 @@ import type { LinkIndexEntry } from '../types/global';
 import '../../src/index.css';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewType>('notes');
+  const [currentView, setCurrentView] = useState<ViewType>('timeline');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [pendingJumpFilename, setPendingJumpFilename] = useState<string | null>(null);
   const [pendingOpenNotePath, setPendingOpenNotePath] = useState<string | null>(null);
