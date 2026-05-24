@@ -1,4 +1,5 @@
-import type { EventListItem, Palette } from '../data/types';
+import type { EventListItem } from '../data/types';
+import type { WeekdayColors } from '../../theme';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { secondsToX } from '../math/zoom';
 import {
@@ -28,7 +29,7 @@ export interface CardPlacement {
   width: number;
 }
 
-const WEEKDAY_KEYS: (keyof Palette['weekdays'])[] = [
+const WEEKDAY_KEYS: (keyof WeekdayColors)[] = [
   'monday',
   'tuesday',
   'wednesday',
@@ -38,9 +39,9 @@ const WEEKDAY_KEYS: (keyof Palette['weekdays'])[] = [
   'sunday',
 ];
 
-export function weekdayColorFromPalette(date: GolarianDate, palette: Palette): string {
+export function weekdayColor(date: GolarianDate, weekdays: WeekdayColors): string {
   const idx = weekdayIndex(date);
-  return palette.weekdays[WEEKDAY_KEYS[idx]];
+  return weekdays[WEEKDAY_KEYS[idx]];
 }
 
 export function layoutCards(

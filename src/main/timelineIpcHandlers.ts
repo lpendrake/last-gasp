@@ -13,7 +13,6 @@ import type {
   Session,
   State,
   TagsRegistry,
-  Palette,
   ConflictResult,
 } from '../renderer/timeline/data/types.js';
 
@@ -187,10 +186,10 @@ export function registerTimelineIpcHandlers() {
     },
   );
 
-  // getSessions/getTags/loadPalette return empty-ish defaults when the file
-  // doesn't exist yet (the file is optional / auto-created on first write).
-  // getState likewise. getEvent, by contrast, throws on missing file — it is
-  // an addressable resource and a miss is a caller error.
+  // getSessions/getTags return empty-ish defaults when the file doesn't exist
+  // yet (the file is optional / auto-created on first write). getState likewise.
+  // getEvent, by contrast, throws on missing file — it is an addressable
+  // resource and a miss is a caller error.
   ipcMain.handle('timeline:getSessions', (_event, campaignPath: string): Session[] => {
     const filePath = path.join(campaignPath, 'sessions.json');
     if (!fs.existsSync(filePath)) return [];
@@ -227,24 +226,5 @@ export function registerTimelineIpcHandlers() {
     const filePath = path.join(campaignPath, 'tags.json');
     if (!fs.existsSync(filePath)) return {};
     return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as TagsRegistry;
-  });
-
-  ipcMain.handle('timeline:loadPalette', (_event, campaignPath: string): Palette => {
-    const filePath = path.join(campaignPath, 'palette.json');
-    if (!fs.existsSync(filePath)) {
-      return {
-        theme: {},
-        weekdays: {
-          monday: '',
-          tuesday: '',
-          wednesday: '',
-          thursday: '',
-          friday: '',
-          saturday: '',
-          sunday: '',
-        },
-      };
-    }
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Palette;
   });
 }

@@ -1,8 +1,12 @@
+import { ThemeProvider } from '../../theme';
+
 interface DirectoryPickerProps {
   onSelect: (path: string) => void;
 }
 
 export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
+  const bs = ThemeProvider.get().bootstrap;
+
   const handlePick = async () => {
     const path = await window.fsApi.selectDirectory();
     if (path) {
@@ -18,8 +22,8 @@ export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100vh',
-        backgroundColor: '#09090b',
-        color: '#fff',
+        backgroundColor: bs.bg,
+        color: bs.text,
         textAlign: 'center',
         padding: '0 20px',
       }}
@@ -28,13 +32,13 @@ export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
         style={{
           width: '80px',
           height: '80px',
-          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          backgroundColor: `${bs.primary}1a`,
           borderRadius: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '32px',
-          border: '1px solid rgba(99, 102, 241, 0.2)',
+          border: `1px solid ${bs.primary}33`,
         }}
       >
         <span style={{ fontSize: '32px' }}>📁</span>
@@ -53,7 +57,7 @@ export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
 
       <p
         style={{
-          color: '#a1a1aa',
+          color: bs.textMuted,
           fontSize: '18px',
           maxWidth: '480px',
           lineHeight: '1.6',
@@ -66,8 +70,8 @@ export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
       <button
         onClick={handlePick}
         style={{
-          background: '#6366f1',
-          color: 'white',
+          background: bs.primary,
+          color: bs.text,
           border: 'none',
           padding: '16px 32px',
           borderRadius: '12px',
@@ -75,21 +79,21 @@ export function DirectoryPicker({ onSelect }: DirectoryPickerProps) {
           fontWeight: 600,
           cursor: 'pointer',
           transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)',
+          boxShadow: `0 10px 15px -3px ${bs.primary}4d`,
         }}
         onMouseOver={(e) => {
           e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(99, 102, 241, 0.4)';
+          e.currentTarget.style.boxShadow = `0 20px 25px -5px ${bs.primary}66`;
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(99, 102, 241, 0.3)';
+          e.currentTarget.style.boxShadow = `0 10px 15px -3px ${bs.primary}4d`;
         }}
       >
         Select Workspace Folder
       </button>
 
-      <div style={{ marginTop: '40px', color: '#3f3f46', fontSize: '14px' }}>
+      <div style={{ marginTop: '40px', color: bs.hoverBorder, fontSize: '14px' }}>
         Tip: We recommend using a folder in your Google Drive or Dropbox.
       </div>
     </div>

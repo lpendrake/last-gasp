@@ -6,8 +6,7 @@ import { RelationshipsView } from './views/relationships/relationships-view';
 import { DirectoryPicker } from './views/setup/directory-picker';
 import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
-import { useCampaignPalette } from './hooks/useCampaignPalette';
-import { paletteToCssVars } from './timeline/palette';
+import { ThemeProvider } from './theme';
 import { SearchOverlay } from './components/search-overlay';
 import { notesData } from './notes/data';
 import { timelinePort } from './timeline/data/ports';
@@ -32,9 +31,6 @@ export default function App() {
     handleOpenCampaign,
     handleCloseCampaign,
   } = useCampaigns();
-
-  const palette = useCampaignPalette(activeCampaign?.path ?? null);
-  const paletteVars = palette ? paletteToCssVars(palette) : null;
 
   const linkIndexRef = useRef<LinkIndexEntry[]>([]);
 
@@ -116,11 +112,11 @@ export default function App() {
       <div
         style={{
           height: '100vh',
-          backgroundColor: '#09090b',
+          backgroundColor: ThemeProvider.get().bootstrap.bg,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#71717a',
+          color: ThemeProvider.get().bootstrap.textDim,
         }}
       >
         Loading workspace...
@@ -165,7 +161,6 @@ export default function App() {
         return (
           <TimelineView
             campaignPath={activeCampaign.path}
-            palette={palette}
             pendingJumpFilename={pendingJumpFilename}
             onJumpHandled={() => setPendingJumpFilename(null)}
             onOpenById={handleOpenById}
@@ -192,13 +187,12 @@ export default function App() {
     <div
       style={{
         height: '100vh',
-        backgroundColor: 'var(--theme-background, #09090b)',
-        color: 'var(--theme-text-primary, #d8d0b8)',
+        backgroundColor: 'var(--theme-background)',
+        color: 'var(--theme-text-primary)',
         fontFamily: '"Inter", "Segoe UI", sans-serif',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        ...(paletteVars ?? {}),
       }}
     >
       {/* Main View Area */}

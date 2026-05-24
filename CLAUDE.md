@@ -32,6 +32,9 @@ Before doing anything else, fetch both the **body** and the **labels** of the is
 
 The ticket body may add **extra** reviewer criteria (e.g. "zero changes outside `./desktop/`"). It cannot waive the ones below.
 
+!Important! When asking a sub-agent to plan for you do not do research first, let it do its own research, else you pollute its views.
+Once it has a plan for you and has highlighted files, look into what it has guided you towards.
+
 ### 3. Build a TodoWrite list
 
 Convert the plan (the Plan subagent's output for `extended`, or your own sketch for `basic`/`none`) into a `TodoWrite` list before writing code. Keep exactly one item `in_progress` at a time and mark items `completed` as you go. If you discover the plan is wrong mid-implementation, stop, update the todos (and the plan comment, if `extended`), then continue — don't silently deviate.
@@ -57,6 +60,14 @@ Functions defined this way close over state and become untestable without mounti
 - Pure logic (no IO, no React) belongs in `domain/`
 - Non-React IO logic belongs as a named `.ts` file alongside `data.ts`
 - The hook body wires those up to React state — it does not contain the logic itself
+
+## Theme system
+
+All colours come from the theme system at `src/renderer/theme/`. Never hardcode hex colour values — import from `ThemeProvider.get()` for TS/TSX or use `var(--theme-*)` CSS variables, which are set by the ThemeProvider before React mounts.
+
+- `dark-pathfinder.ts` — the default (and currently only) theme; single source of truth for every colour
+- `types.ts` — `Theme` interface organised by view: `chrome`, `timeline`, `notes`, `editor`, `bootstrap`
+- `provider.ts` — `ThemeProvider` singleton: `init()`, `get()`, `set(partial)` with Dark Pathfinder fallback
 
 # File Naming Convention
 

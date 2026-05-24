@@ -2,8 +2,8 @@
 
 .event-card {
   position: absolute;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 2px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
@@ -11,7 +11,7 @@
 
 .event-card.is-future {
   border-style: dashed;
-  border-color: var(--theme-dotted-future, #7a6f58);
+  border-color: var(--theme-dotted-future);
 }
 
 .event-card-header {
@@ -28,7 +28,7 @@
 
 .event-card-date {
   font-size: 12px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-family: ui-monospace, 'Consolas', monospace;
   letter-spacing: 0.03em;
 }
@@ -46,7 +46,7 @@
   flex: 1;
   font-size: 15px;
   font-weight: 500;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -72,17 +72,17 @@
   border-radius: 3px;
   cursor: pointer;
   background: transparent;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   padding: 0;
 }
 .event-card-action-btn:hover {
-  background: var(--theme-panel-accent, #3a4d35);
+  background: var(--theme-panel-accent);
 }
 .event-card-action-btn--primary:hover {
-  color: var(--theme-accent, #6a9a4a);
+  color: var(--theme-accent);
 }
 .event-card-action-btn--danger:hover {
-  color: var(--theme-danger, #c06040);
+  color: var(--theme-danger);
 }
 
 /* ===== Tags — hidden when collapsed ===== */
@@ -101,9 +101,9 @@
 .event-card-tag {
   font-size: 11px;
   font-family: ui-monospace, 'Consolas', monospace;
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-secondary, #a89a80);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-secondary);
+  border: 1px solid var(--theme-border);
   border-radius: 999px;
   padding: 2px 8px;
   white-space: nowrap;
@@ -118,20 +118,20 @@
   z-index: 30;
   overflow: visible;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
-  border-color: var(--theme-border-strong, #5a4530);
+  border-color: var(--theme-border-strong);
 }
 
 .event-card-expanded {
   position: relative;
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--theme-border, #3a3a30);
+  border-bottom: 1px solid var(--theme-border);
   overflow: hidden;
 }
 
 .event-card-expanded.expands-down {
   border-bottom: none;
-  border-top: 1px solid var(--theme-border, #3a3a30);
+  border-top: 1px solid var(--theme-border);
 }
 
 .exp-body {
@@ -150,7 +150,7 @@
   font-size: 13px;
   line-height: 1.5;
   font-family: inherit;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
 }
 
 /* No edit cursor or active-line highlight in the read-only preview */
@@ -163,7 +163,7 @@
 }
 
 .exp-loading {
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   font-style: italic;
 }
 
@@ -185,7 +185,7 @@
 .resize-handle::after {
   content: '';
   position: absolute;
-  background: var(--theme-accent-gold, #c9a860);
+  background: var(--theme-accent-gold);
   border-radius: 1px;
 }
 
@@ -211,20 +211,20 @@
   z-index: 40;
   opacity: 0.85;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
-  border-color: var(--theme-accent-gold, #c9a860);
+  border-color: var(--theme-accent-gold);
 }
 
 .reschedule-drag-label {
   position: absolute;
   display: none;
   transform: translateX(-50%);
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-accent-gold, #c9a860);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-accent-gold);
   border-radius: 3px;
   padding: 2px 8px;
   font-size: 12px;
   font-family: ui-monospace, 'Consolas', monospace;
-  color: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-accent-gold);
   white-space: nowrap;
   pointer-events: none;
   z-index: 50;
@@ -235,7 +235,7 @@
 .event-card-connector {
   position: absolute;
   width: 1px;
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
   transform: translateX(-0.5px);
   pointer-events: none;
 }
@@ -245,7 +245,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--theme-accent-gold, #c9a860);
+  background: var(--theme-accent-gold);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }

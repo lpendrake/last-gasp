@@ -3,7 +3,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
 }
 
 .axis-tick {
@@ -14,13 +14,13 @@
 .axis-tick-mark {
   width: 2px;
   height: 21px;
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
   margin-top: -4px;
 }
 
 .axis-tick-label {
   font-size: 15px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   font-family: ui-monospace, 'Consolas', monospace;
   white-space: nowrap;
 }
@@ -28,7 +28,7 @@
 .axis-day-pin {
   position: absolute;
   font-size: 15px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   font-family: ui-monospace, 'Consolas', monospace;
   white-space: nowrap;
   pointer-events: none;
@@ -52,13 +52,13 @@
 .axis-month-name {
   font-size: 16px;
   font-weight: 600;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   white-space: nowrap;
 }
 
 .axis-month-year {
   font-size: 13px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   white-space: nowrap;
 }
 
@@ -84,25 +84,25 @@
 .axis-time-midday .axis-time-mark {
   height: 12px;
   margin-top: -6px;
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
   opacity: 0.9;
 }
 .axis-time-midday .axis-time-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
 }
 
 /* Hours */
 .axis-time-hour .axis-time-mark {
   height: 8px;
   margin-top: -4px;
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
   opacity: 0.65;
 }
 .axis-time-hour .axis-time-label {
   font-size: 10px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   opacity: 0.85;
 }
 
@@ -110,24 +110,24 @@
 .axis-time-half .axis-time-mark {
   height: 5px;
   margin-top: -2px;
-  background: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-text-muted);
   opacity: 0.6;
 }
 .axis-time-half .axis-time-label {
   font-size: 9px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
 }
 
 /* Quarter-hours */
 .axis-time-quarter .axis-time-mark {
   height: 3px;
   margin-top: -1px;
-  background: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-text-muted);
   opacity: 0.5;
 }
 .axis-time-quarter .axis-time-label {
   font-size: 9px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   opacity: 0.75;
 }
 
@@ -135,11 +135,11 @@
 .axis-time-minute .axis-time-mark {
   height: 2px;
   margin-top: -1px;
-  background: var(--theme-text-muted, #7a6f58);
+  background: var(--theme-text-muted);
   opacity: 0.4;
 }
 .axis-time-minute .axis-time-label {
   font-size: 8px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   opacity: 0.6;
 }

@@ -5,7 +5,6 @@ import type {
   Session,
   State,
   TagsRegistry,
-  Palette,
   ConflictResult,
 } from './types';
 
@@ -89,9 +88,5 @@ export const timelinePort = {
 
   async getTags(campaignPath: string): Promise<TagsRegistry> {
     return window.fsApi.timelineGetTags(campaignPath);
-  },
-
-  async loadPalette(campaignPath: string): Promise<Palette> {
-    return window.fsApi.timelineLoadPalette(campaignPath);
   },
 };

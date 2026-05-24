@@ -1,12 +1,13 @@
 import { useCallback, useMemo, type CSSProperties, type ReactElement } from 'react';
 import './cards.css';
-import type { EventListItem, Palette } from '../data/types';
+import type { EventListItem } from '../data/types';
+import type { WeekdayColors } from '../../theme';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { formatCardFace } from '../calendar/format';
 import {
   layoutCards,
   assignRows,
-  weekdayColorFromPalette,
+  weekdayColor,
   computeExpansionLayout,
   CARD_HEIGHT,
   CARD_GAP,
@@ -37,7 +38,7 @@ interface CardsProps {
   events: EventListItem[];
   view: ViewState;
   size: ViewportSize;
-  palette: Palette;
+  weekdays: WeekdayColors;
   inGameNowSeconds: number;
   expansion: CardExpansionState | null;
   previewSize: PreviewSize;
@@ -53,7 +54,7 @@ export function Cards({
   events,
   view,
   size,
-  palette,
+  weekdays,
   inGameNowSeconds,
   expansion,
   previewSize,
@@ -113,7 +114,7 @@ export function Cards({
             )
           : { expandsDown: false, cardTop: normalTop, cardWidth: card.width };
 
-        const color = card.event.color ?? weekdayColorFromPalette(card.parsedDate, palette);
+        const color = card.event.color ?? weekdayColor(card.parsedDate, weekdays);
 
         return (
           <CardItem

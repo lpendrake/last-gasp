@@ -1,5 +1,6 @@
 import { parseISOString } from '../calendar/golarian';
 import type { Event, EventFrontmatter } from '../data/types';
+import { ThemeProvider } from '../../theme';
 
 export interface EditorBuffer {
   title: string;
@@ -14,25 +15,7 @@ export type EditorMode =
   | { kind: 'create'; initialDate?: string }
   | { kind: 'edit'; filename: string };
 
-export interface ColorPreset {
-  label: string;
-  value: string;
-}
-
-export const COLOR_PRESETS: ColorPreset[] = [
-  { label: 'Default (weekday)', value: '' },
-  { label: '■ Crimson', value: '#a83030' },
-  { label: '■ Amber', value: '#b87030' },
-  { label: '■ Gold', value: '#c09820' },
-  { label: '■ Forest', value: '#3d7a38' },
-  { label: '■ Teal', value: '#287868' },
-  { label: '■ Blue', value: '#2858a0' },
-  { label: '■ Indigo', value: '#483898' },
-  { label: '■ Violet', value: '#783888' },
-  { label: '■ Rose', value: '#a03068' },
-  { label: '■ Slate', value: '#505870' },
-  { label: 'Custom…', value: '__custom__' },
-];
+export type { ColorPreset } from '../../theme';
 
 export function emptyBuffer(initialDate?: string): EditorBuffer {
   return { title: '', date: initialDate ?? '', tagsText: '', color: '', body: '' };
@@ -93,6 +76,7 @@ export function deriveFilename(buf: EditorBuffer): string {
 /** Returns the <select> value for the color field (or '__custom__' for non-preset hex). */
 export function getColorPresetValue(color: string): string {
   if (!color) return '';
-  if (COLOR_PRESETS.some((p) => p.value === color && p.value !== '__custom__')) return color;
+  const presets = ThemeProvider.get().timeline.eventColorPresets;
+  if (presets.some((p) => p.value === color && p.value !== '__custom__')) return color;
   return '__custom__';
 }

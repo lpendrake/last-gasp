@@ -7,7 +7,6 @@ import type {
   Session,
   State,
   TagsRegistry,
-  Palette,
   ConflictResult,
 } from '../renderer/timeline/data/types';
 
@@ -92,7 +91,6 @@ declare global {
       timelineGetState: (campaignPath: string) => Promise<State>;
       timelinePutState: (campaignPath: string, state: State) => Promise<{ ok: true }>;
       timelineGetTags: (campaignPath: string) => Promise<TagsRegistry>;
-      timelineLoadPalette: (campaignPath: string) => Promise<Palette>;
 
       // App
       getAppVersion: () => Promise<string>;

@@ -10,10 +10,10 @@
   pointer-events: none;
 }
 .notes-toast {
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border-strong, #5a4530);
-  border-left: 3px solid var(--theme-accent-gold, #c9a860);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border-strong);
+  border-left: 3px solid var(--theme-accent-gold);
+  color: var(--theme-text-primary);
   padding: 8px 14px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
@@ -24,13 +24,13 @@
   gap: 10px;
 }
 .notes-toast.is-error {
-  border-left-color: #c84848;
+  border-left-color: var(--notes-error);
   pointer-events: all;
 }
 .toast-dismiss {
   background: none;
   border: none;
-  color: var(--theme-text-muted, #888);
+  color: var(--theme-text-muted);
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
@@ -38,5 +38,5 @@
   flex-shrink: 0;
 }
 .toast-dismiss:hover {
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
 }

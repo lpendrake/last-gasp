@@ -3,8 +3,8 @@
   bottom: 50px;
   left: 0;
   right: 0;
-  background: var(--theme-panel, #2d3d2a);
-  border-top: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-panel);
+  border-top: 1px solid var(--theme-border);
   padding: 8px 12px;
   z-index: 200;
 }
@@ -22,8 +22,8 @@
   align-items: center;
   gap: 4px;
   padding: 3px 4px 3px 8px;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 14px;
   max-width: 100%;
 }
@@ -37,7 +37,7 @@
 .filter-chip-summary {
   background: transparent;
   border: none;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 13px;
   cursor: pointer;
@@ -48,13 +48,13 @@
   white-space: nowrap;
 }
 .filter-chip-summary:hover {
-  color: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-accent-gold);
 }
 
 .filter-chip-icon {
   background: transparent;
   border: none;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   cursor: pointer;
   font-size: 14px;
   padding: 2px 5px;
@@ -63,17 +63,17 @@
   line-height: 1;
 }
 .filter-chip-icon:hover {
-  color: var(--theme-text-primary, #d8d0b8);
-  background: var(--theme-panel-accent, #3a4d35);
+  color: var(--theme-text-primary);
+  background: var(--theme-panel-accent);
 }
 .filter-chip-pin.is-active {
-  color: var(--theme-accent-gold, #c9a860);
+  color: var(--theme-accent-gold);
 }
 
 .filter-editor {
   padding: 10px;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border-strong, #5a4530);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border-strong);
   border-radius: 3px;
   display: flex;
   flex-direction: column;
@@ -99,8 +99,8 @@
   align-items: center;
   gap: 4px;
   padding: 2px 4px 2px 8px;
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-primary, #d8d0b8);
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-primary);
   border-radius: 10px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 12px;
@@ -108,21 +108,21 @@
 .filter-chip-remove {
   background: transparent;
   border: none;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   cursor: pointer;
   font-size: 14px;
   padding: 0 4px;
   line-height: 1;
 }
 .filter-chip-remove:hover {
-  color: var(--theme-accent-warm, #b87840);
+  color: var(--theme-accent-warm);
 }
 
 .filter-tag-input,
 .filter-date-input {
-  background: var(--theme-surface, #242420);
-  color: var(--theme-text-primary, #d8d0b8);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
   padding: 6px 8px;
   font-size: 14px;
   font-family: ui-monospace, 'Consolas', monospace;
@@ -137,26 +137,26 @@
   margin: 0;
   max-height: 180px;
   overflow-y: auto;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 2px;
 }
 .filter-tag-result {
   padding: 5px 10px;
   font-size: 13px;
   font-family: ui-monospace, 'Consolas', monospace;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   cursor: pointer;
 }
 .filter-tag-result:hover {
-  background: var(--theme-panel-accent, #3a4d35);
+  background: var(--theme-panel-accent);
 }
 
 .filter-date-field-row {
   display: flex;
   gap: 8px;
   font-size: 12px;
-  color: var(--theme-text-secondary, #a89a80);
+  color: var(--theme-text-secondary);
   flex-wrap: wrap;
 }
 .filter-date-field-row label {
@@ -170,16 +170,16 @@
   flex-direction: column;
   gap: 3px;
   font-size: 11px;
-  color: var(--theme-text-muted, #7a6f58);
+  color: var(--theme-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .filter-editor-done {
   align-self: flex-end;
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-primary, #d8d0b8);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
   padding: 4px 12px;
   font-size: 12px;
   font-family: inherit;
@@ -187,16 +187,16 @@
   border-radius: 2px;
 }
 .filter-editor-done:hover {
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
 }
 
 .filter-add-wrap {
   position: relative;
 }
 .filter-add-btn {
-  background: var(--theme-panel-accent, #3a4d35);
-  color: var(--theme-text-primary, #d8d0b8);
-  border: 1px dashed var(--theme-border-strong, #5a4530);
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-primary);
+  border: 1px dashed var(--theme-border-strong);
   padding: 4px 12px;
   font-size: 13px;
   font-family: inherit;
@@ -204,14 +204,14 @@
   border-radius: 14px;
 }
 .filter-add-btn:hover {
-  background: var(--theme-border-strong, #5a4530);
+  background: var(--theme-border-strong);
 }
 .filter-add-menu {
   list-style: none;
   padding: 4px 0;
   margin: 0 0 4px 0;
-  background: var(--theme-surface, #242420);
-  border: 1px solid var(--theme-border, #3a3a30);
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
   border-radius: 2px;
   position: absolute;
   bottom: 100%;
@@ -224,7 +224,7 @@
   width: 100%;
   text-align: left;
   background: transparent;
-  color: var(--theme-text-primary, #d8d0b8);
+  color: var(--theme-text-primary);
   border: none;
   padding: 6px 12px;
   font-size: 13px;
@@ -232,5 +232,5 @@
   cursor: pointer;
 }
 .filter-add-menu button:hover {
-  background: var(--theme-panel-accent, #3a4d35);
+  background: var(--theme-panel-accent);
 }
