@@ -8,7 +8,9 @@ import {
   findWikiLinksInLine,
   wikiLinks,
   buildDecorations,
+  buildWikiLinkInsert,
   type WikiLinksConfig,
+  type WikiLinkSuggestion,
 } from '../wiki-links';
 
 describe('parseTrigger', () => {
@@ -185,6 +187,42 @@ describe('onHover / onHoverEnd callbacks', () => {
     expect(() => {
       link!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     }).not.toThrow();
+  });
+});
+
+describe('buildWikiLinkInsert', () => {
+  const note: WikiLinkSuggestion = { id: 'abc1', label: 'Alice' };
+
+  it('inserts [[id]] format (not [[label|id]])', () => {
+    const { insert } = buildWikiLinkInsert(note, 2, 10, 15, 'xx');
+    expect(insert).toBe('[[abc1]]');
+  });
+
+  it('replaceFrom accounts for the [[ prefix', () => {
+    const { replaceFrom } = buildWikiLinkInsert(note, 2, 10, 15, 'xx');
+    expect(replaceFrom).toBe(8);
+  });
+
+  it('does not absorb trailing ]] when not present', () => {
+    const { replaceTo } = buildWikiLinkInsert(note, 2, 10, 15, 'xx');
+    expect(replaceTo).toBe(15);
+  });
+
+  it('absorbs trailing ]] when already present', () => {
+    const { replaceTo } = buildWikiLinkInsert(note, 2, 10, 15, ']]');
+    expect(replaceTo).toBe(17);
+  });
+
+  it('inserts image markdown for asset suggestions', () => {
+    const img: WikiLinkSuggestion = { id: 'img1', label: 'photo', assetPath: 'images/photo.png' };
+    const { insert, replaceTo } = buildWikiLinkInsert(img, 1, 5, 10, ']]');
+    expect(insert).toBe('![photo](notes-asset://current/images/photo.png)');
+    expect(replaceTo).toBe(10);
+  });
+
+  it('uses @ prefix length of 1 correctly', () => {
+    const { replaceFrom } = buildWikiLinkInsert(note, 1, 8, 12, 'xx');
+    expect(replaceFrom).toBe(7);
   });
 });
 
