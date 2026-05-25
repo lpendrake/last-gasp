@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useContextMenuBehavior } from '../../shared/use-context-menu-behavior';
+import '../../shared/context-menu.css';
 
 export type ContextMenuTarget =
   | { kind: 'file'; folder: string; path: string; x: number; y: number }
@@ -22,33 +23,7 @@ export function NoteContextMenu({
   onRename,
   onDelete,
 }: Props) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: target.x, y: target.y });
-
-  useLayoutEffect(() => {
-    const el = menuRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setPos({
-      x: Math.min(target.x, window.innerWidth - rect.width - 8),
-      y: Math.min(target.y, window.innerHeight - rect.height - 8),
-    });
-  }, [target.x, target.y]);
-
-  useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-      if (!menuRef.current?.contains(e.target as Node)) onClose();
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
-    document.addEventListener('mousedown', onMouseDown, true);
-    document.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown, true);
-      document.removeEventListener('keydown', onKey, true);
-    };
-  }, [onClose]);
+  const { menuRef, pos } = useContextMenuBehavior(target.x, target.y, onClose);
 
   const path = target.kind !== 'topfolder' ? target.path : undefined;
   const parentDir = target.kind === 'dir' ? target.path : undefined;
