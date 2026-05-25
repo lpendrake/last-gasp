@@ -111,4 +111,10 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.on('campaign:loadComplete', listener);
     return () => ipcRenderer.removeListener('campaign:loadComplete', listener);
   },
+
+  onLoadError: (callback: (data: { message: string }) => void) => {
+    const listener = (_event: unknown, data: { message: string }) => callback(data);
+    ipcRenderer.on('campaign:loadError', listener);
+    return () => ipcRenderer.removeListener('campaign:loadError', listener);
+  },
 });

@@ -106,6 +106,23 @@ describe('CampaignLoader', () => {
     expect(progressCalls[0][1].percentage).toBe(0);
   });
 
+  it('sends loadError and rethrows when a task throws', async () => {
+    const wc = makeWebContents();
+    const boom = new Error('disk full');
+    const loader = new CampaignLoader([
+      {
+        name: 'failing-task',
+        task: async () => {
+          throw boom;
+        },
+      },
+    ]);
+
+    await expect(loader.run(wc as never)).rejects.toThrow('disk full');
+    expect(wc.send).toHaveBeenCalledWith('campaign:loadError', { message: 'disk full' });
+    expect(wc.send).not.toHaveBeenCalledWith('campaign:loadComplete');
+  });
+
   it('runs tasks sequentially, not concurrently', async () => {
     const wc = makeWebContents();
     const order: string[] = [];

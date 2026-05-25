@@ -7,6 +7,9 @@ import { windowManager } from './windowManager.js';
 import { registerIpcHandlers } from './ipcHandlers.js';
 import { FileWatcher } from './fileWatcher.js';
 import { getCampaignPath, setCampaignPath } from './campaign-state.js';
+import { CampaignLoader } from './campaign-loader.js';
+import { buildEntityIndex } from './entity-index.js';
+import type { EntityIndexEntry } from './entity-index.js';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -43,9 +46,29 @@ app.whenReady().then(() => {
   const mainWindow = windowManager.createMainWindow();
 
   ipcMain.handle('campaign:open', async (event, campaignPath: string) => {
-    setCampaignPath(path.resolve(campaignPath));
+    const resolvedPath = path.resolve(campaignPath);
+    setCampaignPath(resolvedPath);
     await fileWatcher.start(campaignPath, mainWindow);
-    return true;
+
+    let entityIndex: EntityIndexEntry[] = [];
+    const loader = new CampaignLoader([
+      {
+        name: 'Building entity index',
+        task: async (onProgress) => {
+          entityIndex = buildEntityIndex(resolvedPath, onProgress);
+        },
+      },
+    ]);
+
+    try {
+      await loader.run(event.sender);
+      return { success: true, entityIndex };
+    } catch (err) {
+      setCampaignPath(null);
+      fileWatcher.stop();
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
+    }
   });
 
   ipcMain.handle('campaign:close', async () => {

@@ -8,6 +8,7 @@ import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
 import { ThemeProvider } from './theme';
 import { SearchOverlay } from './components/search-overlay';
+import { CampaignLoadOverlay } from './components/campaign-load-overlay';
 import { notesData } from './notes/data';
 import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
@@ -27,6 +28,10 @@ export default function App() {
     campaigns,
     activeCampaign,
     isLoading,
+    loadProgress,
+    loadResult,
+    pendingEntityIndex,
+    dismissLoadNotification,
     handleSetRootDir,
     handleCreateCampaign,
     handleOpenCampaign,
@@ -39,6 +44,13 @@ export default function App() {
   useEffect(() => {
     if (!activeCampaign) return;
     const campaignPath = activeCampaign.path;
+
+    if (pendingEntityIndex) {
+      entityIndexRef.current = pendingEntityIndex;
+      setEntityLabelMap(buildEntityLabelMap(pendingEntityIndex));
+      return;
+    }
+
     entityIndexRef.current = [];
     setEntityLabelMap(new Map());
     let active = true;
@@ -154,16 +166,23 @@ export default function App() {
     return <DirectoryPicker onSelect={handleSetRootDir} />;
   }
 
-  // State 2: Campaign List
+  // State 2: Campaign List (with optional loading overlay)
   if (!activeCampaign) {
     return (
-      <CampaignManager
-        campaigns={campaigns}
-        onOpen={handleOpenCampaign}
-        onCreate={handleCreateCampaign}
-        onChangeDir={() => handleSetRootDir('')}
-        rootDir={rootDir}
-      />
+      <>
+        <CampaignManager
+          campaigns={campaigns}
+          onOpen={handleOpenCampaign}
+          onCreate={handleCreateCampaign}
+          onChangeDir={() => handleSetRootDir('')}
+          rootDir={rootDir}
+        />
+        <CampaignLoadOverlay
+          result={loadResult}
+          progress={loadProgress}
+          onDismissNotification={dismissLoadNotification}
+        />
+      </>
     );
   }
 
@@ -237,6 +256,12 @@ export default function App() {
         onClose={() => setIsSearchOpen(false)}
         onJumpToEvent={handleJumpToEvent}
         onOpenNote={handleOpenNote}
+      />
+
+      <CampaignLoadOverlay
+        result={loadResult}
+        progress={loadProgress}
+        onDismissNotification={dismissLoadNotification}
       />
     </div>
   );

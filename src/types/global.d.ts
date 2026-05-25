@@ -42,7 +42,11 @@ declare global {
         name: string,
         description: string,
       ) => Promise<{ success: boolean; path?: string; error?: string }>;
-      openCampaign: (path: string) => Promise<boolean>;
+      openCampaign: (
+        path: string,
+      ) => Promise<
+        { success: true; entityIndex: EntityIndexEntry[] } | { success: false; error: string }
+      >;
       closeCampaign: () => Promise<void>;
 
       // File System
@@ -113,6 +117,7 @@ declare global {
         callback: (data: { percentage: number; taskName: string }) => void,
       ) => () => void;
       onLoadComplete: (callback: () => void) => () => void;
+      onLoadError: (callback: (data: { message: string }) => void) => () => void;
     };
   }
 }

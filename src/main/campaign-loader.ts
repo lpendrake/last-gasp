@@ -20,12 +20,18 @@ export class CampaignLoader {
       webContents.send('campaign:loadProgress', { percentage, taskName });
     };
 
-    for (let i = 0; i < this.tasks.length; i++) {
-      const { name, task } = this.tasks[i];
-      await task((completed, total) => {
-        progress[i] = { completed, total };
-        sendProgress(name);
-      });
+    try {
+      for (let i = 0; i < this.tasks.length; i++) {
+        const { name, task } = this.tasks[i];
+        await task((completed, total) => {
+          progress[i] = { completed, total };
+          sendProgress(name);
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      webContents.send('campaign:loadError', { message });
+      throw err;
     }
 
     webContents.send('campaign:loadComplete');
