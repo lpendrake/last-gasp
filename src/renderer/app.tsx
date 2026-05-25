@@ -30,6 +30,7 @@ export default function App() {
     isLoading,
     loadProgress,
     loadResult,
+    loadError,
     pendingEntityIndex,
     dismissLoadNotification,
     handleSetRootDir,
@@ -180,6 +181,7 @@ export default function App() {
         <CampaignLoadOverlay
           result={loadResult}
           progress={loadProgress}
+          errorMessage={loadError}
           onDismissNotification={dismissLoadNotification}
         />
       </>

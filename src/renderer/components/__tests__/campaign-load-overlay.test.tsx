@@ -23,6 +23,7 @@ function teardown() {
 const idleProps = {
   result: 'idle' as const,
   progress: { percentage: 0, taskName: '' },
+  errorMessage: null,
   onDismissNotification: () => {},
 };
 
@@ -42,6 +43,7 @@ describe('CampaignLoadOverlay', () => {
         <CampaignLoadOverlay
           result="loading"
           progress={{ percentage: 40, taskName: 'Building entity index' }}
+          errorMessage={null}
           onDismissNotification={() => {}}
         />,
       ),
@@ -57,6 +59,7 @@ describe('CampaignLoadOverlay', () => {
         <CampaignLoadOverlay
           result="success"
           progress={{ percentage: 100, taskName: '' }}
+          errorMessage={null}
           onDismissNotification={() => {}}
         />,
       ),
@@ -65,18 +68,35 @@ describe('CampaignLoadOverlay', () => {
     expect(container.textContent).toContain('Campaign loaded');
   });
 
-  it('renders nothing when result is error', () => {
+  it('renders an error notification with the error message when result is error', () => {
     setup();
     act(() =>
       root.render(
         <CampaignLoadOverlay
           result="error"
           progress={{ percentage: 0, taskName: '' }}
+          errorMessage="disk full"
           onDismissNotification={() => {}}
         />,
       ),
     );
-    expect(container.children).toHaveLength(0);
+    expect(container.querySelector('.loading-notification')).not.toBeNull();
+    expect(container.textContent).toContain('disk full');
+  });
+
+  it('shows fallback message when error result has no errorMessage', () => {
+    setup();
+    act(() =>
+      root.render(
+        <CampaignLoadOverlay
+          result="error"
+          progress={{ percentage: 0, taskName: '' }}
+          errorMessage={null}
+          onDismissNotification={() => {}}
+        />,
+      ),
+    );
+    expect(container.textContent).toContain('Failed to load campaign');
   });
 
   it('calls onDismissNotification when success notification is dismissed', () => {
@@ -87,6 +107,26 @@ describe('CampaignLoadOverlay', () => {
         <CampaignLoadOverlay
           result="success"
           progress={{ percentage: 100, taskName: '' }}
+          errorMessage={null}
+          onDismissNotification={onDismiss}
+        />,
+      ),
+    );
+    act(() => {
+      (container.querySelector('button') as HTMLButtonElement).click();
+    });
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it('calls onDismissNotification when error notification is dismissed', () => {
+    setup();
+    const onDismiss = vi.fn();
+    act(() =>
+      root.render(
+        <CampaignLoadOverlay
+          result="error"
+          progress={{ percentage: 0, taskName: '' }}
+          errorMessage="Something went wrong"
           onDismissNotification={onDismiss}
         />,
       ),
@@ -104,6 +144,7 @@ describe('CampaignLoadOverlay', () => {
         <CampaignLoadOverlay
           result="loading"
           progress={{ percentage: 73, taskName: 'Scanning notes' }}
+          errorMessage={null}
           onDismissNotification={() => {}}
         />,
       ),

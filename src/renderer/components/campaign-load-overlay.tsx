@@ -4,12 +4,14 @@ import { LoadingNotification } from './loading-notification';
 interface CampaignLoadOverlayProps {
   result: 'idle' | 'loading' | 'success' | 'error';
   progress: { percentage: number; taskName: string };
+  errorMessage: string | null;
   onDismissNotification: () => void;
 }
 
 export function CampaignLoadOverlay({
   result,
   progress,
+  errorMessage,
   onDismissNotification,
 }: CampaignLoadOverlayProps) {
   if (result === 'loading') {
@@ -23,6 +25,17 @@ export function CampaignLoadOverlay({
         variant="success"
         onDismiss={onDismissNotification}
         autoDismissMs={5000}
+      />
+    );
+  }
+
+  if (result === 'error') {
+    return (
+      <LoadingNotification
+        message={errorMessage ?? 'Failed to load campaign'}
+        variant="error"
+        onDismiss={onDismissNotification}
+        sticky
       />
     );
   }
