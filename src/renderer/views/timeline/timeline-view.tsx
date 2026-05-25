@@ -57,6 +57,8 @@ interface TimelineViewProps {
   onJumpHandled?: () => void;
   /** Navigate to a note by wiki-link ID (Ctrl+click from card expansions / event editor). */
   onOpenById?: (id: string) => void;
+  /** Entity id → display label map for resolving [[id]] wiki links. */
+  entityLabelMap: Map<string, string>;
 }
 
 interface LoadedData {
@@ -70,6 +72,7 @@ export function TimelineView({
   pendingJumpFilename,
   onJumpHandled,
   onOpenById,
+  entityLabelMap,
 }: TimelineViewProps) {
   const weekdays = ThemeProvider.get().timeline.days;
   const [viewState, setViewState] = useState<ViewState>({
@@ -496,6 +499,7 @@ export function TimelineView({
           onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
           onContextMenu={sessionModeActiveRef.current ? undefined : handleCardContextMenu}
           onOpenById={onOpenById}
+          entityLabelMap={entityLabelMap}
         />
         {inGameNow && (
           <NowMarker

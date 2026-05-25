@@ -63,6 +63,19 @@ const knownIdsField = StateField.define<Set<string>>({
   },
 });
 
+// Dispatching this effect updates the entity label map used for [[id]] display resolution.
+export const setEntityLabels = StateEffect.define<Map<string, string>>();
+
+const entityLabelMapField = StateField.define<Map<string, string>>({
+  create: () => new Map<string, string>(),
+  update(value, tr) {
+    for (const e of tr.effects) {
+      if (e.is(setEntityLabels)) return e.value;
+    }
+    return value;
+  },
+});
+
 // Matches [[query or @query at end of line (@ is an alias trigger; [[ still works)
 const WIKI_LINK_QUERY_RE = /(?:\[\[|@)[^\]\n|@]*$/;
 
@@ -111,7 +124,7 @@ export function wikiLinks(config: WikiLinksConfig = {}): Extension {
       if (
         transaction.docChanged ||
         transaction.selection ||
-        transaction.effects.some((e) => e.is(setKnownIds))
+        transaction.effects.some((e) => e.is(setKnownIds) || e.is(setEntityLabels))
       ) {
         return buildDecorations(transaction.state, config);
       }
@@ -122,6 +135,7 @@ export function wikiLinks(config: WikiLinksConfig = {}): Extension {
 
   return [
     knownIdsField,
+    entityLabelMapField,
     field,
     makeWikiLinkPointerGuard(config),
     wikiLinkEditKeymap(config),
@@ -299,6 +313,7 @@ export function buildDecorations(state: EditorState, _config: WikiLinksConfig): 
   const doc = state.doc;
   // knownIds is empty until the first setKnownIds effect; empty = don't mark as broken yet
   const knownIds = state.field(knownIdsField, false) ?? new Set<string>();
+  const entityLabelMap = state.field(entityLabelMapField, false) ?? new Map<string, string>();
   const hasIndex = knownIds.size > 0;
 
   for (let i = 1; i <= doc.lines; i++) {
@@ -324,7 +339,11 @@ export function buildDecorations(state: EditorState, _config: WikiLinksConfig): 
           link.from,
           link.to,
           Decoration.replace({
-            widget: new WikiLinkWidget(link.id, link.label || link.id, broken),
+            widget: new WikiLinkWidget(
+              link.id,
+              link.label || entityLabelMap.get(link.id) || link.id,
+              broken,
+            ),
           }),
         );
       }

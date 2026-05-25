@@ -23,7 +23,12 @@ import { lintKeymap } from '@codemirror/lint';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { lastGaspThemeExtensions } from './theme';
-import { wikiLinks, setKnownIds, type WikiLinkSuggestion } from './extensions/wiki-links';
+import {
+  wikiLinks,
+  setKnownIds,
+  setEntityLabels,
+  type WikiLinkSuggestion,
+} from './extensions/wiki-links';
 import { markdownLinkClick, type MarkdownLinkClickConfig } from './extensions/markdown-link-click';
 import { markdownDecorations } from './extensions/decorations';
 import { imagePaste, type ImagePasteConfig } from './extensions/image-paste';
@@ -45,6 +50,8 @@ export interface WikiLinksHostConfig {
   suggest?: (query: string) => Promise<WikiLinkSuggestion[]>;
   onOpen?: (id: string) => void;
   knownIds?: Set<string>;
+  /** Map of entity id → display label for resolving [[id]] links with no local label. */
+  entityLabels?: Map<string, string>;
   onHover?: (id: string, el: HTMLElement) => void;
   onHoverEnd?: (relatedTarget: Element | null) => void;
 }
@@ -244,6 +251,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       view.dispatch({ effects: setKnownIds.of(wikiLinksConfig.knownIds) });
     }
   }, [wikiLinksConfig?.knownIds, isSourceMode]);
+
+  // Keep wiki-link decorations aware of the current entity label map.
+  useEffect(() => {
+    const view = internalViewRef.current;
+    if (view && wikiLinksConfig?.entityLabels && !isSourceMode) {
+      view.dispatch({ effects: setEntityLabels.of(wikiLinksConfig.entityLabels) });
+    }
+  }, [wikiLinksConfig?.entityLabels, isSourceMode]);
 
   return <div ref={editorRef} className="markdown-editor-container" />;
 };

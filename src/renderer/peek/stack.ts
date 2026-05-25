@@ -1,6 +1,7 @@
 import type { EntityIndexEntry } from '../../types/global';
 import { showPeek, type PeekHandle } from './show';
 import { resolvePeekTarget } from './resolve';
+import { buildEntityLabelMap } from '../../shared/entity-labels';
 
 const OPEN_DELAY_MS = 150;
 const CLOSE_DELAY_MS = 250;
@@ -75,11 +76,14 @@ function openWindow(path: string, anchor: HTMLElement, depth: number) {
 
   while (stack.length > depth) stack.pop()!.handle.close();
 
+  const entityLabels = buildEntityLabelMap(stackConfig!.getEntityIndex());
+
   const handle = showPeek({
     targetEl: anchor,
     linkInfo: { path },
     fetcher: stackConfig!.fetcher,
     onOpenById: stackConfig!.onOpenById,
+    entityLabels,
     stackDepth: Math.min(depth, MAX_DEPTH - 1),
     onPin: () => {
       stack = stack.filter((e) => e.handle !== handle);

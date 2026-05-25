@@ -9,6 +9,7 @@ import {
   wikiLinks,
   buildDecorations,
   buildWikiLinkInsert,
+  setEntityLabels,
   type WikiLinksConfig,
   type WikiLinkSuggestion,
 } from '../wiki-links';
@@ -259,5 +260,57 @@ describe('readonly mode decorations', () => {
     });
     expect(hasRawMark).toBe(false);
     expect(hasWidget).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Entity label resolution (requires DOM via happy-dom for view dispatch)
+// ---------------------------------------------------------------------------
+
+describe('entity label resolution', () => {
+  const views: EditorView[] = [];
+  afterEach(() => {
+    views.forEach((v) => v.destroy());
+    views.length = 0;
+    document.body.innerHTML = '';
+  });
+
+  function makeViewWithDoc(doc: string): { view: EditorView; container: HTMLDivElement } {
+    const state = EditorState.create({ doc, extensions: [wikiLinks({})] });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const view = new EditorView({ state, parent: container });
+    return { view, container };
+  }
+
+  it('resolves [[id]] to entity label when no local label is present', () => {
+    const { view, container } = makeViewWithDoc('See [[abc1]]');
+    views.push(view);
+    view.dispatch({ effects: setEntityLabels.of(new Map([['abc1', 'Alice the Wizard']])) });
+    const link = container.querySelector<HTMLElement>('.cm-note-link');
+    expect(link?.textContent).toBe('Alice the Wizard');
+  });
+
+  it('local label takes precedence over entity label', () => {
+    const { view, container } = makeViewWithDoc('See [[Custom Name|abc1]]');
+    views.push(view);
+    view.dispatch({ effects: setEntityLabels.of(new Map([['abc1', 'Alice the Wizard']])) });
+    const link = container.querySelector<HTMLElement>('.cm-note-link');
+    expect(link?.textContent).toBe('Custom Name');
+  });
+
+  it('falls back to raw ID when entity not in label map', () => {
+    const { view, container } = makeViewWithDoc('See [[xyz9]]');
+    views.push(view);
+    view.dispatch({ effects: setEntityLabels.of(new Map([['other', 'Other Entity']])) });
+    const link = container.querySelector<HTMLElement>('.cm-note-link');
+    expect(link?.textContent).toBe('xyz9');
+  });
+
+  it('shows raw ID before any entity labels are dispatched', () => {
+    const { view, container } = makeViewWithDoc('See [[abc1]]');
+    views.push(view);
+    const link = container.querySelector<HTMLElement>('.cm-note-link');
+    expect(link?.textContent).toBe('abc1');
   });
 });
