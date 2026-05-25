@@ -65,6 +65,18 @@ export function EventEditorModal({
       .catch(() => {});
   }, [campaignPath]);
 
+  useEffect(() => {
+    return window.fsApi.onEntityDelta((delta) => {
+      setEntityIndex((prev) => {
+        if (delta.op === 'add' || delta.op === 'update') {
+          const { entry } = delta;
+          return [...prev.filter((e) => e.id !== entry.id && e.path !== entry.path), entry];
+        }
+        return prev.filter((e) => e.path !== delta.path);
+      });
+    });
+  }, []);
+
   const suggestLinksForIndex = useCallback(
     (query: string) => suggestLinks(entityIndex, query),
     [entityIndex],
