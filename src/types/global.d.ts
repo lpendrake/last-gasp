@@ -23,6 +23,8 @@ export interface EntityIndexEntry {
   path: string;
   title: string;
   type: 'note' | 'event' | 'asset';
+  tagLabelOverride?: string;
+  linkLabelOverride?: string;
 }
 
 export type EntityIndexDelta =

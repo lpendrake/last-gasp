@@ -10,6 +10,8 @@ export interface EntityIndexEntry {
   path: string; // Campaign-relative path (using forward slashes)
   title: string;
   type: 'note' | 'event' | 'asset';
+  tagLabelOverride?: string;
+  linkLabelOverride?: string;
 }
 
 export function buildEntityIndex(campaignPath: string): EntityIndexEntry[] {
@@ -48,7 +50,17 @@ export function indexSingleEntity(fullPath: string, campaignPath: string): Entit
         fs.writeFileSync(fullPath, stringifyNote(body, frontmatter), 'utf-8');
       }
       const type: 'note' | 'event' = isNote ? 'note' : 'event';
-      return { id: frontmatter.id, path: rel, title: frontmatter.title, type };
+      const entry: EntityIndexEntry = {
+        id: frontmatter.id,
+        path: rel,
+        title: frontmatter.title,
+        type,
+      };
+      if (typeof frontmatter.tagLabelOverride === 'string')
+        entry.tagLabelOverride = frontmatter.tagLabelOverride;
+      if (typeof frontmatter.linkLabelOverride === 'string')
+        entry.linkLabelOverride = frontmatter.linkLabelOverride;
+      return entry;
     } catch {
       return null;
     }
@@ -86,7 +98,17 @@ function scanDir(
         if (needsWrite) {
           fs.writeFileSync(fullPath, stringifyNote(body, frontmatter), 'utf-8');
         }
-        index.push({ id: frontmatter.id, path: prefix + relPath, title: frontmatter.title, type });
+        const indexEntry: EntityIndexEntry = {
+          id: frontmatter.id,
+          path: prefix + relPath,
+          title: frontmatter.title,
+          type,
+        };
+        if (typeof frontmatter.tagLabelOverride === 'string')
+          indexEntry.tagLabelOverride = frontmatter.tagLabelOverride;
+        if (typeof frontmatter.linkLabelOverride === 'string')
+          indexEntry.linkLabelOverride = frontmatter.linkLabelOverride;
+        index.push(indexEntry);
       } else if (type === 'note' && ASSET_EXTENSIONS.has(ext)) {
         const title = path.basename(entry.name, ext);
         index.push({ id: '', path: prefix + relPath, title, type: 'asset' });
