@@ -47,6 +47,7 @@ interface CardsProps {
   onResizeDragChange: (active: boolean) => void;
   onEditClick: (filename: string) => void;
   onDeleteClick: (item: EventListItem) => void;
+  onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
 }
 
@@ -63,6 +64,7 @@ export function Cards({
   onResizeDragChange,
   onEditClick,
   onDeleteClick,
+  onContextMenu,
   onOpenById,
 }: CardsProps): ReactElement | null {
   const laidOut = useMemo(
@@ -132,6 +134,7 @@ export function Cards({
             onResizeDragChange={onResizeDragChange}
             onEditClick={onEditClick}
             onDeleteClick={onDeleteClick}
+            onContextMenu={onContextMenu}
             onOpenById={onOpenById}
           />
         );
@@ -154,6 +157,7 @@ interface CardItemProps {
   onResizeDragChange: (active: boolean) => void;
   onEditClick: (filename: string) => void;
   onDeleteClick: (item: EventListItem) => void;
+  onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
 }
 
@@ -171,6 +175,7 @@ function CardItem({
   onResizeDragChange,
   onEditClick,
   onDeleteClick,
+  onContextMenu,
   onOpenById,
 }: CardItemProps): ReactElement {
   const handleClick = useCallback(
@@ -179,6 +184,16 @@ function CardItem({
       onCardClick(card.event.filename);
     },
     [card.event.filename, onCardClick],
+  );
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!onContextMenu) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onContextMenu(card.event, e.clientX, e.clientY);
+    },
+    [card.event, onContextMenu],
   );
 
   const expansionEl = isExpanded ? (
@@ -209,6 +224,7 @@ function CardItem({
         } as CSSProperties
       }
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
     >
       {/* Expansion section above the card face when opening upward */}
       {isExpanded && !expandsDown && expansionEl}

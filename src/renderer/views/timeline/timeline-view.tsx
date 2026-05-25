@@ -45,6 +45,7 @@ import { loadSavedViewState, saveViewState } from './view-state-persistence';
 import { useFilterState } from '../../timeline/filter/use-filter-state';
 import { applyFilters } from '../../timeline/filter/logic';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
+import { EventContextMenu } from '../../timeline/components/event-context-menu';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
@@ -83,6 +84,11 @@ export function TimelineView({
   });
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [advanceTimeAnchor, setAdvanceTimeAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenuTarget, setContextMenuTarget] = useState<{
+    item: EventListItem;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const {
     filterState,
@@ -428,6 +434,11 @@ export function TimelineView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingJumpFilename, loadedData.events.length]);
 
+  const handleCardContextMenu = useCallback((item: EventListItem, x: number, y: number) => {
+    if (sessionModeActiveRef.current) return;
+    setContextMenuTarget({ item, x, y });
+  }, []);
+
   const filteredEvents = useMemo(
     () => applyFilters(loadedData.events, filterState, loadedData.sessions),
     [loadedData.events, filterState, loadedData.sessions],
@@ -483,6 +494,7 @@ export function TimelineView({
           onResizeDragChange={sessionModeActiveRef.current ? undefined : handleResizeDragChange}
           onEditClick={sessionModeActiveRef.current ? undefined : editor.openEdit}
           onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
+          onContextMenu={sessionModeActiveRef.current ? undefined : handleCardContextMenu}
           onOpenById={onOpenById}
         />
         {inGameNow && (
@@ -582,6 +594,20 @@ export function TimelineView({
           currentNow={inGameNow}
           onSave={handleAdvanceTimeSave}
           onClose={() => setAdvanceTimeAnchor(null)}
+        />
+      )}
+
+      {/* Event context menu */}
+      {contextMenuTarget && (
+        <EventContextMenu
+          item={contextMenuTarget.item}
+          x={contextMenuTarget.x}
+          y={contextMenuTarget.y}
+          onClose={() => setContextMenuTarget(null)}
+          onEdit={(filename) => editor.openEdit(filename)}
+          onDelete={(item) => editor.requestDeleteFromCard(item)}
+          onEditTagLabel={() => {}}
+          onEditLinkLabel={() => {}}
         />
       )}
 
