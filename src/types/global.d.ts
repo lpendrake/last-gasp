@@ -107,6 +107,12 @@ declare global {
         callback: (info: { version: string; releaseNotes: string }) => void,
       ) => () => void;
       onUpdateDownloaded: (callback: () => void) => () => void;
+
+      // Campaign Loading
+      onLoadProgress: (
+        callback: (data: { percentage: number; taskName: string }) => void,
+      ) => () => void;
+      onLoadComplete: (callback: () => void) => () => void;
     };
   }
 }
