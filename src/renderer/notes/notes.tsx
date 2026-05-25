@@ -8,6 +8,7 @@ import {
   makeDropLinkConfig,
   makePeekWikiLinksConfig,
 } from './editor-bindings';
+import { buildEntityLabelMap } from '../../shared/entity-labels';
 import { QuickAdd } from './components/quick-add.tsx';
 import { NoteContextMenu } from './components/note-context-menu.tsx';
 import { EditorTabs } from './components/editor-tabs.tsx';
@@ -47,6 +48,7 @@ export function NotesApp({
 }: NotesAppProps) {
   const ctrl = useNotesController({ campaignId, campaignPath, onOpenEvent });
   const knownIds = useMemo(() => new Set(ctrl.entityIndex.map((e) => e.id)), [ctrl.entityIndex]);
+  const entityLabels = useMemo(() => buildEntityLabelMap(ctrl.entityIndex), [ctrl.entityIndex]);
 
   const editorStateCache = useRef(new Map<string, SavedEditorInstance>());
   const editorViewRef = useRef<EditorView | null>(null);
@@ -197,6 +199,7 @@ export function NotesApp({
                   onOpen: ctrl.handleOpenLink,
                   ...peekWikiLinksConfig,
                   knownIds,
+                  entityLabels,
                 }}
                 mdLinks={{ onOpenInternal: ctrl.openMarkdownLink }}
                 imagePaste={imagePasteConfig}

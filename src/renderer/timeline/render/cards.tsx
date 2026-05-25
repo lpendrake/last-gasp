@@ -49,6 +49,7 @@ interface CardsProps {
   onDeleteClick: (item: EventListItem) => void;
   onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
+  entityLabelMap?: Map<string, string>;
 }
 
 export function Cards({
@@ -66,6 +67,7 @@ export function Cards({
   onDeleteClick,
   onContextMenu,
   onOpenById,
+  entityLabelMap,
 }: CardsProps): ReactElement | null {
   const laidOut = useMemo(
     () => layoutCards(events, view, size, inGameNowSeconds),
@@ -136,6 +138,7 @@ export function Cards({
             onDeleteClick={onDeleteClick}
             onContextMenu={onContextMenu}
             onOpenById={onOpenById}
+            entityLabelMap={entityLabelMap}
           />
         );
       })}
@@ -159,6 +162,7 @@ interface CardItemProps {
   onDeleteClick: (item: EventListItem) => void;
   onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
+  entityLabelMap?: Map<string, string>;
 }
 
 function CardItem({
@@ -177,6 +181,7 @@ function CardItem({
   onDeleteClick,
   onContextMenu,
   onOpenById,
+  entityLabelMap,
 }: CardItemProps): ReactElement {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -205,6 +210,7 @@ function CardItem({
       onSizeChange={onPreviewSizeChange}
       onResizeDragChange={onResizeDragChange}
       onOpenById={onOpenById}
+      entityLabelMap={entityLabelMap}
     />
   ) : null;
 

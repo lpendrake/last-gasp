@@ -25,6 +25,7 @@ export interface PeekWindowProps {
    */
   fetcher: (path: string, signal: AbortSignal) => Promise<string>;
   onOpenById?: (id: string) => void;
+  entityLabels?: Map<string, string>;
   onPin?: () => void;
   onClose?: () => void;
 }
@@ -73,7 +74,7 @@ function isNotFound(err: unknown): boolean {
 }
 
 export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function PeekWindow(
-  { path, anchorRect, stackDepth: _stackDepth, fetcher, onOpenById, onPin, onClose },
+  { path, anchorRect, stackDepth: _stackDepth, fetcher, onOpenById, entityLabels, onPin, onClose },
   ref,
 ) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
@@ -235,7 +236,9 @@ export const PeekWindow = forwardRef<PeekWindowHandle, PeekWindowProps>(function
             content={loadState.body}
             images={{ resolveSrc: makeResolveSrc(loadState.baseDir) }}
             baseDir={loadState.baseDir}
-            wikiLinks={onOpenById ? { onOpen: onOpenById } : undefined}
+            wikiLinks={
+              onOpenById || entityLabels ? { onOpen: onOpenById, entityLabels } : undefined
+            }
           />
         )}
       </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { effectiveTagLabel, effectiveLinkLabel } from '../entity-labels';
+import { effectiveTagLabel, effectiveLinkLabel, buildEntityLabelMap } from '../entity-labels';
 import type { EntityIndexEntry } from '../../types/global';
 
 function makeEntry(overrides: Partial<EntityIndexEntry> = {}): EntityIndexEntry {
@@ -39,5 +39,26 @@ describe('effectiveLinkLabel', () => {
 
   it('ignores tagLabelOverride', () => {
     expect(effectiveLinkLabel(makeEntry({ tagLabelOverride: 'Tag Label' }))).toBe('Default Title');
+  });
+});
+
+describe('buildEntityLabelMap', () => {
+  it('builds a map of id → effective link label', () => {
+    const index = [
+      makeEntry({ id: 'aa11', title: 'Alice' }),
+      makeEntry({ id: 'bb22', title: 'Bob', linkLabelOverride: 'Bobby' }),
+    ];
+    const map = buildEntityLabelMap(index);
+    expect(map.get('aa11')).toBe('Alice');
+    expect(map.get('bb22')).toBe('Bobby');
+  });
+
+  it('returns an empty map for an empty index', () => {
+    expect(buildEntityLabelMap([]).size).toBe(0);
+  });
+
+  it('uses linkLabelOverride when present', () => {
+    const map = buildEntityLabelMap([makeEntry({ id: 'cc33', linkLabelOverride: 'Custom' })]);
+    expect(map.get('cc33')).toBe('Custom');
   });
 });

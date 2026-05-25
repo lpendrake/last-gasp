@@ -17,6 +17,7 @@ import {
   type EditorMode,
 } from './domain';
 import { ThemeProvider } from '../../theme';
+import { buildEntityLabelMap } from '../../../shared/entity-labels';
 import './EventEditorModal.css';
 
 type SaveState = 'clean' | 'dirty' | 'saving' | 'error' | 'saved';
@@ -70,6 +71,7 @@ export function EventEditorModal({
   );
 
   const knownIds = useMemo(() => new Set(entityIndex.map((e) => e.id)), [entityIndex]);
+  const entityLabelMap = useMemo(() => buildEntityLabelMap(entityIndex), [entityIndex]);
 
   // Refs for stable access inside async callbacks without needing deps
   const lastModifiedRef = useRef<string | null>(null);
@@ -491,6 +493,7 @@ export function EventEditorModal({
                     onHover: openFromWikiLink,
                     onHoverEnd: closeFromWikiLink,
                     knownIds,
+                    entityLabels: entityLabelMap,
                   }}
                 />
               </div>

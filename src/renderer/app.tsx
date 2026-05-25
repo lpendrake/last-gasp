@@ -13,6 +13,7 @@ import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
 import type { EventListItem } from './timeline/data/types';
 import type { EntityIndexEntry } from '../types/global';
+import { buildEntityLabelMap } from '../shared/entity-labels';
 import '../../src/index.css';
 
 export default function App() {
@@ -33,16 +34,21 @@ export default function App() {
   } = useCampaigns();
 
   const entityIndexRef = useRef<EntityIndexEntry[]>([]);
+  const [entityLabelMap, setEntityLabelMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!activeCampaign) return;
     const campaignPath = activeCampaign.path;
     entityIndexRef.current = [];
+    setEntityLabelMap(new Map());
     let active = true;
     notesData
       .getEntityIndex(campaignPath)
       .then((index) => {
-        if (active) entityIndexRef.current = index;
+        if (active) {
+          entityIndexRef.current = index;
+          setEntityLabelMap(buildEntityLabelMap(index));
+        }
       })
       .catch(() => {});
     return () => {
@@ -50,6 +56,25 @@ export default function App() {
       entityIndexRef.current = [];
     };
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep entityIndexRef and entityLabelMap in sync with file system renames/edits.
+  // Mirrors the same delta subscription in useNotesController.
+  useEffect(() => {
+    return window.fsApi.onEntityDelta((delta) => {
+      let updated: EntityIndexEntry[];
+      if (delta.op === 'add' || delta.op === 'update') {
+        const { entry } = delta;
+        updated = [
+          ...entityIndexRef.current.filter((e) => e.id !== entry.id && e.path !== entry.path),
+          entry,
+        ];
+      } else {
+        updated = entityIndexRef.current.filter((e) => e.path !== delta.path);
+      }
+      entityIndexRef.current = updated;
+      setEntityLabelMap(buildEntityLabelMap(updated));
+    });
+  }, []); // stable — ref and setter are stable references
 
   useEffect(() => {
     if (!activeCampaign) return;
@@ -164,6 +189,7 @@ export default function App() {
             pendingJumpFilename={pendingJumpFilename}
             onJumpHandled={() => setPendingJumpFilename(null)}
             onOpenById={handleOpenById}
+            entityLabelMap={entityLabelMap}
           />
         );
       case 'relationships':

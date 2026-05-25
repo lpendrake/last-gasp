@@ -52,6 +52,22 @@ Before opening the PR, spawn an opus advisor on the diff. The advisor must verif
 
 Address the advisor's findings (or push back with a reason) before opening the PR.
 
+## Git etiquette
+
+### Commit messages
+
+- Start every commit with the issue number: `#156 resolving wiki link display labels from the entity index`
+- Write for release notes, not for engineers — describe what changes about the **product**, not what changed in the code.
+- If there is no clear user-facing gain, prefix with `#{issue-number} TECHNICAL CHANGE`: e.g. `#156 TECHNICAL CHANGE refactor entity index lookup to use Map`
+
+### No rebase or force-push once a PR is open
+
+Once a PR is open (even as a draft), **never rebase or force-push**. Doing so destroys reviewers' ability to track what they've already reviewed. Merge commits are fine; a clean history is not worth the reviewer confusion.
+
+### Pre-commit hooks
+
+Husky pre-commit hooks run linting and tests before each commit. **Never skip them** (`--no-verify` is forbidden). If a hook fails, fix the underlying issue before committing — do not work around it. This keeps CI from failing on formatting errors or test regressions that should have been caught locally.
+
 ## No logic inside hooks or components
 
 Do not declare functions containing business logic inside a React hook or component body.
