@@ -17,7 +17,7 @@ import {
   type EditorMode,
 } from './domain';
 import { ThemeProvider } from '../../theme';
-import { buildEntityLabelMap } from '../../../../shared/entity-labels';
+import { buildEntityLabelMap } from '../../../shared/entity-labels';
 import './EventEditorModal.css';
 
 type SaveState = 'clean' | 'dirty' | 'saving' | 'error' | 'saved';
