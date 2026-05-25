@@ -83,7 +83,7 @@ beforeEach(() => {
   capturedCalls = [];
   vi.useFakeTimers();
   mockResolvePeekTarget.mockReturnValue({ path: 'notes/foo.md' });
-  initPeek({ fetcher: vi.fn(), getLinkIndex: () => [] });
+  initPeek({ fetcher: vi.fn(), getEntityIndex: () => [] });
 });
 
 afterEach(() => {

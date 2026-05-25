@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { BrowserWindow } from 'electron';
 import * as chokidar from 'chokidar';
-import { indexSingleFile, ASSET_EXTENSIONS } from './linkIndex.js';
+import { indexSingleEntity, ASSET_EXTENSIONS } from './entity-index.js';
 
 export class FileWatcher {
   private watcher: chokidar.FSWatcher | null = null;
@@ -39,7 +39,7 @@ export class FileWatcher {
         const ext = path.extname(filePath).toLowerCase();
         const tracked = ext === '.md' || ASSET_EXTENSIONS.has(ext);
         if (tracked && (rel.startsWith('notes/') || rel.startsWith('timeline/'))) {
-          mainWindow.webContents.send('notes:indexDelta', { op: 'remove', path: rel });
+          mainWindow.webContents.send('entity:indexDelta', { op: 'remove', path: rel });
         }
       });
 
@@ -49,9 +49,9 @@ export class FileWatcher {
   private pushIndexDelta(filePath: string, op: 'add' | 'update', mainWindow: BrowserWindow) {
     const ext = path.extname(filePath).toLowerCase();
     if (ext !== '.md' && !ASSET_EXTENSIONS.has(ext)) return;
-    const entry = indexSingleFile(filePath, this.campaignPath);
+    const entry = indexSingleEntity(filePath, this.campaignPath);
     if (!entry) return;
-    mainWindow.webContents.send('notes:indexDelta', { op, entry });
+    mainWindow.webContents.send('entity:indexDelta', { op, entry });
   }
 
   public stop() {

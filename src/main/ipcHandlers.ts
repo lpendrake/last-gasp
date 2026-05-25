@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import matter from 'gray-matter';
 import pkg from 'electron-updater';
 import { generateShortId } from '../shared/ids.js';
-import { buildLinkIndex } from './linkIndex.js';
+import { buildEntityIndex } from './entity-index.js';
 import { registerTimelineIpcHandlers } from './timelineIpcHandlers.js';
 
 const { autoUpdater } = pkg;
@@ -254,11 +254,11 @@ ${description}
     }
   });
 
-  ipcMain.handle('notes:buildIndex', async (event, campaignPath: string) => {
+  ipcMain.handle('entity:buildIndex', async (event, campaignPath: string) => {
     try {
-      return buildLinkIndex(campaignPath);
+      return buildEntityIndex(campaignPath);
     } catch (error) {
-      console.error('Failed to build link index:', error);
+      console.error('Failed to build entity index:', error);
       return [];
     }
   });

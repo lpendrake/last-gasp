@@ -138,7 +138,7 @@ describe('peek hover integration — end-to-end via initPeek', () => {
   it('triggers showPeek after OPEN_DELAY_MS when initPeek is wired to the editor', () => {
     initPeek({
       fetcher: vi.fn(),
-      getLinkIndex: () => [{ id: 'abc1', path: 'notes/foo.md', title: 'Foo', type: 'note' }],
+      getEntityIndex: () => [{ id: 'abc1', path: 'notes/foo.md', title: 'Foo', type: 'note' }],
     });
 
     setup();

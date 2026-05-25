@@ -12,7 +12,7 @@ import { notesData } from './notes/data';
 import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
 import type { EventListItem } from './timeline/data/types';
-import type { LinkIndexEntry } from '../types/global';
+import type { EntityIndexEntry } from '../types/global';
 import '../../src/index.css';
 
 export default function App() {
@@ -32,22 +32,22 @@ export default function App() {
     handleCloseCampaign,
   } = useCampaigns();
 
-  const linkIndexRef = useRef<LinkIndexEntry[]>([]);
+  const entityIndexRef = useRef<EntityIndexEntry[]>([]);
 
   useEffect(() => {
     if (!activeCampaign) return;
     const campaignPath = activeCampaign.path;
-    linkIndexRef.current = [];
+    entityIndexRef.current = [];
     let active = true;
     notesData
-      .getLinkIndex(campaignPath)
+      .getEntityIndex(campaignPath)
       .then((index) => {
-        if (active) linkIndexRef.current = index;
+        if (active) entityIndexRef.current = index;
       })
       .catch(() => {});
     return () => {
       active = false;
-      linkIndexRef.current = [];
+      entityIndexRef.current = [];
     };
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -63,7 +63,7 @@ export default function App() {
         const { event } = await timelinePort.getEvent(campaignPath, filename);
         return `# ${event.title}\n\n${event.body}`;
       },
-      getLinkIndex: () => linkIndexRef.current,
+      getEntityIndex: () => entityIndexRef.current,
       onOpenById: handleOpenById,
     });
     return () => teardownPeek();
@@ -96,7 +96,7 @@ export default function App() {
 
   const handleOpenById = useCallback(
     (id: string) => {
-      const entry = linkIndexRef.current.find((e) => e.id === id);
+      const entry = entityIndexRef.current.find((e) => e.id === id);
       if (!entry) return;
       if (entry.type === 'event') {
         handleJumpToEvent(entry.path.split('/').pop()!);

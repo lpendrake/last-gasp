@@ -53,23 +53,23 @@ export function EventEditorModal({
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [conflictPending, setConflictPending] = useState<ConflictPending | null>(null);
-  const [linkIndex, setLinkIndex] = useState<Awaited<ReturnType<typeof notesData.getLinkIndex>>>(
-    [],
-  );
+  const [entityIndex, setEntityIndex] = useState<
+    Awaited<ReturnType<typeof notesData.getEntityIndex>>
+  >([]);
 
   useEffect(() => {
     notesData
-      .getLinkIndex(campaignPath)
-      .then(setLinkIndex)
+      .getEntityIndex(campaignPath)
+      .then(setEntityIndex)
       .catch(() => {});
   }, [campaignPath]);
 
   const suggestLinksForIndex = useCallback(
-    (query: string) => suggestLinks(linkIndex, query),
-    [linkIndex],
+    (query: string) => suggestLinks(entityIndex, query),
+    [entityIndex],
   );
 
-  const knownIds = useMemo(() => new Set(linkIndex.map((e) => e.id)), [linkIndex]);
+  const knownIds = useMemo(() => new Set(entityIndex.map((e) => e.id)), [entityIndex]);
 
   // Refs for stable access inside async callbacks without needing deps
   const lastModifiedRef = useRef<string | null>(null);

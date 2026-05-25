@@ -1,12 +1,12 @@
-import type { LinkIndexEntry } from '../../types/global';
+import type { EntityIndexEntry } from '../../types/global';
 import type { WikiLinkSuggestion } from './markdown-editor';
 
 export function suggestLinks(
-  linkIndex: readonly LinkIndexEntry[],
+  entityIndex: readonly EntityIndexEntry[],
   query: string,
 ): WikiLinkSuggestion[] {
   const q = query.toLowerCase();
-  return linkIndex
+  return entityIndex
     .filter((e) => e.title.toLowerCase().includes(q) || e.id.toLowerCase().includes(q))
     .map((e) =>
       e.type === 'asset'

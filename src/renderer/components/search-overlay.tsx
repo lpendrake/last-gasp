@@ -3,7 +3,7 @@ import { timelinePort } from '../timeline/data/ports';
 import type { EventListItem } from '../timeline/data/types';
 import { parseISOString } from '../timeline/calendar/golarian';
 import { formatCompact } from '../timeline/calendar/format';
-import type { LinkIndexEntry } from '../../types/global';
+import type { EntityIndexEntry } from '../../types/global';
 import { splitFrontmatter } from '../../shared/frontmatter';
 import './search-overlay.css';
 
@@ -82,14 +82,14 @@ export function SearchOverlay({
 
     async function load() {
       // Load event and note lists in parallel
-      const [eventList, linkIndex] = await Promise.all([
+      const [eventList, entityIndex] = await Promise.all([
         timelinePort.listEvents(campaignPath),
         window.fsApi.buildIndex(campaignPath),
       ]);
       if (cancelled) return;
 
       const initialEvents: SearchableEvent[] = eventList;
-      const initialNotes: SearchableNote[] = (linkIndex as LinkIndexEntry[])
+      const initialNotes: SearchableNote[] = (entityIndex as EntityIndexEntry[])
         .filter((e) => e.type === 'note')
         .map((e) => ({ path: e.path, title: e.title }));
 

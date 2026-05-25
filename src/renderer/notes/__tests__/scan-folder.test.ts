@@ -6,7 +6,7 @@ vi.mock('../data', () => ({
 
 import { notesData } from '../data';
 import { scanFolderContents } from '../scan-folder';
-import type { LinkIndexEntry } from '../../../types/global';
+import type { EntityIndexEntry } from '../../../types/global';
 
 const listFolder = notesData.listFolder as ReturnType<typeof vi.fn>;
 
@@ -30,7 +30,7 @@ describe('scanFolderContents', () => {
   });
 
   it('produces a note entry for a file matched in the index', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       { id: 'n1', path: 'notes/Lore/bob.md', title: 'Bob', type: 'note' },
     ];
     listFolder.mockResolvedValue([{ name: 'bob.md', isDirectory: false }]);
@@ -39,7 +39,7 @@ describe('scanFolderContents', () => {
   });
 
   it('produces an asset entry for an asset in the index', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       { id: 's1', path: 'notes/Lore/map.png', title: 'World Map', type: 'asset' },
     ];
     listFolder.mockResolvedValue([{ name: 'map.png', isDirectory: false }]);
@@ -64,7 +64,7 @@ describe('scanFolderContents', () => {
   });
 
   it('recurses into a non-empty child directory and uses nested relative paths', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       { id: 'n2', path: 'notes/Lore/sub/child.md', title: 'Child', type: 'note' },
     ];
     listFolder.mockImplementation(async (p: string) => {
@@ -77,7 +77,7 @@ describe('scanFolderContents', () => {
   });
 
   it('does not produce a dir entry for a child directory that has contents', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       { id: 'n3', path: 'notes/Lore/sub/child.md', title: 'Child', type: 'note' },
     ];
     listFolder.mockImplementation(async (p: string) => {
@@ -91,7 +91,7 @@ describe('scanFolderContents', () => {
   });
 
   it('returns partial results when listFolder throws for a subdirectory', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       { id: 'n4', path: 'notes/Lore/good.md', title: 'Good', type: 'note' },
     ];
     // First call: root dir listing. Second call: bad subdir throws.
@@ -106,7 +106,7 @@ describe('scanFolderContents', () => {
   });
 
   it('handles folder and file names that contain spaces', async () => {
-    const index: LinkIndexEntry[] = [
+    const index: EntityIndexEntry[] = [
       {
         id: 'sp1',
         path: 'notes/Lore/Player Characters/bob the brave.md',

@@ -1,4 +1,4 @@
-import type { LinkIndexEntry } from '../../types/global';
+import type { EntityIndexEntry } from '../../types/global';
 import { showPeek, type PeekHandle } from './show';
 import { resolvePeekTarget } from './resolve';
 
@@ -19,7 +19,7 @@ let stackConfig: PeekStackConfig | null = null;
 
 export interface PeekStackConfig {
   fetcher: (path: string, signal: AbortSignal) => Promise<string>;
-  getLinkIndex: () => readonly LinkIndexEntry[];
+  getEntityIndex: () => readonly EntityIndexEntry[];
   onOpenById?: (id: string) => void;
 }
 
@@ -45,7 +45,7 @@ function isLive(el: Element | null): boolean {
   const cmLink = el.closest<HTMLElement>('.cm-note-link');
   if (cmLink) {
     const noteId = cmLink.dataset.noteId;
-    return !!noteId && resolvePeekTarget(noteId, '', stackConfig?.getLinkIndex() ?? []) !== null;
+    return !!noteId && resolvePeekTarget(noteId, '', stackConfig?.getEntityIndex() ?? []) !== null;
   }
 
   // Plain <a href> links in rendered HTML (e.g. markdown preview surfaces with data-base-dir)
@@ -54,8 +54,11 @@ function isLive(el: Element | null): boolean {
   const baseDir = a.closest('[data-base-dir]')?.getAttribute('data-base-dir') ?? '';
   if (!baseDir) return false;
   return (
-    resolvePeekTarget(a.getAttribute('href') ?? '', baseDir, stackConfig?.getLinkIndex() ?? []) !==
-    null
+    resolvePeekTarget(
+      a.getAttribute('href') ?? '',
+      baseDir,
+      stackConfig?.getEntityIndex() ?? [],
+    ) !== null
   );
 }
 
@@ -124,7 +127,7 @@ function handleOver(e: MouseEvent) {
   if (cmLink) {
     const noteId = cmLink.dataset.noteId;
     if (!noteId) return;
-    const peekTarget = resolvePeekTarget(noteId, '', stackConfig?.getLinkIndex() ?? []);
+    const peekTarget = resolvePeekTarget(noteId, '', stackConfig?.getEntityIndex() ?? []);
     if (!peekTarget) return;
     cancelClose();
     cancelOpen();
@@ -140,7 +143,7 @@ function handleOver(e: MouseEvent) {
   const peekTarget = resolvePeekTarget(
     a.getAttribute('href') ?? '',
     baseDir,
-    stackConfig?.getLinkIndex() ?? [],
+    stackConfig?.getEntityIndex() ?? [],
   );
   if (!peekTarget) return;
   cancelClose();
@@ -182,7 +185,7 @@ export function teardownPeek(): void {
 
 export function openFromWikiLink(id: string, el: HTMLElement): void {
   if (!stackConfig) return;
-  const peekTarget = resolvePeekTarget(id, '', stackConfig.getLinkIndex());
+  const peekTarget = resolvePeekTarget(id, '', stackConfig.getEntityIndex());
   if (!peekTarget) return;
   cancelClose();
   cancelOpen();

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { resolvePeekTarget } from '../resolve';
-import type { LinkIndexEntry } from '../../../types/global';
+import type { EntityIndexEntry } from '../../../types/global';
 
-const linkIndex: LinkIndexEntry[] = [
+const entityIndex: EntityIndexEntry[] = [
   { id: 'bob', path: 'notes/npcs/bob.md', title: 'Bob', type: 'note' },
   { id: 'battle', path: 'timeline/battle.md', title: 'Battle', type: 'event' },
   { id: 'map', path: 'notes/assets/map.png', title: 'Map', type: 'asset' },
@@ -50,23 +50,23 @@ describe('resolvePeekTarget — plain href', () => {
 
 describe('resolvePeekTarget — wiki-link id', () => {
   it('resolves note id', () => {
-    expect(resolvePeekTarget('bob', 'notes', linkIndex)).toEqual({
+    expect(resolvePeekTarget('bob', 'notes', entityIndex)).toEqual({
       path: 'notes/npcs/bob.md',
     });
   });
 
   it('resolves event id', () => {
-    expect(resolvePeekTarget('battle', 'notes', linkIndex)).toEqual({
+    expect(resolvePeekTarget('battle', 'notes', entityIndex)).toEqual({
       path: 'timeline/battle.md',
     });
   });
 
   it('returns null for unknown id', () => {
-    expect(resolvePeekTarget('nonexistent', 'notes', linkIndex)).toBeNull();
+    expect(resolvePeekTarget('nonexistent', 'notes', entityIndex)).toBeNull();
   });
 
   it('returns null for asset id', () => {
-    expect(resolvePeekTarget('map', 'notes', linkIndex)).toBeNull();
+    expect(resolvePeekTarget('map', 'notes', entityIndex)).toBeNull();
   });
 
   it('returns null when index is empty', () => {
@@ -74,7 +74,7 @@ describe('resolvePeekTarget — wiki-link id', () => {
   });
 
   it('baseDir does not affect wiki-id resolution', () => {
-    expect(resolvePeekTarget('bob', 'timeline', linkIndex)).toEqual({
+    expect(resolvePeekTarget('bob', 'timeline', entityIndex)).toEqual({
       path: 'notes/npcs/bob.md',
     });
   });
