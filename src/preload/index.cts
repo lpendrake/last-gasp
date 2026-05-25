@@ -97,4 +97,18 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.on('app:updateDownloaded', listener);
     return () => ipcRenderer.removeListener('app:updateDownloaded', listener);
   },
+
+  // Campaign Loading
+  onLoadProgress: (callback: (data: { percentage: number; taskName: string }) => void) => {
+    const listener = (_event: unknown, data: { percentage: number; taskName: string }) =>
+      callback(data);
+    ipcRenderer.on('campaign:loadProgress', listener);
+    return () => ipcRenderer.removeListener('campaign:loadProgress', listener);
+  },
+
+  onLoadComplete: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('campaign:loadComplete', listener);
+    return () => ipcRenderer.removeListener('campaign:loadComplete', listener);
+  },
 });
