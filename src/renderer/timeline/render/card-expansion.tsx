@@ -18,6 +18,7 @@ interface CardExpansionProps {
   /** Called with a boolean indicating whether a resize drag is in progress */
   onResizeDragChange: (active: boolean) => void;
   onOpenById?: (id: string) => void;
+  entityLabelMap?: Map<string, string>;
 }
 
 export function CardExpansion({
@@ -28,6 +29,7 @@ export function CardExpansion({
   onSizeChange,
   onResizeDragChange,
   onOpenById,
+  entityLabelMap,
 }: CardExpansionProps): ReactElement {
   // Ref to the expansion container element (owns the height we resize)
   const expRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,11 @@ export function CardExpansion({
           content={body}
           images={{ resolveSrc: resolveEventImageSrc }}
           baseDir="events"
-          wikiLinks={onOpenById ? { onOpen: onOpenById } : undefined}
+          wikiLinks={
+            onOpenById || entityLabelMap
+              ? { onOpen: onOpenById, entityLabels: entityLabelMap }
+              : undefined
+          }
         />
       ) : (
         <div className="exp-body">

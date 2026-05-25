@@ -46,6 +46,8 @@ import { useFilterState } from '../../timeline/filter/use-filter-state';
 import { applyFilters } from '../../timeline/filter/logic';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
 import { EventContextMenu } from '../../timeline/components/event-context-menu';
+import { notesData } from '../../notes/data';
+import { buildEntityLabelMap } from '../../../shared/entity-labels';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
@@ -89,6 +91,15 @@ export function TimelineView({
     x: number;
     y: number;
   } | null>(null);
+
+  const [entityLabelMap, setEntityLabelMap] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    notesData
+      .getEntityIndex(campaignPath)
+      .then((index) => setEntityLabelMap(buildEntityLabelMap(index)))
+      .catch(() => {});
+  }, [campaignPath]);
 
   const {
     filterState,
@@ -496,6 +507,7 @@ export function TimelineView({
           onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
           onContextMenu={sessionModeActiveRef.current ? undefined : handleCardContextMenu}
           onOpenById={onOpenById}
+          entityLabelMap={entityLabelMap}
         />
         {inGameNow && (
           <NowMarker
