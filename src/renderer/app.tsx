@@ -13,6 +13,7 @@ import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
 import type { EventListItem } from './timeline/data/types';
 import type { EntityIndexEntry } from '../types/global';
+import { buildEntityLabelMap } from '../shared/entity-labels';
 import '../../src/index.css';
 
 export default function App() {
@@ -33,16 +34,21 @@ export default function App() {
   } = useCampaigns();
 
   const entityIndexRef = useRef<EntityIndexEntry[]>([]);
+  const [entityLabelMap, setEntityLabelMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!activeCampaign) return;
     const campaignPath = activeCampaign.path;
     entityIndexRef.current = [];
+    setEntityLabelMap(new Map());
     let active = true;
     notesData
       .getEntityIndex(campaignPath)
       .then((index) => {
-        if (active) entityIndexRef.current = index;
+        if (active) {
+          entityIndexRef.current = index;
+          setEntityLabelMap(buildEntityLabelMap(index));
+        }
       })
       .catch(() => {});
     return () => {
@@ -164,6 +170,7 @@ export default function App() {
             pendingJumpFilename={pendingJumpFilename}
             onJumpHandled={() => setPendingJumpFilename(null)}
             onOpenById={handleOpenById}
+            entityLabelMap={entityLabelMap}
           />
         );
       case 'relationships':

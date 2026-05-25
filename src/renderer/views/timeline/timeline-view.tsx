@@ -46,8 +46,6 @@ import { useFilterState } from '../../timeline/filter/use-filter-state';
 import { applyFilters } from '../../timeline/filter/logic';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
 import { EventContextMenu } from '../../timeline/components/event-context-menu';
-import { notesData } from '../../notes/data';
-import { buildEntityLabelMap } from '../../../shared/entity-labels';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
@@ -59,6 +57,8 @@ interface TimelineViewProps {
   onJumpHandled?: () => void;
   /** Navigate to a note by wiki-link ID (Ctrl+click from card expansions / event editor). */
   onOpenById?: (id: string) => void;
+  /** Entity id → display label map for resolving [[id]] wiki links. */
+  entityLabelMap: Map<string, string>;
 }
 
 interface LoadedData {
@@ -72,6 +72,7 @@ export function TimelineView({
   pendingJumpFilename,
   onJumpHandled,
   onOpenById,
+  entityLabelMap,
 }: TimelineViewProps) {
   const weekdays = ThemeProvider.get().timeline.days;
   const [viewState, setViewState] = useState<ViewState>({
@@ -91,15 +92,6 @@ export function TimelineView({
     x: number;
     y: number;
   } | null>(null);
-
-  const [entityLabelMap, setEntityLabelMap] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    notesData
-      .getEntityIndex(campaignPath)
-      .then((index) => setEntityLabelMap(buildEntityLabelMap(index)))
-      .catch(() => {});
-  }, [campaignPath]);
 
   const {
     filterState,
