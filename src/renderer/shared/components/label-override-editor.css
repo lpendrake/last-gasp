@@ -105,6 +105,6 @@
 }
 
 .label-editor-btn--primary:hover:not(:disabled) {
-  background: #4d6640;
-  color: #8aba6a;
+  background: var(--theme-panel);
+  color: var(--theme-accent);
 }

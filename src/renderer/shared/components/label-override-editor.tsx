@@ -39,16 +39,26 @@ export function LabelOverrideEditor({ entityId, target, onClose }: Props) {
 
   const handleSave = useCallback(async () => {
     setSaving(true);
-    await entityIndex.updateLabelOverride(entityId, target, value.trim() || null);
-    setSaving(false);
-    onClose();
+    try {
+      await entityIndex.updateLabelOverride(entityId, target, value.trim() || null);
+      onClose();
+    } catch (err) {
+      console.error('[LabelOverrideEditor] save failed', err);
+    } finally {
+      setSaving(false);
+    }
   }, [entityId, target, value, onClose]);
 
   const handleReset = useCallback(async () => {
     setSaving(true);
-    await entityIndex.updateLabelOverride(entityId, target, null);
-    setSaving(false);
-    onClose();
+    try {
+      await entityIndex.updateLabelOverride(entityId, target, null);
+      onClose();
+    } catch (err) {
+      console.error('[LabelOverrideEditor] reset failed', err);
+    } finally {
+      setSaving(false);
+    }
   }, [entityId, target, onClose]);
 
   const title = target === 'tagLabel' ? 'Edit Tag Label' : 'Edit Link Label';
