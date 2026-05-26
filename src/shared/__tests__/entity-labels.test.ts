@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { effectiveTagLabel, effectiveLinkLabel, buildEntityLabelMap, applyEntityDelta } from '../entity-labels';
+import {
+  effectiveTagLabel,
+  effectiveLinkLabel,
+  buildEntityLabelMap,
+  applyEntityDelta,
+} from '../entity-labels';
 import type { EntityIndexEntry } from '../../types/global';
 
 function makeEntry(overrides: Partial<EntityIndexEntry> = {}): EntityIndexEntry {
