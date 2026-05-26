@@ -68,6 +68,10 @@ export default function App() {
       active = false;
       entityIndexRef.current = [];
     };
+    // pendingEntityIndex is intentionally omitted from deps: handleOpenCampaign
+    // sets it and activeCampaign in the same React batch, so by the time this
+    // effect fires on a path change, pendingEntityIndex already reflects the new
+    // campaign. Adding it would cause a redundant re-run when it resets to null.
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep entityIndexRef and entityLabelMap in sync with file system renames/edits.

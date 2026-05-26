@@ -30,13 +30,11 @@ export function useCampaigns() {
     const unsubProgress = window.fsApi.onLoadProgress((data) => {
       setLoadProgress(data);
     });
-    const unsubComplete = window.fsApi.onLoadComplete(() => {
-      // Belt-and-suspenders; primary completion signal is the invoke response.
-    });
-    const unsubError = window.fsApi.onLoadError((data) => {
-      setLoadResult('error');
-      setLoadError(data.message);
-    });
+    // onLoadComplete and onLoadError are belt-and-suspenders channels defined in
+    // the preload. The invoke response from openCampaign is authoritative for both
+    // success and error; we subscribe here only to stream progress updates.
+    const unsubComplete = window.fsApi.onLoadComplete(() => {});
+    const unsubError = window.fsApi.onLoadError(() => {});
     return () => {
       unsubProgress();
       unsubComplete();
