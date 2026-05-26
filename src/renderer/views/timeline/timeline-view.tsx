@@ -46,6 +46,7 @@ import { useFilterState } from '../../timeline/filter/use-filter-state';
 import { applyFilters } from '../../timeline/filter/logic';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
 import { EventContextMenu } from '../../timeline/components/event-context-menu';
+import { LabelOverrideEditor } from '../../shared/components/label-override-editor';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
 
@@ -91,6 +92,10 @@ export function TimelineView({
     item: EventListItem;
     x: number;
     y: number;
+  } | null>(null);
+  const [labelEditorTarget, setLabelEditorTarget] = useState<{
+    entityId: string;
+    target: 'tagLabel' | 'linkLabel';
   } | null>(null);
 
   const {
@@ -450,7 +455,7 @@ export function TimelineView({
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;
 
-  const anyModalOpen = !!(editor.editorMode || sessionEditor.mode);
+  const anyModalOpen = !!(editor.editorMode || sessionEditor.mode || labelEditorTarget);
 
   return (
     <>
@@ -610,8 +615,8 @@ export function TimelineView({
           onClose={() => setContextMenuTarget(null)}
           onEdit={(filename) => editor.openEdit(filename)}
           onDelete={(item) => editor.requestDeleteFromCard(item)}
-          onEditTagLabel={() => {}}
-          onEditLinkLabel={() => {}}
+          onEditTagLabel={(entityId) => setLabelEditorTarget({ entityId, target: 'tagLabel' })}
+          onEditLinkLabel={(entityId) => setLabelEditorTarget({ entityId, target: 'linkLabel' })}
         />
       )}
 
@@ -643,6 +648,15 @@ export function TimelineView({
             await handleSessionDelete(sessionId);
             sessionEditor.close();
           }}
+        />
+      )}
+
+      {/* Label override editor modal */}
+      {labelEditorTarget && (
+        <LabelOverrideEditor
+          entityId={labelEditorTarget.entityId}
+          target={labelEditorTarget.target}
+          onClose={() => setLabelEditorTarget(null)}
         />
       )}
 

@@ -9,8 +9,8 @@ interface Props {
   onClose(): void;
   onEdit(filename: string): void;
   onDelete(item: EventListItem): void;
-  onEditTagLabel(filename: string): void;
-  onEditLinkLabel(filename: string): void;
+  onEditTagLabel(entityId: string): void;
+  onEditLinkLabel(entityId: string): void;
 }
 
 export function EventContextMenu({
@@ -54,7 +54,7 @@ export function EventContextMenu({
       <button
         className="context-menu-item"
         onClick={() => {
-          onEditTagLabel(item.filename);
+          if (item.id) onEditTagLabel(item.id);
           onClose();
         }}
       >
@@ -63,7 +63,7 @@ export function EventContextMenu({
       <button
         className="context-menu-item"
         onClick={() => {
-          onEditLinkLabel(item.filename);
+          if (item.id) onEditLinkLabel(item.id);
           onClose();
         }}
       >
