@@ -25,10 +25,16 @@ export function parseNote(content: string, fallbackTitle: string): ParsedNote {
   const hadTitle = Boolean(data.title ?? data.name);
 
   const id = hadId ? String(data.id) : generateShortId();
-  const title = hadTitle ? String(data.title ?? data.name) : (extractH1(body) ?? fallbackTitle);
+  const storedTitle = hadTitle ? String(data.title ?? data.name) : null;
+  const h1 = extractH1(body);
+  // H1 is the source of truth when present; frontmatter title is the fallback
+  const title = h1 ?? storedTitle ?? fallbackTitle;
+
+  // Write back when id or title is missing, or when H1 has diverged from the stored frontmatter title
+  const needsWrite = !hadId || !hadTitle || (h1 !== null && h1 !== storedTitle);
 
   const frontmatter: NoteFrontmatter = { ...data, id, title };
-  return { frontmatter, body, needsWrite: !hadId || !hadTitle };
+  return { frontmatter, body, needsWrite };
 }
 
 /** Serialize body + frontmatter back to a markdown string. */

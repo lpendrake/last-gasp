@@ -17,6 +17,7 @@ let pinned: PeekHandle[] = [];
 let openTimer: ReturnType<typeof setTimeout> | null = null;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 let stackConfig: PeekStackConfig | null = null;
+let unsubDelta: (() => void) | null = null;
 
 export interface PeekStackConfig {
   fetcher: (path: string, signal: AbortSignal) => Promise<string>;
@@ -173,6 +174,12 @@ export function initPeek(config: PeekStackConfig): void {
   document.addEventListener('mouseover', handleOver);
   document.addEventListener('mouseout', handleOut);
   window.addEventListener('keydown', handleKey);
+  unsubDelta = window.fsApi.onEntityDelta(() => {
+    if (!stackConfig) return;
+    const labels = buildEntityLabelMap(stackConfig.getEntityIndex());
+    for (const e of stack) e.handle.updateLabels(labels);
+    for (const p of pinned) p.updateLabels(labels);
+  });
 }
 
 export function teardownPeek(): void {
@@ -184,6 +191,8 @@ export function teardownPeek(): void {
   closeStack();
   pinned.forEach((p) => p.close());
   pinned = [];
+  unsubDelta?.();
+  unsubDelta = null;
   stackConfig = null;
 }
 

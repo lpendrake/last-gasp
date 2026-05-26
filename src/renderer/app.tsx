@@ -13,7 +13,7 @@ import { timelinePort } from './timeline/data/ports';
 import { initPeek, teardownPeek } from './peek/stack';
 import type { EventListItem } from './timeline/data/types';
 import type { EntityIndexEntry } from '../types/global';
-import { buildEntityLabelMap } from '../shared/entity-labels';
+import { buildEntityLabelMap, applyEntityDelta } from '../shared/entity-labels';
 import '../../src/index.css';
 
 export default function App() {
@@ -58,19 +58,9 @@ export default function App() {
   }, [activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep entityIndexRef and entityLabelMap in sync with file system renames/edits.
-  // Mirrors the same delta subscription in useNotesController.
   useEffect(() => {
     return window.fsApi.onEntityDelta((delta) => {
-      let updated: EntityIndexEntry[];
-      if (delta.op === 'add' || delta.op === 'update') {
-        const { entry } = delta;
-        updated = [
-          ...entityIndexRef.current.filter((e) => e.id !== entry.id && e.path !== entry.path),
-          entry,
-        ];
-      } else {
-        updated = entityIndexRef.current.filter((e) => e.path !== delta.path);
-      }
+      const updated = applyEntityDelta(entityIndexRef.current, delta);
       entityIndexRef.current = updated;
       setEntityLabelMap(buildEntityLabelMap(updated));
     });

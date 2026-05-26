@@ -29,6 +29,7 @@ import {
   type ConfirmState,
 } from '../types';
 import type { EntityIndexEntry } from '../../../types/global';
+import { applyEntityDelta } from '../../../shared/entity-labels';
 import type { ContextMenuTarget } from '../components/note-context-menu';
 
 interface NotesControllerOptions {
@@ -174,12 +175,9 @@ export function useNotesController({
   // ---- A3: Live index delta listener ----
   useEffect(() => {
     const unsub = window.fsApi.onEntityDelta((delta) => {
+      setEntityIndex((prev) => applyEntityDelta(prev, delta));
       if (delta.op === 'add' || delta.op === 'update') {
         const { entry } = delta;
-        setEntityIndex((prev) => {
-          const filtered = prev.filter((e) => e.id !== entry.id && e.path !== entry.path);
-          return [...filtered, entry];
-        });
         if (entry.type === 'note' || entry.type === 'asset') {
           const parts = entry.path.split('/'); // 'notes/folder/sub/file.ext'
           if (parts.length >= 3) {
@@ -202,7 +200,6 @@ export function useNotesController({
         }
       } else if (delta.op === 'remove') {
         const relPath = delta.path;
-        setEntityIndex((prev) => prev.filter((e) => e.path !== relPath));
         const parts = relPath.split('/');
         if (parts.length >= 3 && parts[0] === 'notes') {
           const folder = parts[1];

@@ -115,12 +115,17 @@ describe('peek hover integration — end-to-end via initPeek', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.useFakeTimers();
+    // initPeek now subscribes to onEntityDelta; provide a no-op stub
+    Object.assign(window, {
+      fsApi: { onEntityDelta: vi.fn().mockReturnValue(vi.fn()) },
+    });
     const fakeEl = document.createElement('div');
     fakeEl.className = 'peek-window';
     document.body.appendChild(fakeEl);
     mockShowPeek.mockReturnValue({
       pin: vi.fn(),
       close: vi.fn(),
+      updateLabels: vi.fn(),
       get el() {
         return fakeEl as HTMLDivElement;
       },

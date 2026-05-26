@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { EntityIndexDelta } from '../../../types/global';
 
 vi.mock('../show', () => ({ showPeek: vi.fn() }));
 vi.mock('../resolve', () => ({ resolvePeekTarget: vi.fn() }));
@@ -15,6 +16,7 @@ const mockResolvePeekTarget = vi.mocked(resolvePeekTarget);
 interface FakeHandle {
   pin: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
+  updateLabels: ReturnType<typeof vi.fn>;
   readonly el: HTMLDivElement;
   _el: HTMLDivElement;
   path: string;
@@ -29,6 +31,7 @@ function makeFakeHandle(path: string): FakeHandle {
   return {
     pin: vi.fn(),
     close: vi.fn(),
+    updateLabels: vi.fn(),
     get el() {
       return el;
     },
@@ -78,10 +81,22 @@ function setupMock(path = 'notes/foo.md') {
   return handle;
 }
 
+let capturedDeltaCallback: ((delta: EntityIndexDelta) => void) | null = null;
+
 beforeEach(() => {
   vi.resetAllMocks(); // clears call history AND queued implementations/returnValues
   capturedCalls = [];
+  capturedDeltaCallback = null;
   vi.useFakeTimers();
+  // stack.ts calls window.fsApi.onEntityDelta in initPeek; provide a stub that captures the callback
+  Object.assign(window, {
+    fsApi: {
+      onEntityDelta: vi.fn((cb: (delta: EntityIndexDelta) => void) => {
+        capturedDeltaCallback = cb;
+        return vi.fn(); // unsub
+      }),
+    },
+  });
   mockResolvePeekTarget.mockReturnValue({ path: 'notes/foo.md' });
   initPeek({ fetcher: vi.fn(), getEntityIndex: () => [] });
 });
@@ -478,5 +493,52 @@ describe('MAX_DEPTH cap', () => {
     expect(capturedCalls[5].opts.stackDepth).toBe(4);
     // suppress unused var warning
     void handle5;
+  });
+});
+
+describe('entity label delta push', () => {
+  it('calls updateLabels on stacked handles when a delta arrives', () => {
+    const handle = setupMock();
+    const link = makeLinkEl();
+    hover(link);
+    vi.advanceTimersByTime(150);
+
+    expect(capturedDeltaCallback).not.toBeNull();
+    capturedDeltaCallback!({
+      op: 'update',
+      entry: { id: 'abc1', path: 'notes/abc.md', title: 'New Title', type: 'note' },
+    });
+
+    expect(handle.updateLabels).toHaveBeenCalledTimes(1);
+    expect(handle.updateLabels).toHaveBeenCalledWith(expect.any(Map));
+  });
+
+  it('calls updateLabels on pinned handles when a delta arrives', () => {
+    const handle = setupMock();
+    const link = makeLinkEl();
+    hover(link);
+    vi.advanceTimersByTime(150);
+    handle.capturedOnPin!(); // move to pinned
+
+    capturedDeltaCallback!({
+      op: 'update',
+      entry: { id: 'abc1', path: 'notes/abc.md', title: 'New Title', type: 'note' },
+    });
+
+    expect(handle.updateLabels).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call updateLabels after teardown', () => {
+    const handle = setupMock();
+    const link = makeLinkEl();
+    hover(link);
+    vi.advanceTimersByTime(150);
+
+    const savedCallback = capturedDeltaCallback!;
+    teardownPeek();
+
+    // delta fires after teardown (e.g. stale IPC message)
+    savedCallback({ op: 'remove', path: 'notes/abc.md' });
+    expect(handle.updateLabels).not.toHaveBeenCalled();
   });
 });

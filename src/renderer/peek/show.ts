@@ -6,6 +6,7 @@ import type { PeekWindowHandle } from './peek-window';
 export interface PeekHandle {
   pin(): void;
   close(): void;
+  updateLabels(labels: Map<string, string>): void;
   /**
    * The `.peek-window` div — use for hit-testing (`el.contains(target)`).
    * Lazily resolved: the element is available after the first React render.
@@ -26,16 +27,9 @@ export interface ShowPeekOptions {
 }
 
 export function showPeek(opts: ShowPeekOptions): PeekHandle {
-  const {
-    targetEl,
-    linkInfo,
-    fetcher,
-    onOpenById,
-    entityLabels,
-    stackDepth = 0,
-    onPin,
-    onClose,
-  } = opts;
+  const { targetEl, linkInfo, fetcher, onOpenById, stackDepth = 0, onPin, onClose } = opts;
+
+  let currentEntityLabels = opts.entityLabels;
 
   const host = document.createElement('div');
   document.body.appendChild(host);
@@ -51,22 +45,26 @@ export function showPeek(opts: ShowPeekOptions): PeekHandle {
     });
   }
 
-  root.render(
-    createElement(PeekWindow, {
-      ref: windowRef,
-      path: linkInfo.path,
-      anchorRect,
-      stackDepth,
-      fetcher,
-      onOpenById,
-      entityLabels,
-      onPin,
-      onClose: () => {
-        onClose?.();
-        destroy();
-      },
-    }),
-  );
+  function renderWindow() {
+    root.render(
+      createElement(PeekWindow, {
+        ref: windowRef,
+        path: linkInfo.path,
+        anchorRect,
+        stackDepth,
+        fetcher,
+        onOpenById,
+        entityLabels: currentEntityLabels,
+        onPin,
+        onClose: () => {
+          onClose?.();
+          destroy();
+        },
+      }),
+    );
+  }
+
+  renderWindow();
 
   return {
     pin() {
@@ -75,6 +73,10 @@ export function showPeek(opts: ShowPeekOptions): PeekHandle {
     close() {
       windowRef.current?.close();
       destroy();
+    },
+    updateLabels(labels: Map<string, string>) {
+      currentEntityLabels = labels;
+      renderWindow();
     },
     // Getter: resolves after first React render when windowRef is populated.
     // Falls back to the React root host before first paint (unlikely in practice).

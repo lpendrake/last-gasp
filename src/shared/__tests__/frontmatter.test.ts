@@ -31,10 +31,31 @@ describe('parseNote', () => {
     expect(frontmatter.title).toBe('fallback-title');
   });
 
-  it('uses data.name as title when data.title is absent', () => {
+  it('uses data.name as title when data.title is absent and there is no H1', () => {
     const content = '---\nid: abc1\nname: Named Note\n---\n';
     const { frontmatter, needsWrite } = parseNote(content, 'fallback');
     expect(frontmatter.title).toBe('Named Note');
+    expect(needsWrite).toBe(false);
+  });
+
+  it('uses H1 over frontmatter title when they match', () => {
+    const content = '---\nid: abc1\ntitle: My Note\n---\n\n# My Note\n\nContent.';
+    const { frontmatter, needsWrite } = parseNote(content, 'fallback');
+    expect(frontmatter.title).toBe('My Note');
+    expect(needsWrite).toBe(false);
+  });
+
+  it('updates title from H1 when H1 diverges from frontmatter title and sets needsWrite', () => {
+    const content = '---\nid: abc1\ntitle: Old Title\n---\n\n# New Title\n\nContent.';
+    const { frontmatter, needsWrite } = parseNote(content, 'fallback');
+    expect(frontmatter.title).toBe('New Title');
+    expect(needsWrite).toBe(true);
+  });
+
+  it('keeps frontmatter title when no H1 is present', () => {
+    const content = '---\nid: abc1\ntitle: Frontmatter Title\n---\n\nNo heading here.';
+    const { frontmatter, needsWrite } = parseNote(content, 'fallback');
+    expect(frontmatter.title).toBe('Frontmatter Title');
     expect(needsWrite).toBe(false);
   });
 
