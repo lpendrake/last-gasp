@@ -4,7 +4,7 @@ import { ThemeProvider } from '../../theme';
 import {
   extractWikiLinkIds,
   syncEntityTags,
-  isEntityTag,
+  isValidCustomTag,
   formatEntityTag,
   resolveEntityTagLabel,
 } from '../../../shared/entity-tags';
@@ -42,7 +42,7 @@ export function bufferFromEvent(ev: Event): EditorBuffer {
   return {
     title: ev.title,
     date: ev.date,
-    tagsText: (ev.tags ?? []).filter((t) => !isEntityTag(t)).join(', '),
+    tagsText: (ev.tags ?? []).filter(isValidCustomTag).join(', '),
     color: ev.color ?? '',
     body: ev.body,
     id: ev.id,
@@ -59,11 +59,11 @@ export function parseTagsText(tagsText: string): string[] {
 }
 
 export function hasReservedTagPrefix(tagsText: string): boolean {
-  return parseTagsText(tagsText).some(isEntityTag);
+  return parseTagsText(tagsText).some((t) => !isValidCustomTag(t));
 }
 
 export function bufferToFrontmatter(buf: EditorBuffer): EventFrontmatter {
-  const tags = parseTagsText(buf.tagsText).filter((t) => !isEntityTag(t));
+  const tags = parseTagsText(buf.tagsText).filter(isValidCustomTag);
   const linkedIds = extractWikiLinkIds(buf.body);
   const syncedTags = syncEntityTags(tags, linkedIds);
   const fm: EventFrontmatter = {

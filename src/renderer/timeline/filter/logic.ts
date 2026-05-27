@@ -2,7 +2,7 @@ import type { EventListItem, Session } from '../data/types';
 import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian';
 import { computeSessionLabel } from '../render/session-bands';
 import type { DateField, TagFilter, DateFilter, Filter, FilterState } from './types';
-import { resolveEntityTagLabel } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel, isSessionTag } from '../../../shared/entity-tags';
 
 export interface TagInfo {
   raw: string;
@@ -52,7 +52,7 @@ function matchesDateFilter(event: EventListItem, filter: DateFilter, sessions: S
   }
 
   if (filter.field === 'session') {
-    const seshTags = new Set((event.tags ?? []).filter((t) => t.startsWith('sesh:')));
+    const seshTags = new Set((event.tags ?? []).filter(isSessionTag));
     if (seshTags.size === 0) return false;
     for (const session of sessions) {
       const label = computeSessionLabel(session, sessions);

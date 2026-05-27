@@ -1,12 +1,13 @@
 import type { EventListItem, Session } from '../data/types';
 import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian';
 import { sessionTagsForSeconds } from '../render/session-bands';
+import { isSessionTag } from '../../../shared/entity-tags';
 
 export function seshTagsMatch(
   existingTags: readonly string[] | undefined,
   computed: readonly string[],
 ): boolean {
-  const existing = (existingTags ?? []).filter((t) => t.startsWith('sesh:'));
+  const existing = (existingTags ?? []).filter((t) => isSessionTag(t));
   return existing.length === computed.length && computed.every((t) => existing.includes(t));
 }
 
@@ -14,7 +15,7 @@ export function mergeSeshTags(
   existingTags: readonly string[] | undefined,
   computed: readonly string[],
 ): string[] {
-  const nonSesh = (existingTags ?? []).filter((t) => !t.startsWith('sesh:'));
+  const nonSesh = (existingTags ?? []).filter((t) => !isSessionTag(t));
   return [...nonSesh, ...computed];
 }
 
@@ -31,7 +32,7 @@ export function computeEventsNeedingSeshTagUpdate(
       continue;
     }
     const computed = sessionTagsForSeconds(secs, sessions as Session[]);
-    const existing = (ev.tags ?? []).filter((t) => t.startsWith('sesh:'));
+    const existing = (ev.tags ?? []).filter((t) => isSessionTag(t));
     if (seshTagsMatch(ev.tags, computed)) continue;
     if (computed.length > 0 || existing.length > 0) toUpdate.push(ev.filename);
   }

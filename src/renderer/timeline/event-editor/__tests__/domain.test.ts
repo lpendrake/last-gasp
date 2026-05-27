@@ -128,8 +128,18 @@ describe('bufferFromEvent', () => {
     expect(bufferFromEvent(ev).tagsText).toBe('combat, plot');
   });
 
+  it('excludes session tags from tagsText', () => {
+    const ev = event({ tags: ['combat', 'sesh:Session 1', 'plot'] });
+    expect(bufferFromEvent(ev).tagsText).toBe('combat, plot');
+  });
+
   it('produces empty tagsText when all tags are entity tags', () => {
     const ev = event({ tags: ['id:ab12', 'id:cd34'] });
+    expect(bufferFromEvent(ev).tagsText).toBe('');
+  });
+
+  it('produces empty tagsText when all tags are session tags', () => {
+    const ev = event({ tags: ['sesh:01', 'sesh:02'] });
     expect(bufferFromEvent(ev).tagsText).toBe('');
   });
 
@@ -235,6 +245,16 @@ describe('bufferToFrontmatter', () => {
     expect('tags' in fm).toBe(false);
   });
 
+  it('filters out manually-entered session tags from tagsText', () => {
+    const fm = bufferToFrontmatter(buf({ tagsText: 'sesh:Session 1, combat', body: '' }));
+    expect(fm.tags).toEqual(['combat']);
+  });
+
+  it('omits tags field entirely when only session tags were typed', () => {
+    const fm = bufferToFrontmatter(buf({ tagsText: 'sesh:01', body: '' }));
+    expect('tags' in fm).toBe(false);
+  });
+
   it('round-trips through bufferFromEvent', () => {
     const original = buf({
       title: 'Round-trip',
@@ -278,8 +298,14 @@ describe('hasReservedTagPrefix', () => {
     expect(hasReservedTagPrefix('id:ab12')).toBe(true);
   });
 
+  it('returns true when a tag matches sesh: format', () => {
+    expect(hasReservedTagPrefix('sesh:Session 1')).toBe(true);
+    expect(hasReservedTagPrefix('sesh:01')).toBe(true);
+  });
+
   it('returns true when one of multiple tags matches', () => {
     expect(hasReservedTagPrefix('combat, id:ab12, plot')).toBe(true);
+    expect(hasReservedTagPrefix('combat, sesh:01, plot')).toBe(true);
   });
 
   it('returns false for tags that start with id: but do not match the 4-char format', () => {

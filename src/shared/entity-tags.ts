@@ -12,8 +12,12 @@ export function formatEntityTag(id: string): string {
   return `id:${id}`;
 }
 
+export function isSessionTag(tag: string): boolean {
+  return tag.startsWith('sesh:');
+}
+
 export function isValidCustomTag(tag: string): boolean {
-  return !isEntityTag(tag);
+  return !isEntityTag(tag) && !isSessionTag(tag);
 }
 
 export function resolveEntityTagLabel(

@@ -3,6 +3,7 @@ import {
   isEntityTag,
   parseEntityTag,
   formatEntityTag,
+  isSessionTag,
   isValidCustomTag,
   resolveEntityTagLabel,
   extractWikiLinkIds,
@@ -64,6 +65,21 @@ describe('formatEntityTag', () => {
   });
 });
 
+describe('isSessionTag', () => {
+  it('returns true for tags starting with sesh:', () => {
+    expect(isSessionTag('sesh:Session 1')).toBe(true);
+    expect(isSessionTag('sesh:01')).toBe(true);
+    expect(isSessionTag('sesh:')).toBe(true);
+  });
+
+  it('returns false for tags that do not start with sesh:', () => {
+    expect(isSessionTag('combat')).toBe(false);
+    expect(isSessionTag('id:ab12')).toBe(false);
+    expect(isSessionTag('session-1')).toBe(false);
+    expect(isSessionTag('')).toBe(false);
+  });
+});
+
 describe('isValidCustomTag', () => {
   it('returns true for normal custom tags', () => {
     expect(isValidCustomTag('combat')).toBe(true);
@@ -74,6 +90,12 @@ describe('isValidCustomTag', () => {
   it('returns false for tags that match entity tag format', () => {
     expect(isValidCustomTag('id:ab12')).toBe(false);
     expect(isValidCustomTag('id:0000')).toBe(false);
+  });
+
+  it('returns false for session tags', () => {
+    expect(isValidCustomTag('sesh:Session 1')).toBe(false);
+    expect(isValidCustomTag('sesh:01')).toBe(false);
+    expect(isValidCustomTag('sesh:')).toBe(false);
   });
 
   it('returns true for near-misses that do not match entity tag format', () => {

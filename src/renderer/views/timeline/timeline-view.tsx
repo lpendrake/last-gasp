@@ -44,6 +44,7 @@ import { FooterButton } from '../../components/footer-button';
 import { loadSavedViewState, saveViewState } from './view-state-persistence';
 import { useFilterState } from '../../timeline/filter/use-filter-state';
 import { applyFilters } from '../../timeline/filter/logic';
+import { isSessionTag } from '../../../shared/entity-tags';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
 import { EventContextMenu } from '../../timeline/components/event-context-menu';
 import { LabelOverrideEditor } from '../../shared/components/label-override-editor';
@@ -259,7 +260,7 @@ export function TimelineView({
       try {
         const { event, lastModified } = await timelinePort.getEvent(campaignPath, filename);
         const newDate = toISOString(fromAbsoluteSeconds(newSeconds));
-        const nonSeshTags = (event.tags ?? []).filter((t) => !t.startsWith('sesh:'));
+        const nonSeshTags = (event.tags ?? []).filter((t) => !isSessionTag(t));
         const newSeshTags = sessionTagsForSeconds(newSeconds, sessionsRef.current);
         const updatedTags = [...nonSeshTags, ...newSeshTags];
         await timelinePort.updateEvent(

@@ -506,7 +506,7 @@ export function EventEditorModal({
                   />
                   {hasReservedTagPrefix(buffer.tagsText) && (
                     <span className="event-editor-field-warning">
-                      Tags starting with &apos;id:&apos; are reserved for system-generated tags
+                      {"Tags starting with 'id:' or 'sesh:' are reserved for system-generated tags"}
                     </span>
                   )}
                   <TagChipPreview
