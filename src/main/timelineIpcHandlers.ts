@@ -100,6 +100,7 @@ export function registerTimelineIpcHandlers() {
           title: String(data.title ?? ''),
           date: String(data.date ?? ''),
           tags: Array.isArray(data.tags) ? data.tags : [],
+          ...(data.id !== undefined ? { id: String(data.id) } : {}),
           ...(data.color !== undefined ? { color: String(data.color) } : {}),
           ...(data.status !== undefined ? { status: data.status as EventListItem['status'] } : {}),
           mtime: fileMtime(filePath),
@@ -131,9 +132,17 @@ export function registerTimelineIpcHandlers() {
       const filePath = path.join(dir, filename);
       const currentMtime = fileMtime(filePath);
       if (currentMtime !== ifUnmodifiedSince) return { conflict: true };
+      // Preserve frontmatter fields the editor doesn't manage (e.g. label overrides).
+      // Only fields that bufferToFrontmatter can produce are considered editor-owned.
+      const editorFields = new Set(['title', 'date', 'tags', 'color', 'id']);
+      const existing = matter(fs.readFileSync(filePath, 'utf-8'), MATTER_OPTS).data;
+      const preserved: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(existing)) {
+        if (!editorFields.has(key)) preserved[key] = value;
+      }
       const content = matter.stringify(
         body,
-        frontmatter as unknown as Record<string, unknown>,
+        { ...preserved, ...(frontmatter as unknown as Record<string, unknown>) },
         MATTER_OPTS,
       );
       fs.writeFileSync(filePath, content, 'utf-8');

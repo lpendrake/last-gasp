@@ -1,0 +1,110 @@
+.label-editor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-editor-modal {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 6px;
+  width: min(380px, 92vw);
+  position: relative;
+}
+
+.label-editor-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--theme-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.label-editor-close:hover {
+  color: var(--theme-text-primary);
+}
+
+.label-editor-content {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.label-editor-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--theme-accent-gold);
+  padding-right: 24px;
+}
+
+.label-editor-input {
+  background: var(--theme-background);
+  border: 1px solid var(--theme-border);
+  border-radius: 3px;
+  color: var(--theme-text-primary);
+  font-size: 13px;
+  padding: 6px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.label-editor-input:focus {
+  border-color: var(--theme-accent-gold);
+}
+
+.label-editor-input::placeholder {
+  color: var(--theme-text-muted);
+  font-style: italic;
+}
+
+.label-editor-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.label-editor-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--theme-border);
+  border-radius: 2px;
+  background: var(--theme-surface);
+  color: var(--theme-text-secondary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.label-editor-btn:hover:not(:disabled) {
+  background: var(--theme-panel-accent);
+  color: var(--theme-text-primary);
+}
+
+.label-editor-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.label-editor-btn--primary {
+  background: var(--theme-panel-accent);
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
+  font-weight: 600;
+}
+
+.label-editor-btn--primary:hover:not(:disabled) {
+  background: var(--theme-panel);
+  color: var(--theme-accent);
+}
