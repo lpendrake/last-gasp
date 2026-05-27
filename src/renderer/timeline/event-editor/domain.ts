@@ -16,6 +16,8 @@ export interface EditorBuffer {
   color: string;
   body: string;
   id?: string;
+  tagLabelOverride: string;
+  linkLabelOverride: string;
 }
 
 export type EditorMode =
@@ -25,7 +27,15 @@ export type EditorMode =
 export type { ColorPreset } from '../../theme';
 
 export function emptyBuffer(initialDate?: string): EditorBuffer {
-  return { title: '', date: initialDate ?? '', tagsText: '', color: '', body: '' };
+  return {
+    title: '',
+    date: initialDate ?? '',
+    tagsText: '',
+    color: '',
+    body: '',
+    tagLabelOverride: '',
+    linkLabelOverride: '',
+  };
 }
 
 export function bufferFromEvent(ev: Event): EditorBuffer {
@@ -36,6 +46,8 @@ export function bufferFromEvent(ev: Event): EditorBuffer {
     color: ev.color ?? '',
     body: ev.body,
     id: ev.id,
+    tagLabelOverride: ev.tagLabelOverride ?? '',
+    linkLabelOverride: ev.linkLabelOverride ?? '',
   };
 }
 
@@ -57,6 +69,8 @@ export function bufferToFrontmatter(buf: EditorBuffer): EventFrontmatter {
   if (syncedTags.length > 0) fm.tags = syncedTags;
   if (buf.color) fm.color = buf.color;
   if (buf.id) fm.id = buf.id;
+  if (buf.tagLabelOverride.trim()) fm.tagLabelOverride = buf.tagLabelOverride.trim();
+  if (buf.linkLabelOverride.trim()) fm.linkLabelOverride = buf.linkLabelOverride.trim();
   return fm;
 }
 

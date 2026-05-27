@@ -486,6 +486,30 @@ export function EventEditorModal({
                   />
                 </label>
 
+                <label className="event-editor-field">
+                  <span className="event-editor-field-label">Tag Label</span>
+                  <input
+                    type="text"
+                    className="event-editor-input"
+                    value={buffer.tagLabelOverride}
+                    onChange={(e) => updateBuffer({ tagLabelOverride: e.target.value })}
+                    placeholder={buffer.title || 'event title'}
+                    autoComplete="off"
+                  />
+                </label>
+
+                <label className="event-editor-field">
+                  <span className="event-editor-field-label">Link Label</span>
+                  <input
+                    type="text"
+                    className="event-editor-input"
+                    value={buffer.linkLabelOverride}
+                    onChange={(e) => updateBuffer({ linkLabelOverride: e.target.value })}
+                    placeholder={buffer.title || 'event title'}
+                    autoComplete="off"
+                  />
+                </label>
+
                 <div className="event-editor-field">
                   <span className="event-editor-field-label">Colour</span>
                   <div className="event-editor-color-row">

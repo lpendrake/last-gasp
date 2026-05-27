@@ -5,6 +5,8 @@ export interface EventFrontmatter {
   color?: string;
   status?: 'happened' | 'planned';
   id?: string;
+  tagLabelOverride?: string;
+  linkLabelOverride?: string;
 }
 
 export interface Event extends EventFrontmatter {

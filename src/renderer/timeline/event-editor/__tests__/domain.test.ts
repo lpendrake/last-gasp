@@ -22,6 +22,8 @@ function buf(overrides: Partial<EditorBuffer> = {}): EditorBuffer {
     tagsText: '',
     color: '',
     body: '',
+    tagLabelOverride: '',
+    linkLabelOverride: '',
     ...overrides,
   };
 }
@@ -43,7 +45,15 @@ function event(overrides: Partial<Event> = {}): Event {
 describe('emptyBuffer', () => {
   it('returns all empty strings when no initialDate', () => {
     const b = emptyBuffer();
-    expect(b).toEqual({ title: '', date: '', tagsText: '', color: '', body: '' });
+    expect(b).toEqual({
+      title: '',
+      date: '',
+      tagsText: '',
+      color: '',
+      body: '',
+      tagLabelOverride: '',
+      linkLabelOverride: '',
+    });
   });
 
   it('places initialDate in the date field', () => {
@@ -121,6 +131,22 @@ describe('bufferFromEvent', () => {
     const ev = event({ tags: ['id:ab12', 'id:cd34'] });
     expect(bufferFromEvent(ev).tagsText).toBe('');
   });
+
+  it('maps tagLabelOverride from frontmatter', () => {
+    const ev = event({ tagLabelOverride: 'Custom Tag' });
+    expect(bufferFromEvent(ev).tagLabelOverride).toBe('Custom Tag');
+  });
+
+  it('maps linkLabelOverride from frontmatter', () => {
+    const ev = event({ linkLabelOverride: 'Custom Link' });
+    expect(bufferFromEvent(ev).linkLabelOverride).toBe('Custom Link');
+  });
+
+  it('defaults override fields to empty string when absent', () => {
+    const ev = event();
+    expect(bufferFromEvent(ev).tagLabelOverride).toBe('');
+    expect(bufferFromEvent(ev).linkLabelOverride).toBe('');
+  });
 });
 
 // ---- bufferToFrontmatter ----
@@ -152,6 +178,38 @@ describe('bufferToFrontmatter', () => {
     expect(fm.date).toBe('4726-05-04');
   });
 
+  it('includes tagLabelOverride when set', () => {
+    const fm = bufferToFrontmatter(buf({ tagLabelOverride: 'Custom Tag' }));
+    expect(fm.tagLabelOverride).toBe('Custom Tag');
+  });
+
+  it('omits tagLabelOverride when empty', () => {
+    const fm = bufferToFrontmatter(buf({ tagLabelOverride: '' }));
+    expect('tagLabelOverride' in fm).toBe(false);
+  });
+
+  it('includes linkLabelOverride when set', () => {
+    const fm = bufferToFrontmatter(buf({ linkLabelOverride: 'Custom Link' }));
+    expect(fm.linkLabelOverride).toBe('Custom Link');
+  });
+
+  it('omits linkLabelOverride when empty', () => {
+    const fm = bufferToFrontmatter(buf({ linkLabelOverride: '' }));
+    expect('linkLabelOverride' in fm).toBe(false);
+  });
+
+  it('trims whitespace-only override values and omits them', () => {
+    const fm = bufferToFrontmatter(buf({ tagLabelOverride: '   ', linkLabelOverride: '  ' }));
+    expect('tagLabelOverride' in fm).toBe(false);
+    expect('linkLabelOverride' in fm).toBe(false);
+  });
+
+  it('trims surrounding whitespace from override values on save', () => {
+    const fm = bufferToFrontmatter(buf({ tagLabelOverride: '  My Tag  ', linkLabelOverride: ' Link ' }));
+    expect(fm.tagLabelOverride).toBe('My Tag');
+    expect(fm.linkLabelOverride).toBe('Link');
+  });
+
   it('syncs entity tags from wiki links in the body', () => {
     const fm = bufferToFrontmatter(
       buf({ tagsText: 'combat', body: 'Met [[ab12]] near [[Bob|cd34]]' }),
@@ -171,6 +229,8 @@ describe('bufferToFrontmatter', () => {
       tagsText: 'a, b',
       color: '#3d7a38',
       body: 'Hello',
+      tagLabelOverride: 'My Tag',
+      linkLabelOverride: 'My Link',
     });
     const fm = bufferToFrontmatter(original);
     const ev = event({
@@ -185,6 +245,8 @@ describe('bufferToFrontmatter', () => {
     expect(restored.color).toBe(original.color);
     // Tags may have whitespace differences
     expect(restored.tagsText.split(', ').sort()).toEqual(original.tagsText.split(', ').sort());
+    expect(restored.tagLabelOverride).toBe(original.tagLabelOverride);
+    expect(restored.linkLabelOverride).toBe(original.linkLabelOverride);
   });
 });
 
