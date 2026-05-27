@@ -226,12 +226,13 @@ After cherry-picking all work from a batch, remove the worktrees
 before running tests (they inflate test counts — see Common Pitfalls):
 
 ```bash
-for wt in $(git worktree list --porcelain \
-  | grep "^worktree.*\.claude/worktrees" \
-  | sed 's/^worktree //'); do
-  git worktree unlock "$wt" 2>/dev/null
-  git worktree remove "$wt" --force
-done
+npm run prune-worktrees
+```
+
+To remove a specific worktree by name fragment:
+
+```bash
+npm run prune-worktrees -- agent-abc
 ```
 
 ### Between batches
@@ -334,7 +335,9 @@ Agent({
 - **Stale worktrees pollute test runs** → worktrees live under
   `.claude/worktrees/` inside the repo. Test runners will recurse
   into them and count every test file N extra times. Always clean
-  up after each batch (see Phase 5).
+  up after each batch with `npm run prune-worktrees` (see Phase 5).
+  Note: `vite.config.ts` excludes `.claude/worktrees/**` from
+  vitest, but always prune anyway to avoid disk bloat.
 
 ## Aborting mid-orchestration
 
