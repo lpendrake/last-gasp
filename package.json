@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "prune-worktrees": "node scripts/prune-worktrees.mjs",
     "preview": "vite preview",
     "prepare": "husky"
   },
