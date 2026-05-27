@@ -297,9 +297,19 @@ export function EventEditorModal({
       if (!trimmed) return;
       const newText = addTagsToText(bufferRef.current.tagsText, trimmed);
       setTagInput('');
-      if (newText !== bufferRef.current.tagsText) updateBuffer({ tagsText: newText });
+      if (newText === bufferRef.current.tagsText) return;
+      // Update ref synchronously so doSave reads the new tags immediately.
+      bufferRef.current = { ...bufferRef.current, tagsText: newText };
+      setBuffer(bufferRef.current);
+      setSaveState((s) => (s === 'saving' ? s : 'dirty'));
+      setErrorMessage(null);
+      if (autoSaveTimerRef.current !== null) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      void doSave({ silent: true });
     },
-    [tagInput, updateBuffer],
+    [tagInput, doSave],
   );
 
   const handleRemoveCustomTag = useCallback(
