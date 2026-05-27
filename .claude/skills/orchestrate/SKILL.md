@@ -75,6 +75,9 @@ Batch 3:  [F]              ← F depends on D and E
 Rules:
 - Two tasks in the same batch must not touch the same files.
 - If task X depends on task Y's output, X goes in a later batch.
+- If task A modifies file X and task B **reads** file X to inform
+  its work, B must go in a later batch — even if B doesn't write
+  to file X. Otherwise B works against stale content.
 - Maximise parallelism — if a task has no dependencies, put it in
   the earliest possible batch.
 
@@ -125,7 +128,9 @@ Agent({
 - Which files to create or modify
 - The exact output file path(s)
 - Relevant conventions (from AGENTS.md, CLAUDE.md)
-- Instruction to commit with a descriptive message
+- Commit message format: start with `#<issue-number>`, describe the
+  user-facing change (see CLAUDE.md Git etiquette). Instruct the
+  agent to squash its work into a single commit before finishing.
 - Any patterns to follow (point at existing code as examples)
 
 **Don't include**:
@@ -186,14 +191,57 @@ prompt.
 
 ### Cherry-pick approved work
 
-For each approved worktree:
+Check how many commits the agent made:
+
+```bash
+git -C <worktree-path> log --oneline main..HEAD
+```
+
+If the agent made a single commit (as instructed), cherry-pick it:
 
 ```bash
 git cherry-pick <commit-sha>
 ```
 
+If the agent made multiple commits, cherry-pick the range:
+
+```bash
+git cherry-pick <oldest-sha>^..<newest-sha>
+```
+
 Cherry-pick in dependency order (batch 1 first, then batch 2, etc.).
-This avoids conflicts from later batches depending on earlier ones.
+
+**Test after each cherry-pick**, not just at the end:
+
+```bash
+npm test
+```
+
+This immediately isolates any failure to the cherry-pick that caused
+it, rather than forcing you to bisect across all merged work.
+
+### Clean up worktrees after each batch
+
+After cherry-picking all work from a batch, remove the worktrees
+before running tests (they inflate test counts — see Common Pitfalls):
+
+```bash
+for wt in $(git worktree list --porcelain \
+  | grep "^worktree.*\.claude/worktrees" \
+  | sed 's/^worktree //'); do
+  git worktree unlock "$wt" 2>/dev/null
+  git worktree remove "$wt" --force
+done
+```
+
+### Between batches
+
+After merging all batch N results and verifying tests pass, batch
+N+1 agents launch from the current state of the feature branch.
+The worktree isolation mechanism creates each agent's worktree from
+the current HEAD, so **the feature branch must be up-to-date before
+launching the next batch**. This is how batch-2 agents see batch-1's
+output.
 
 ### Handling merge conflicts
 
@@ -229,19 +277,6 @@ Agent({
 
 4. Review the resolution. If it's wrong, try again with a more
    specific prompt.
-
-### After all merges
-
-Run the full test suite:
-
-```bash
-npm test
-```
-
-If tests fail, diagnose which merge introduced the failure and spin
-up a fix agent. The orchestrator reads the error, identifies the
-cause, and writes a precise prompt for the fix — but never fixes
-the code directly.
 
 ## Phase 6: Ship
 
@@ -297,17 +332,25 @@ the code directly.
   unfocused results. Do the research yourself (via Explore agents)
   in Phase 1, then give the implementation agent precise instructions.
 - **Stale worktrees pollute test runs** → worktrees live under
-  `.claude/worktrees/` inside the repo. Test runners (vitest, jest)
-  will recurse into them and run every test file N extra times,
-  inflating counts and slowing builds. **Always clean up worktrees
-  after merging.** After all cherry-picks for a batch, run:
-  ```bash
-  # unlock and remove all agent worktrees
-  for wt in $(git worktree list --porcelain \
-    | grep "^worktree.*\.claude/worktrees" \
-    | sed 's/^worktree //'); do
-    git worktree unlock "$wt" 2>/dev/null
-    git worktree remove "$wt" --force
-  done
-  ```
-  Do this before running `npm test` to verify the merge.
+  `.claude/worktrees/` inside the repo. Test runners will recurse
+  into them and count every test file N extra times. Always clean
+  up after each batch (see Phase 5).
+
+## Aborting mid-orchestration
+
+If the user asks to stop, or something goes fundamentally wrong:
+
+1. Clean up all worktrees (use the cleanup script from Phase 5).
+2. Ensure the feature branch is in a testable state — all
+   cherry-picked work passes `npm test`.
+3. Note which batches completed and which didn't.
+4. If resuming later, the user can re-invoke the skill and point at
+   the partial branch. The orchestrator picks up from the next
+   incomplete batch.
+
+## See also
+
+- `CLAUDE.md` — planning workflow, git etiquette, commit message
+  format, oversight tiers, pre-commit hook rules.
+- The relevant module's `AGENTS.md` — conventions to include in
+  agent prompts (layer rules, file naming, patterns).
