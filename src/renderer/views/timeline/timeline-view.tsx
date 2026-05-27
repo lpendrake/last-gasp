@@ -309,9 +309,14 @@ export function TimelineView({
         event.body,
         lastModified,
       );
-      await refreshEvents();
+      setLoadedData((d) => ({
+        ...d,
+        events: d.events.map((e) =>
+          e.filename === filename ? { ...e, tags: newTags.length > 0 ? newTags : undefined } : e,
+        ),
+      }));
     },
-    [campaignPath, refreshEvents],
+    [campaignPath],
   );
 
   const reschedule = useReschedule(

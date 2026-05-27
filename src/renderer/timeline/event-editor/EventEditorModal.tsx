@@ -545,7 +545,6 @@ export function EventEditorModal({
                     onKeyDown={handleTagInputKeyDown}
                     placeholder="plot:beast, location:fort"
                     autoComplete="off"
-                    disabled={isBusy}
                   />
                   {hasReservedTagPrefix(tagInput) && (
                     <span className="event-editor-field-warning">
