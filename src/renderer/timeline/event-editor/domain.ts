@@ -1,6 +1,7 @@
 import { parseISOString } from '../calendar/golarian';
 import type { Event, EventFrontmatter } from '../data/types';
 import { ThemeProvider } from '../../theme';
+import { extractWikiLinkIds, syncEntityTags } from '../../../shared/entity-tags';
 
 export interface EditorBuffer {
   title: string;
@@ -41,11 +42,13 @@ export function parseTagsText(tagsText: string): string[] {
 
 export function bufferToFrontmatter(buf: EditorBuffer): EventFrontmatter {
   const tags = parseTagsText(buf.tagsText);
+  const linkedIds = extractWikiLinkIds(buf.body);
+  const syncedTags = syncEntityTags(tags, linkedIds);
   const fm: EventFrontmatter = {
     title: buf.title.trim(),
     date: buf.date.trim(),
   };
-  if (tags.length > 0) fm.tags = tags;
+  if (syncedTags.length > 0) fm.tags = syncedTags;
   if (buf.color) fm.color = buf.color;
   if (buf.id) fm.id = buf.id;
   return fm;

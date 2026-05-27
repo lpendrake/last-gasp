@@ -5,6 +5,8 @@ import {
   formatEntityTag,
   isValidCustomTag,
   resolveEntityTagLabel,
+  extractWikiLinkIds,
+  syncEntityTags,
 } from '../entity-tags';
 
 describe('isEntityTag', () => {
@@ -78,6 +80,80 @@ describe('isValidCustomTag', () => {
     expect(isValidCustomTag('id:abc')).toBe(true);
     expect(isValidCustomTag('id:ABCD')).toBe(true);
     expect(isValidCustomTag('id:')).toBe(true);
+  });
+});
+
+describe('extractWikiLinkIds', () => {
+  it('returns IDs from bare [[id]] links', () => {
+    expect(extractWikiLinkIds('Hello [[ab12]] world')).toEqual(['ab12']);
+  });
+
+  it('returns the ID part from [[label|id]] links', () => {
+    expect(extractWikiLinkIds('See [[Bob|ab12]] and [[Alice|cd34]]')).toEqual(['ab12', 'cd34']);
+  });
+
+  it('deduplicates repeated links to the same ID', () => {
+    expect(extractWikiLinkIds('[[ab12]] and [[ab12]] again')).toEqual(['ab12']);
+  });
+
+  it('returns empty array when there are no wiki links', () => {
+    expect(extractWikiLinkIds('Just plain text')).toEqual([]);
+  });
+
+  it('returns empty array for empty string', () => {
+    expect(extractWikiLinkIds('')).toEqual([]);
+  });
+
+  it('ignores links with empty ID', () => {
+    expect(extractWikiLinkIds('[[]] and [[label|]]')).toEqual([]);
+  });
+
+  it('ignores links whose ID does not match the 4-char entity format', () => {
+    expect(extractWikiLinkIds('[[some-long-slug]] and [[ABC1]] and [[ab1]]')).toEqual([]);
+  });
+
+  it('handles mixed bare and labelled links', () => {
+    const ids = extractWikiLinkIds('[[ab12]] met [[Bob|cd34]] near [[ef56]]');
+    expect(ids).toEqual(['ab12', 'cd34', 'ef56']);
+  });
+
+  it('handles multi-line bodies', () => {
+    const body = 'Line one [[ab12]]\nLine two [[cd34]]';
+    expect(extractWikiLinkIds(body)).toEqual(['ab12', 'cd34']);
+  });
+});
+
+describe('syncEntityTags', () => {
+  it('adds entity tags for each linked ID', () => {
+    expect(syncEntityTags([], ['ab12', 'cd34'])).toEqual(['id:ab12', 'id:cd34']);
+  });
+
+  it('preserves custom tags untouched', () => {
+    expect(syncEntityTags(['combat', 'session-1'], ['ab12'])).toEqual([
+      'combat',
+      'session-1',
+      'id:ab12',
+    ]);
+  });
+
+  it('removes stale entity tags when their link is gone', () => {
+    expect(syncEntityTags(['id:ab12', 'id:cd34'], ['ab12'])).toEqual(['id:ab12']);
+  });
+
+  it('does not affect custom tags when entity tags are removed', () => {
+    expect(syncEntityTags(['combat', 'id:ab12'], [])).toEqual(['combat']);
+  });
+
+  it('returns only custom tags when no linked IDs', () => {
+    expect(syncEntityTags(['combat', 'plot'], [])).toEqual(['combat', 'plot']);
+  });
+
+  it('returns empty array when no tags and no linked IDs', () => {
+    expect(syncEntityTags([], [])).toEqual([]);
+  });
+
+  it('does not produce duplicate entity tags for the same ID', () => {
+    expect(syncEntityTags(['id:ab12'], ['ab12'])).toEqual(['id:ab12']);
   });
 });
 

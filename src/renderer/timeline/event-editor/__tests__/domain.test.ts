@@ -141,6 +141,18 @@ describe('bufferToFrontmatter', () => {
     expect(fm.date).toBe('4726-05-04');
   });
 
+  it('syncs entity tags from wiki links in the body', () => {
+    const fm = bufferToFrontmatter(
+      buf({ tagsText: 'combat', body: 'Met [[ab12]] near [[Bob|cd34]]' }),
+    );
+    expect(fm.tags).toEqual(['combat', 'id:ab12', 'id:cd34']);
+  });
+
+  it('removes entity tags whose wiki links are no longer in the body', () => {
+    const fm = bufferToFrontmatter(buf({ tagsText: 'combat, id:ab12', body: '' }));
+    expect(fm.tags).toEqual(['combat']);
+  });
+
   it('round-trips through bufferFromEvent', () => {
     const original = buf({
       title: 'Round-trip',

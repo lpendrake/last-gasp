@@ -54,6 +54,10 @@ Address the advisor's findings (or push back with a reason) before opening the P
 
 ## Git etiquette
 
+### Branch names
+
+Branch names must include the ticket number and a few words related to the issue being resolved, e.g. `160/sync-entity-tags-on-save`.
+
 ### Commit messages
 
 - Start every commit with the issue number: `#156 resolving wiki link display labels from the entity index`
