@@ -50,6 +50,51 @@ Use `<MarkdownPreview>` — it accepts `content`, `images`, `wikiLinks`, and `cl
 
 When you add a new extension, write its tests in `extensions/__tests__/`. When you change the wrapper's prop contract, update `markdown-editor.test.tsx` and the props table above.
 
+## Editor architecture
+
+### Extension stack
+
+`<MarkdownEditor>` builds its extension list at mount time and never remounts for prop changes. The stack has two layers:
+
+**Base extensions (always active, built once):**
+CodeMirror standard extensions (history, keymaps, bracket matching, closeBrackets, etc.), the markdown language grammar with code language auto-detection, `lastGaspThemeExtensions`, `EditorView.lineWrapping`, and the `updateListener` that fires `onChange`. `imagePaste` and `dropLink` are pushed into this layer when their config objects are supplied — they must be fixed at mount and cannot be toggled.
+
+**Mode compartment (hot-swappable via `Compartment`):**
+`markdownDecorations()`, `imageDecorations(imagesConfig)`, `wikiLinks(...)`, and `markdownLinkClick(...)` are all bundled inside a single `Compartment`. In source mode the compartment holds an empty array; in live mode it holds these four. Switching mode calls `compartment.reconfigure(...)` — no editor recreation. The compartment instance is part of the `SavedEditorInstance` and must always round-trip with the state it belongs to.
+
+### Read vs write mode
+
+`readOnly` is applied once at mount by pushing `EditorState.readOnly.of(true)` and `EditorView.editable.of(false)` into the base extensions. `highlightActiveLine` is omitted in this case. Both read and write modes use the same CodeMirror instance with the same mode-compartment extensions — decorations, image widgets, and wiki-link widgets all work in read-only mode. `<MarkdownPreview>` is simply `<MarkdownEditor readOnly ... />` wrapped in a `<div>` for layout; it accepts `content`, `images`, `wikiLinks`, and `baseDir` (used by the peek stack for plain `<a>` link resolution).
+
+### Host-local wiring: the `editor-bindings.ts` pattern
+
+A host is responsible for constructing the config objects that activate optional editor behaviors. Notes does this in `src/renderer/notes/editor-bindings.ts`, which exports three factory functions:
+
+- `makeImagePasteConfig(folder, campaignPath)` — returns an `ImagePasteConfig` with `onImagePaste` that saves the blob to `notes/{folder}/assets/pasted-*.ext` and returns a `notes-asset://` URL.
+- `makeDropLinkConfig()` — returns a `DropLinkConfig` that decodes the `application/x-last-gasp-note` MIME type from sidebar drags and produces either a `![…](notes-asset://…)` or `[[label|id]]` insert.
+- `makePeekWikiLinksConfig()` — returns the hover callbacks (`onHover`, `onHoverEnd`) that open/close the peek stack.
+
+The host passes these config objects as `imagePaste`, `dropLink`, and a spread into `wikiLinks` props. The shared editor never knows about campaign paths, sidebar MIME types, or the peek system.
+
+The event editor (`EventEditorModal.tsx`) follows the same approach with a simpler setup: no image paste, no drop-link, wiki-links wired inline with `suggestLinksForIndex`, `onOpenById`, peek hover callbacks, `knownIds`, and `entityLabelMap`. No `editor-bindings.ts` is needed when the config is short enough to build inline.
+
+### How state flows into the editor
+
+`knownIds` and `entityLabels` are React props on `WikiLinksHostConfig`, but they do **not** flow through React's prop update path in the usual way. After mount, the editor holds a stable CodeMirror view. When these props change (because the entity index updated), dedicated `useEffect` hooks dispatch `StateEffect`s directly onto the view:
+
+```ts
+view.dispatch({ effects: setKnownIds.of(wikiLinksConfig.knownIds) });
+view.dispatch({ effects: setEntityLabels.of(wikiLinksConfig.entityLabels) });
+```
+
+Inside the wiki-links extension, `knownIdsField` and `entityLabelMapField` are `StateField`s that update in response to those effects. The decoration `StateField` rebuilds whenever either effect arrives (`e.is(setKnownIds) || e.is(setEntityLabels)`). This means decoration rebuilds are O(doc) but happen only when the index actually changes — not on every keystroke.
+
+The same dispatch-based pattern applies to external content updates (file reloaded from disk) and mode toggles: all use `view.dispatch(...)` rather than remounting.
+
+### Key distinction
+
+The editor is a shared rendering primitive. Hosts are responsible for wiring behavior via config objects; they must not modify the editor. If you find yourself wanting to add host-specific logic inside `markdown-editor.tsx`, add a callback prop instead and implement the behavior in the host's `editor-bindings.ts` (or inline).
+
 ## Common pitfalls
 
 - **Don't put the campaign path or folder into the editor's props.** That's a notes-ism. Build the IO callback in the host and pass it as `imagePaste.onImagePaste`.
