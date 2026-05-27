@@ -13,7 +13,7 @@ import {
   validateBuffer,
   deriveFilename,
   getColorPresetValue,
-  parseTagsText,
+  buildTagChips,
   type EditorBuffer,
   type EditorMode,
 } from './domain';
@@ -23,31 +23,29 @@ import {
   buildEntityTagLabelMap,
   applyEntityDelta,
 } from '../../../shared/entity-labels';
-import { resolveEntityTagLabel } from '../../../shared/entity-tags';
 import './EventEditorModal.css';
 
 function TagChipPreview({
   tagsText,
+  body,
   entityTagLabelMap,
 }: {
   tagsText: string;
+  body: string;
   entityTagLabelMap: Map<string, string>;
 }) {
-  const tags = parseTagsText(tagsText);
-  if (tags.length === 0) return null;
+  const chips = buildTagChips(tagsText, body, entityTagLabelMap);
+  if (chips.length === 0) return null;
   return (
     <div className="event-editor-tag-chips">
-      {tags.map((raw) => {
-        const { display, isEntity } = resolveEntityTagLabel(raw, entityTagLabelMap);
-        return (
-          <span
-            key={raw}
-            className={`event-editor-tag-chip${isEntity ? ' entity-tag-chip--resolved' : ''}`}
-          >
-            {display}
-          </span>
-        );
-      })}
+      {chips.map(({ raw, display, isEntity }) => (
+        <span
+          key={raw}
+          className={`event-editor-tag-chip${isEntity ? ' entity-tag-chip--resolved' : ''}`}
+        >
+          {display}
+        </span>
+      ))}
     </div>
   );
 }
@@ -483,6 +481,7 @@ export function EventEditorModal({
                   />
                   <TagChipPreview
                     tagsText={buffer.tagsText}
+                    body={buffer.body}
                     entityTagLabelMap={entityTagLabelMap}
                   />
                 </label>

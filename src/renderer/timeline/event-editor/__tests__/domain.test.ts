@@ -7,6 +7,7 @@ import {
   deriveFilename,
   getColorPresetValue,
   parseTagsText,
+  buildTagChips,
   type EditorBuffer,
 } from '../domain';
 import { ThemeProvider } from '../../../theme';
@@ -110,6 +111,16 @@ describe('bufferFromEvent', () => {
     delete (ev as Partial<Event>).color;
     expect(bufferFromEvent(ev).color).toBe('');
   });
+
+  it('excludes entity tags from tagsText', () => {
+    const ev = event({ tags: ['combat', 'id:ab12', 'plot'] });
+    expect(bufferFromEvent(ev).tagsText).toBe('combat, plot');
+  });
+
+  it('produces empty tagsText when all tags are entity tags', () => {
+    const ev = event({ tags: ['id:ab12', 'id:cd34'] });
+    expect(bufferFromEvent(ev).tagsText).toBe('');
+  });
 });
 
 // ---- bufferToFrontmatter ----
@@ -174,6 +185,48 @@ describe('bufferToFrontmatter', () => {
     expect(restored.color).toBe(original.color);
     // Tags may have whitespace differences
     expect(restored.tagsText.split(', ').sort()).toEqual(original.tagsText.split(', ').sort());
+  });
+});
+
+// ---- buildTagChips ----
+
+describe('buildTagChips', () => {
+  const resolvedMap = new Map([['ab12', 'Bob the Wizard']]);
+  const emptyMap = new Map<string, string>();
+
+  it('returns custom tag chips from tagsText', () => {
+    const chips = buildTagChips('combat, plot', '', emptyMap);
+    expect(chips).toEqual([
+      { raw: 'combat', display: 'combat', isEntity: false },
+      { raw: 'plot', display: 'plot', isEntity: false },
+    ]);
+  });
+
+  it('returns resolved entity chips from wiki links in body', () => {
+    const chips = buildTagChips('', '[[ab12]]', resolvedMap);
+    expect(chips).toEqual([{ raw: 'id:ab12', display: 'Bob the Wizard', isEntity: true }]);
+  });
+
+  it('shows raw id:xxxx when entity is not in the label map', () => {
+    const chips = buildTagChips('', '[[zz99]]', emptyMap);
+    expect(chips).toEqual([{ raw: 'id:zz99', display: 'id:zz99', isEntity: true }]);
+  });
+
+  it('combines custom and entity chips', () => {
+    const chips = buildTagChips('combat', '[[ab12]]', resolvedMap);
+    expect(chips).toEqual([
+      { raw: 'combat', display: 'combat', isEntity: false },
+      { raw: 'id:ab12', display: 'Bob the Wizard', isEntity: true },
+    ]);
+  });
+
+  it('returns empty array when tagsText is empty and body has no wiki links', () => {
+    expect(buildTagChips('', '', emptyMap)).toEqual([]);
+  });
+
+  it('ignores entity tags that may have been manually typed into tagsText', () => {
+    const chips = buildTagChips('id:ab12', '', resolvedMap);
+    expect(chips).toEqual([{ raw: 'id:ab12', display: 'id:ab12', isEntity: false }]);
   });
 });
 
