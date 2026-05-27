@@ -78,6 +78,12 @@ function parseEventFile(
     ...(data.color !== undefined ? { color: String(data.color) } : {}),
     ...(data.status !== undefined ? { status: data.status as Event['status'] } : {}),
     ...(data.id !== undefined ? { id: String(data.id) } : {}),
+    ...(data.tagLabelOverride !== undefined
+      ? { tagLabelOverride: String(data.tagLabelOverride) }
+      : {}),
+    ...(data.linkLabelOverride !== undefined
+      ? { linkLabelOverride: String(data.linkLabelOverride) }
+      : {}),
     body: body.trimStart(),
     mtime: lastModified,
   };
@@ -134,7 +140,15 @@ export function registerTimelineIpcHandlers() {
       if (currentMtime !== ifUnmodifiedSince) return { conflict: true };
       // Preserve frontmatter fields the editor doesn't manage (e.g. label overrides).
       // Only fields that bufferToFrontmatter can produce are considered editor-owned.
-      const editorFields = new Set(['title', 'date', 'tags', 'color', 'id']);
+      const editorFields = new Set([
+        'title',
+        'date',
+        'tags',
+        'color',
+        'id',
+        'tagLabelOverride',
+        'linkLabelOverride',
+      ]);
       const existing = matter(fs.readFileSync(filePath, 'utf-8'), MATTER_OPTS).data;
       const preserved: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(existing)) {
