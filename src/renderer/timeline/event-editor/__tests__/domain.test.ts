@@ -205,7 +205,9 @@ describe('bufferToFrontmatter', () => {
   });
 
   it('trims surrounding whitespace from override values on save', () => {
-    const fm = bufferToFrontmatter(buf({ tagLabelOverride: '  My Tag  ', linkLabelOverride: ' Link ' }));
+    const fm = bufferToFrontmatter(
+      buf({ tagLabelOverride: '  My Tag  ', linkLabelOverride: ' Link ' }),
+    );
     expect(fm.tagLabelOverride).toBe('My Tag');
     expect(fm.linkLabelOverride).toBe('Link');
   });
