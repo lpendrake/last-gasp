@@ -82,6 +82,9 @@ export function LabelOverrideEditor({ entityId, target, onClose }: Props) {
             className="label-editor-input"
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !saving) void handleSave();
+            }}
             placeholder={defaultLabel}
             autoFocus
           />
