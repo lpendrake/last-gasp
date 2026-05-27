@@ -133,6 +133,23 @@ Agent({
   agent to squash its work into a single commit before finishing.
 - Any patterns to follow (point at existing code as examples)
 
+**For tasks that produce testable code**, include a test scenario
+table. The orchestrator has cross-cutting context that the agent
+lacks — use it to specify meaningful edge cases upfront:
+
+```markdown
+| # | Test title | Intended coverage |
+|---|---|---|
+| 1 | "returns override when present" | verifies override ?? default fallback |
+| 2 | "handles missing frontmatter gracefully" | empty file doesn't crash the scanner |
+| 3 | "preserves custom tags during sync" | syncEntityTags only touches id:* tags |
+```
+
+The agent implements these as real test cases. This prevents the
+common failure mode where agents write tests that mirror the
+implementation instead of testing behavior. Skip the table for
+docs-only or config-only tasks.
+
 **Don't include**:
 - Instructions about other tasks (the agent doesn't need to know)
 - Your orchestration plan
