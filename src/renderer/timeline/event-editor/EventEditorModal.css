@@ -178,6 +178,22 @@
   white-space: nowrap;
 }
 
+.event-editor-tag-chip-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 3px;
+  padding: 0 1px;
+  opacity: 0.5;
+}
+
+.event-editor-tag-chip-remove:hover {
+  opacity: 1;
+}
+
 /* ===== Color row ===== */
 
 .event-editor-color-row {

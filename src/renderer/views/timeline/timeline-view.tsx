@@ -292,6 +292,28 @@ export function TimelineView({
     [campaignPath, refreshEvents],
   );
 
+  const handleRemoveTag = useCallback(
+    async (filename: string, tag: string) => {
+      const { event, lastModified } = await timelinePort.getEvent(campaignPath, filename);
+      const newTags = (event.tags ?? []).filter((t) => t !== tag);
+      await timelinePort.updateEvent(
+        campaignPath,
+        filename,
+        {
+          title: event.title,
+          date: event.date,
+          ...(newTags.length > 0 ? { tags: newTags } : {}),
+          ...(event.color ? { color: event.color } : {}),
+          ...(event.status ? { status: event.status } : {}),
+        },
+        event.body,
+        lastModified,
+      );
+      await refreshEvents();
+    },
+    [campaignPath, refreshEvents],
+  );
+
   const reschedule = useReschedule(
     viewportRef,
     dragLabelRef,
@@ -508,6 +530,7 @@ export function TimelineView({
           onDeleteClick={sessionModeActiveRef.current ? undefined : editor.requestDeleteFromCard}
           onContextMenu={sessionModeActiveRef.current ? undefined : handleCardContextMenu}
           onOpenById={onOpenById}
+          onRemoveTag={sessionModeActiveRef.current ? undefined : handleRemoveTag}
           entityLabelMap={entityLabelMap}
           entityTagLabelMap={entityTagLabelMap}
         />

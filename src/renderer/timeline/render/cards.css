@@ -114,6 +114,22 @@
   line-height: 1.4;
 }
 
+.event-card-tag-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 3px;
+  padding: 0 1px;
+  opacity: 0.5;
+}
+
+.event-card-tag-remove:hover {
+  opacity: 1;
+}
+
 /* ===== Expanded card ===== */
 
 .event-card.is-expanded {

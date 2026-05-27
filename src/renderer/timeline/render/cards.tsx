@@ -2,7 +2,7 @@ import { useCallback, useMemo, type CSSProperties, type ReactElement } from 'rea
 import './cards.css';
 import type { EventListItem } from '../data/types';
 import type { WeekdayColors } from '../../theme';
-import { resolveEntityTagLabel } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel, isValidCustomTag } from '../../../shared/entity-tags';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { formatCardFace } from '../calendar/format';
 import {
@@ -50,6 +50,7 @@ interface CardsProps {
   onDeleteClick: (item: EventListItem) => void;
   onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
+  onRemoveTag?: (filename: string, tag: string) => void;
   entityLabelMap?: Map<string, string>;
   entityTagLabelMap?: Map<string, string>;
 }
@@ -69,6 +70,7 @@ export function Cards({
   onDeleteClick,
   onContextMenu,
   onOpenById,
+  onRemoveTag,
   entityLabelMap,
   entityTagLabelMap,
 }: CardsProps): ReactElement | null {
@@ -141,6 +143,7 @@ export function Cards({
             onDeleteClick={onDeleteClick}
             onContextMenu={onContextMenu}
             onOpenById={onOpenById}
+            onRemoveTag={onRemoveTag}
             entityLabelMap={entityLabelMap}
             entityTagLabelMap={entityTagLabelMap}
           />
@@ -166,6 +169,7 @@ interface CardItemProps {
   onDeleteClick: (item: EventListItem) => void;
   onContextMenu?: (item: EventListItem, x: number, y: number) => void;
   onOpenById?: (id: string) => void;
+  onRemoveTag?: (filename: string, tag: string) => void;
   entityLabelMap?: Map<string, string>;
   entityTagLabelMap?: Map<string, string>;
 }
@@ -186,6 +190,7 @@ function CardItem({
   onDeleteClick,
   onContextMenu,
   onOpenById,
+  onRemoveTag,
   entityLabelMap,
   entityTagLabelMap,
 }: CardItemProps): ReactElement {
@@ -275,12 +280,26 @@ function CardItem({
           <div className="event-card-tags">
             {tags.map((t) => {
               const { display, isEntity } = resolveEntityTagLabel(t, entityTagLabelMap);
+              const canRemove = !!onRemoveTag && isValidCustomTag(t);
               return (
                 <span
                   key={t}
                   className={`event-card-tag${isEntity ? ' entity-tag-chip--resolved' : ''}`}
                 >
                   {display}
+                  {canRemove && (
+                    <button
+                      type="button"
+                      className="event-card-tag-remove"
+                      aria-label={`Remove tag ${t}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveTag!(card.event.filename, t);
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
                 </span>
               );
             })}
