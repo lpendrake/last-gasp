@@ -100,6 +100,7 @@ export function registerTimelineIpcHandlers() {
           title: String(data.title ?? ''),
           date: String(data.date ?? ''),
           tags: Array.isArray(data.tags) ? data.tags : [],
+          ...(data.id !== undefined ? { id: String(data.id) } : {}),
           ...(data.color !== undefined ? { color: String(data.color) } : {}),
           ...(data.status !== undefined ? { status: data.status as EventListItem['status'] } : {}),
           mtime: fileMtime(filePath),
