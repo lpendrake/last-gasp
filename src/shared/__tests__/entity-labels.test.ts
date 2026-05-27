@@ -3,6 +3,7 @@ import {
   effectiveTagLabel,
   effectiveLinkLabel,
   buildEntityLabelMap,
+  buildEntityTagLabelMap,
   applyEntityDelta,
 } from '../entity-labels';
 import type { EntityIndexEntry } from '../../types/global';
@@ -65,6 +66,29 @@ describe('buildEntityLabelMap', () => {
   it('uses linkLabelOverride when present', () => {
     const map = buildEntityLabelMap([makeEntry({ id: 'cc33', linkLabelOverride: 'Custom' })]);
     expect(map.get('cc33')).toBe('Custom');
+  });
+});
+
+describe('buildEntityTagLabelMap', () => {
+  it('builds a map of id → effective tag label', () => {
+    const index = [
+      makeEntry({ id: 'aa11', title: 'Alice' }),
+      makeEntry({ id: 'bb22', title: 'Bob', tagLabelOverride: 'Bobby' }),
+    ];
+    const map = buildEntityTagLabelMap(index);
+    expect(map.get('aa11')).toBe('Alice');
+    expect(map.get('bb22')).toBe('Bobby');
+  });
+
+  it('returns an empty map for an empty index', () => {
+    expect(buildEntityTagLabelMap([]).size).toBe(0);
+  });
+
+  it('uses tagLabelOverride when present, not linkLabelOverride', () => {
+    const map = buildEntityTagLabelMap([
+      makeEntry({ id: 'cc33', tagLabelOverride: 'Tag', linkLabelOverride: 'Link' }),
+    ]);
+    expect(map.get('cc33')).toBe('Tag');
   });
 });
 

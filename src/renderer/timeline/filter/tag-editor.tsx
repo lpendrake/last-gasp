@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { EventListItem } from '../data/types';
 import type { Filter, TagFilter } from './types';
 import { collectAllTags } from './logic';
-import { parseEntityTag } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel } from '../../../shared/entity-tags';
 
 export interface TagEditorProps {
   filter: TagFilter;
@@ -10,17 +10,6 @@ export interface TagEditorProps {
   entityTagLabelMap?: Map<string, string>;
   onUpdate: (f: Filter) => void;
   onDone: () => void;
-}
-
-function resolveTagDisplay(
-  raw: string,
-  entityTagLabelMap: Map<string, string> | undefined,
-): { display: string; isEntity: boolean } {
-  const id = parseEntityTag(raw);
-  const label = id ? entityTagLabelMap?.get(id) : undefined;
-  return label !== undefined
-    ? { display: label, isEntity: true }
-    : { display: raw, isEntity: false };
 }
 
 export function TagEditor({ filter, events, entityTagLabelMap, onUpdate, onDone }: TagEditorProps) {
@@ -36,9 +25,12 @@ export function TagEditor({ filter, events, entityTagLabelMap, onUpdate, onDone 
     <div className="filter-editor filter-editor-popover">
       <div className="filter-tag-chips">
         {filter.tags.map((raw) => {
-          const { display, isEntity } = resolveTagDisplay(raw, entityTagLabelMap);
+          const { display, isEntity } = resolveEntityTagLabel(raw, entityTagLabelMap);
           return (
-            <span key={raw} className={`filter-chip${isEntity ? ' filter-chip--entity' : ''}`}>
+            <span
+              key={raw}
+              className={`filter-chip${isEntity ? ' entity-tag-chip--resolved' : ''}`}
+            >
               {display}
               <button
                 type="button"

@@ -6,6 +6,7 @@ import {
   validateBuffer,
   deriveFilename,
   getColorPresetValue,
+  parseTagsText,
   type EditorBuffer,
 } from '../domain';
 import { ThemeProvider } from '../../../theme';
@@ -48,6 +49,30 @@ describe('emptyBuffer', () => {
     const b = emptyBuffer('4726-03-01');
     expect(b.date).toBe('4726-03-01');
     expect(b.title).toBe('');
+  });
+});
+
+// ---- parseTagsText ----
+
+describe('parseTagsText', () => {
+  it('splits comma-separated tags and trims whitespace', () => {
+    expect(parseTagsText('a, b, c')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('returns empty array for empty string', () => {
+    expect(parseTagsText('')).toEqual([]);
+  });
+
+  it('ignores whitespace-only entries', () => {
+    expect(parseTagsText('a, , b')).toEqual(['a', 'b']);
+  });
+
+  it('handles trailing comma', () => {
+    expect(parseTagsText('a, b,')).toEqual(['a', 'b']);
+  });
+
+  it('handles single tag without comma', () => {
+    expect(parseTagsText('combat')).toEqual(['combat']);
   });
 });
 

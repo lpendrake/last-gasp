@@ -2,7 +2,7 @@ import { useCallback, useMemo, type CSSProperties, type ReactElement } from 'rea
 import './cards.css';
 import type { EventListItem } from '../data/types';
 import type { WeekdayColors } from '../../theme';
-import { parseEntityTag } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel } from '../../../shared/entity-tags';
 import type { ViewState, ViewportSize } from '../math/zoom';
 import { formatCardFace } from '../calendar/format';
 import {
@@ -274,14 +274,13 @@ function CardItem({
         {tags && tags.length > 0 && (
           <div className="event-card-tags">
             {tags.map((t) => {
-              const id = parseEntityTag(t);
-              const label = id ? entityTagLabelMap?.get(id) : undefined;
+              const { display, isEntity } = resolveEntityTagLabel(t, entityTagLabelMap);
               return (
                 <span
                   key={t}
-                  className={`event-card-tag${label !== undefined ? ' event-card-tag--entity' : ''}`}
+                  className={`event-card-tag${isEntity ? ' entity-tag-chip--resolved' : ''}`}
                 >
-                  {label ?? t}
+                  {display}
                 </span>
               );
             })}

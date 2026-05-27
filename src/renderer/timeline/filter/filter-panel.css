@@ -1,3 +1,5 @@
+@import '../../shared/entity-tag-chip.css';
+
 .filter-panel {
   position: fixed;
   bottom: 50px;
@@ -104,12 +106,6 @@
   border-radius: 10px;
   font-family: ui-monospace, 'Consolas', monospace;
   font-size: 12px;
-}
-.filter-chip--entity {
-  font-family: inherit;
-  background: color-mix(in srgb, var(--theme-accent-gold) 18%, var(--theme-panel-accent));
-  border: 1px solid var(--theme-accent-gold);
-  color: var(--theme-text-primary);
 }
 .filter-chip-remove {
   background: transparent;

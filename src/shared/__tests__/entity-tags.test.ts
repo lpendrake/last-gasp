@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isEntityTag, parseEntityTag, formatEntityTag, isValidCustomTag } from '../entity-tags';
+import {
+  isEntityTag,
+  parseEntityTag,
+  formatEntityTag,
+  isValidCustomTag,
+  resolveEntityTagLabel,
+} from '../entity-tags';
 
 describe('isEntityTag', () => {
   it('returns true for valid entity tags', () => {
@@ -72,5 +78,31 @@ describe('isValidCustomTag', () => {
     expect(isValidCustomTag('id:abc')).toBe(true);
     expect(isValidCustomTag('id:ABCD')).toBe(true);
     expect(isValidCustomTag('id:')).toBe(true);
+  });
+});
+
+describe('resolveEntityTagLabel', () => {
+  const map = new Map([['ab12', 'Bob the Wizard']]);
+
+  it('returns resolved label and isEntity=true for a known entity tag', () => {
+    expect(resolveEntityTagLabel('id:ab12', map)).toEqual({
+      display: 'Bob the Wizard',
+      isEntity: true,
+    });
+  });
+
+  it('returns raw tag and isEntity=false for a custom tag', () => {
+    expect(resolveEntityTagLabel('combat', map)).toEqual({ display: 'combat', isEntity: false });
+  });
+
+  it('returns raw tag and isEntity=false when entity id is not in the map', () => {
+    expect(resolveEntityTagLabel('id:zz99', map)).toEqual({ display: 'id:zz99', isEntity: false });
+  });
+
+  it('returns raw tag and isEntity=false when map is undefined', () => {
+    expect(resolveEntityTagLabel('id:ab12', undefined)).toEqual({
+      display: 'id:ab12',
+      isEntity: false,
+    });
   });
 });

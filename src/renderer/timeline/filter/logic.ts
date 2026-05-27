@@ -2,7 +2,7 @@ import type { EventListItem, Session } from '../data/types';
 import { parseISOString, toAbsoluteSeconds } from '../calendar/golarian';
 import { computeSessionLabel } from '../render/session-bands';
 import type { DateField, TagFilter, DateFilter, Filter, FilterState } from './types';
-import { parseEntityTag } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel } from '../../../shared/entity-tags';
 
 export interface TagInfo {
   raw: string;
@@ -87,10 +87,7 @@ function toUTCDateOnly(isoOrRFC: string): string {
 export function filterSummary(f: Filter, entityTagLabels?: Map<string, string>): string {
   if (f.type === 'tag') {
     if (f.tags.length === 0) return '(no tags selected)';
-    const displayTags = f.tags.map((t) => {
-      const id = parseEntityTag(t);
-      return (id && entityTagLabels?.get(id)) ?? t;
-    });
+    const displayTags = f.tags.map((t) => resolveEntityTagLabel(t, entityTagLabels).display);
     return 'Tags: ' + displayTags.join(' OR ');
   }
   const label = f.field === 'in-game' ? 'In-game' : f.field === 'session' ? 'Session' : 'Created';
@@ -111,13 +108,7 @@ export function collectAllTags(
   const rawSet = new Set<string>();
   for (const ev of events) for (const t of ev.tags ?? []) rawSet.add(t);
   return [...rawSet]
-    .map((raw) => {
-      const id = parseEntityTag(raw);
-      const label = id ? entityTagLabels?.get(id) : undefined;
-      return label !== undefined
-        ? { raw, display: label, isEntity: true }
-        : { raw, display: raw, isEntity: false };
-    })
+    .map((raw) => ({ raw, ...resolveEntityTagLabel(raw, entityTagLabels) }))
     .sort((a, b) => a.display.localeCompare(b.display));
 }
 

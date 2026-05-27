@@ -15,3 +15,14 @@ export function formatEntityTag(id: string): string {
 export function isValidCustomTag(tag: string): boolean {
   return !isEntityTag(tag);
 }
+
+export function resolveEntityTagLabel(
+  raw: string,
+  map: Map<string, string> | undefined,
+): { display: string; isEntity: boolean } {
+  const id = parseEntityTag(raw);
+  const label = id ? map?.get(id) : undefined;
+  return label !== undefined
+    ? { display: label, isEntity: true }
+    : { display: raw, isEntity: false };
+}

@@ -1,3 +1,5 @@
+@import '../../shared/entity-tag-chip.css';
+
 /* ===== Event Editor Modal ===== */
 
 .event-editor-overlay {
@@ -167,13 +169,6 @@
   border-radius: 999px;
   padding: 1px 7px;
   white-space: nowrap;
-}
-
-.event-editor-tag-chip--entity {
-  font-family: inherit;
-  background: color-mix(in srgb, var(--theme-accent-gold) 18%, var(--theme-panel-accent));
-  border-color: var(--theme-accent-gold);
-  color: var(--theme-text-primary);
 }
 
 /* ===== Color row ===== */

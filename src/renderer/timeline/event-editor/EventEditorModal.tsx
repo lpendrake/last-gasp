@@ -23,7 +23,7 @@ import {
   buildEntityTagLabelMap,
   applyEntityDelta,
 } from '../../../shared/entity-labels';
-import { parseEntityTag } from '../../../shared/entity-tags';
+import { resolveEntityTagLabel } from '../../../shared/entity-tags';
 import './EventEditorModal.css';
 
 function TagChipPreview({
@@ -38,14 +38,13 @@ function TagChipPreview({
   return (
     <div className="event-editor-tag-chips">
       {tags.map((raw) => {
-        const id = parseEntityTag(raw);
-        const label = id ? entityTagLabelMap.get(id) : undefined;
+        const { display, isEntity } = resolveEntityTagLabel(raw, entityTagLabelMap);
         return (
           <span
             key={raw}
-            className={`event-editor-tag-chip${label !== undefined ? ' event-editor-tag-chip--entity' : ''}`}
+            className={`event-editor-tag-chip${isEntity ? ' entity-tag-chip--resolved' : ''}`}
           >
-            {label ?? raw}
+            {display}
           </span>
         );
       })}

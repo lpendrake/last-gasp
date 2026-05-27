@@ -1,0 +1,10 @@
+/* Modifier applied to any tag chip that represents an entity (id:XXXX resolved label).
+   Import this file alongside the component's own chip CSS and apply .entity-tag-chip--resolved
+   as an additional class on the chip element. */
+
+.entity-tag-chip--resolved {
+  font-family: inherit;
+  background: color-mix(in srgb, var(--theme-accent-gold) 18%, var(--theme-panel-accent));
+  border-color: var(--theme-accent-gold);
+  color: var(--theme-text-primary);
+}
