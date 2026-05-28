@@ -1,0 +1,63 @@
+.new-event-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-event-modal {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 6px;
+  width: min(420px, 92vw);
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.new-event-modal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--theme-text-primary);
+}
+
+.new-event-modal__label {
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.new-event-modal__input {
+  background: var(--theme-background);
+  border: 1px solid var(--theme-border);
+  border-radius: 3px;
+  color: var(--theme-text-primary);
+  font-size: 13px;
+  padding: 5px 8px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.new-event-modal__input:focus {
+  border-color: var(--theme-accent-gold);
+}
+
+.new-event-modal__error {
+  font-size: 13px;
+  color: var(--theme-danger);
+}
+
+.new-event-modal__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
