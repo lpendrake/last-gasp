@@ -9,7 +9,7 @@ vi.mock('../../data/ports', () => ({
 
 import { createEventChecked } from '../create-event-checked';
 import { timelinePort } from '../../data/ports';
-import type { EventWithMtime } from '../../data/types';
+import type { CreateEventResult, EventWithMtime } from '../../data/types';
 
 const CAMPAIGN_PATH = '/campaign';
 const FILENAME = 'battle-of-sandpoint.md';
@@ -33,12 +33,13 @@ describe('createEventChecked', () => {
     vi.mocked(timelinePort.createEvent).mockReset();
   });
 
-  it('returns ok with the created event on success', async () => {
-    vi.mocked(timelinePort.createEvent).mockResolvedValue(MOCK_EVENT);
+  it('passes through { ok: true, event } from the port on success', async () => {
+    const okResult: CreateEventResult = { ok: true, event: MOCK_EVENT };
+    vi.mocked(timelinePort.createEvent).mockResolvedValue(okResult);
 
     const result = await createEventChecked(CAMPAIGN_PATH, FILENAME, FRONTMATTER, BODY);
 
-    expect(result).toEqual({ ok: true, event: MOCK_EVENT });
+    expect(result).toEqual(okResult);
     expect(timelinePort.createEvent).toHaveBeenCalledWith(
       CAMPAIGN_PATH,
       FILENAME,
@@ -47,25 +48,16 @@ describe('createEventChecked', () => {
     );
   });
 
-  it('returns a duplicate result when the file already exists (error with code EEXIST)', async () => {
-    const eexistError = Object.assign(new Error('ENOENT'), { code: 'EEXIST' });
-    vi.mocked(timelinePort.createEvent).mockRejectedValue(eexistError);
+  it('passes through { ok: false, reason: "duplicate" } from the port', async () => {
+    const dupResult: CreateEventResult = { ok: false, reason: 'duplicate' };
+    vi.mocked(timelinePort.createEvent).mockResolvedValue(dupResult);
 
     const result = await createEventChecked(CAMPAIGN_PATH, FILENAME, FRONTMATTER, BODY);
 
-    expect(result).toEqual({ ok: false, reason: 'duplicate' });
+    expect(result).toEqual(dupResult);
   });
 
-  it('returns a duplicate result when the file already exists (plain Error with EEXIST in message)', async () => {
-    const eexistError = new Error('Error invoking remote method: EEXIST file already exists');
-    vi.mocked(timelinePort.createEvent).mockRejectedValue(eexistError);
-
-    const result = await createEventChecked(CAMPAIGN_PATH, FILENAME, FRONTMATTER, BODY);
-
-    expect(result).toEqual({ ok: false, reason: 'duplicate' });
-  });
-
-  it('rethrows any non-collision error', async () => {
+  it('propagates an unexpected rejection from the port', async () => {
     const diskError = new Error('disk full');
     vi.mocked(timelinePort.createEvent).mockRejectedValue(diskError);
 

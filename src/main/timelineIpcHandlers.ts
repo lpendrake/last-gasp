@@ -6,6 +6,7 @@ import yaml from 'js-yaml';
 import { generateShortId } from '../shared/ids.js';
 
 import type {
+  CreateEventResult,
   Event,
   EventFrontmatter,
   EventListItem,
@@ -90,6 +91,36 @@ function parseEventFile(
   return { event, lastModified };
 }
 
+export function createEventHandler(
+  campaignPath: string,
+  filename: string,
+  frontmatter: EventFrontmatter,
+  body: string,
+): CreateEventResult {
+  const dir = eventsDir(campaignPath);
+  assertSafeFilename(dir, filename);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, filename);
+  const fmWithId: EventFrontmatter = frontmatter.id
+    ? frontmatter
+    : { ...frontmatter, id: generateShortId() };
+  const content = matter.stringify(
+    body,
+    fmWithId as unknown as Record<string, unknown>,
+    MATTER_OPTS,
+  );
+  // 'wx' flag: fail if the file already exists, preventing silent clobbers.
+  try {
+    fs.writeFileSync(filePath, content, { encoding: 'utf-8', flag: 'wx' });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
+      return { ok: false, reason: 'duplicate' };
+    }
+    throw err;
+  }
+  return { ok: true, event: parseEventFile(filePath, filename) };
+}
+
 export function registerTimelineIpcHandlers() {
   ipcMain.handle('timeline:listEvents', (_event, campaignPath: string): EventListItem[] => {
     const dir = eventsDir(campaignPath);
@@ -172,22 +203,8 @@ export function registerTimelineIpcHandlers() {
       filename: string,
       frontmatter: EventFrontmatter,
       body: string,
-    ): EventWithMtime => {
-      const dir = eventsDir(campaignPath);
-      assertSafeFilename(dir, filename);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      const filePath = path.join(dir, filename);
-      const fmWithId: EventFrontmatter = frontmatter.id
-        ? frontmatter
-        : { ...frontmatter, id: generateShortId() };
-      const content = matter.stringify(
-        body,
-        fmWithId as unknown as Record<string, unknown>,
-        MATTER_OPTS,
-      );
-      // 'wx' flag: fail if the file already exists, preventing silent clobbers.
-      fs.writeFileSync(filePath, content, { encoding: 'utf-8', flag: 'wx' });
-      return parseEventFile(filePath, filename);
+    ): CreateEventResult => {
+      return createEventHandler(campaignPath, filename, frontmatter, body);
     },
   );
 

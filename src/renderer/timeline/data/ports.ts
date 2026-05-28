@@ -1,4 +1,5 @@
 import type {
+  CreateEventResult,
   EventFrontmatter,
   EventListItem,
   EventWithMtime,
@@ -35,7 +36,7 @@ export const timelinePort = {
     filename: string,
     frontmatter: EventFrontmatter,
     body: string,
-  ): Promise<EventWithMtime> {
+  ): Promise<CreateEventResult> {
     return window.fsApi.timelineCreateEvent(campaignPath, filename, frontmatter, body);
   },
 

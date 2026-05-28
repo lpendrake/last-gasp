@@ -1,6 +1,7 @@
 export {};
 
 import type {
+  CreateEventResult,
   EventFrontmatter,
   EventListItem,
   EventWithMtime,
@@ -85,7 +86,7 @@ declare global {
         filename: string,
         frontmatter: EventFrontmatter,
         body: string,
-      ) => Promise<EventWithMtime>;
+      ) => Promise<CreateEventResult>;
       timelineUpdateEvent: (
         campaignPath: string,
         filename: string,

@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { timelinePort, ConflictError } from '../ports';
-import type { EventListItem, EventWithMtime, Session, State, TagsRegistry } from '../types';
+import type {
+  CreateEventResult,
+  EventListItem,
+  EventWithMtime,
+  Session,
+  State,
+  TagsRegistry,
+} from '../types';
 
 const mockFsApi = {
   timelineListEvents: vi.fn(),
@@ -55,8 +62,9 @@ describe('getEvent', () => {
 });
 
 describe('createEvent', () => {
-  it('delegates to fsApi', async () => {
-    mockFsApi.timelineCreateEvent.mockResolvedValue(EVENT_WITH_MTIME);
+  it('returns { ok: true, event } on success', async () => {
+    const okResult: CreateEventResult = { ok: true, event: EVENT_WITH_MTIME };
+    mockFsApi.timelineCreateEvent.mockResolvedValue(okResult);
     const fm = { title: 'Test', date: '4726-03-01' };
     const result = await timelinePort.createEvent(CAMPAIGN, ITEM.filename, fm, 'hello');
     expect(mockFsApi.timelineCreateEvent).toHaveBeenCalledWith(
@@ -65,7 +73,15 @@ describe('createEvent', () => {
       fm,
       'hello',
     );
-    expect(result).toEqual(EVENT_WITH_MTIME);
+    expect(result).toEqual(okResult);
+  });
+
+  it('returns { ok: false, reason: "duplicate" } when the bridge reports a duplicate', async () => {
+    const dupResult: CreateEventResult = { ok: false, reason: 'duplicate' };
+    mockFsApi.timelineCreateEvent.mockResolvedValue(dupResult);
+    const fm = { title: 'Test', date: '4726-03-01' };
+    const result = await timelinePort.createEvent(CAMPAIGN, ITEM.filename, fm, 'hello');
+    expect(result).toEqual(dupResult);
   });
 });
 

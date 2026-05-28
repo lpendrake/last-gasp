@@ -50,3 +50,7 @@ export interface EventWithMtime {
   event: Event;
   lastModified: string;
 }
+
+export type CreateEventResult =
+  | { ok: true; event: EventWithMtime }
+  | { ok: false; reason: 'duplicate' };
