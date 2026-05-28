@@ -28,6 +28,8 @@ Before doing anything else, fetch both the **body** and the **labels** of the is
 | `oversight:none` | Sonnet plans inline.                                                             | No opus review required. |
 | `oversight:basic` | Sonnet plans inline.                                                             | Opus advisor reviews the diff before the PR is opened. |
 | `oversight:extended` | Spawn an Opus `Plan` subagent first and post its plan as a comment on the issue. | Opus advisor reviews the diff before the PR is opened. |
+| `oversight:orchestrator` | Fire up the `orchestrate` skill. All sub-tasks of this issue are taken into account and orchestrated together as a single coordinated effort. | The orchestrator handles review across sub-tasks before opening the PR. |
+| `oversight:orchestrated` | This issue is a sub-task being driven by an `oversight:orchestrator` parent. Oversight is provided by the orchestrator model itself — do not plan or open a PR independently. | Review is handled by the orchestrator. |
 | (no `oversight:*` label) | Treat as `oversight:basic`.                                                      | Treat as `oversight:basic`. |
 
 The ticket body may add **extra** reviewer criteria (e.g. "zero changes outside `./desktop/`"). It cannot waive the ones below.
