@@ -35,6 +35,10 @@ Before doing anything else, fetch both the **body** and the **labels** of the is
 | `oversight:orchestrator` | Fire up the `orchestrate` skill. The work for this ticket is split across parallel sub-agents (in separate worktrees) that each handle a slice of the same deliverable. | The orchestrator reviews each sub-agent's output, resolves conflicts, merges into one base branch, and opens a single PR. |
 | (no `oversight:*` label) | Treat as `oversight:basic`.                                                      | Treat as `oversight:basic`. |
 
+> **Orchestration guardrails (enforced every time):**
+> 1. **Opus only.** The `orchestrate` skill must run on an Opus-family model. If the current model is not Opus, stop immediately and ask: "I'm running as `<model>`. Orchestration is designed for Opus — did you mean to switch?" Do not proceed without explicit confirmation.
+> 2. **Plan first, always.** Every orchestration must begin in plan mode. If the user triggers orchestration without a plan in place, enter plan mode before spawning any sub-agents or writing any code. Never skip the planning phase, even for small orchestrations.
+
 The ticket body may add **extra** reviewer criteria (e.g. "zero changes outside `./desktop/`"). It cannot waive the ones below.
 
 !Important! When asking a sub-agent to plan for you do not do research first, let it do its own research, else you pollute its views.
