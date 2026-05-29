@@ -21,6 +21,10 @@ When you've been pointed at a GitHub issue (e.g. given a URL with a "title" pref
 
 Before doing anything else, fetch both the **body** and the **labels** of the issue via the GitHub MCP tools. The body is your task description; the labels determine how much oversight is required.
 
+**Truncated issue bodies:** If the body seems to cut off mid-sentence, the issue likely contains angle-bracket placeholders (e.g. `<title>`) that GitHub's HTML pipeline strips. The owner will fix these by replacing `<>` with `[]`. If the body still seems incomplete, ask rather than guessing.
+
+**Images in issues:** `github.com/user-attachments` URLs require a two-step fetch. Call `WebFetch` on the URL — it will return a 302 redirect to a signed S3 URL. Call `WebFetch` again on that S3 URL; the image is downloaded and the path is reported in the result. Then use `Read` on that path to view the image. Do not give up after the first redirect — the image is always retrievable this way.
+
 ### 2. Read the oversight tier from the labels
 
 | Label | Plan stage                                                                       | Pre-PR review |
