@@ -28,65 +28,12 @@
   overflow: hidden;
 }
 
-/* ===== Header ===== */
-
-.event-editor-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--theme-border);
-  flex-shrink: 0;
-}
-
-.event-editor-title {
-  flex: 1;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--theme-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.event-editor-save-status {
-  font-size: 12px;
-  color: var(--theme-text-muted);
-  flex-shrink: 0;
-}
-
-.event-editor-save-status--dirty {
-  color: var(--theme-accent-gold);
-}
-
-.event-editor-save-status--saved {
-  color: var(--theme-accent);
-}
-
-.event-editor-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--theme-text-muted);
-  font-size: 18px;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.event-editor-close:hover {
-  color: var(--theme-text-primary);
-  background: var(--theme-panel-accent);
-}
-
 /* ===== Error banner ===== */
 
 .event-editor-error {
   padding: 8px 14px;
-  background: rgba(192, 96, 64, 0.15);
-  border-bottom: 1px solid var(--theme-danger);
+  background: rgba(var(--theme-danger-rgb) / 0.15);
+  border-top: 1px solid var(--theme-danger);
   color: var(--theme-danger);
   font-size: 13px;
   flex-shrink: 0;
@@ -97,6 +44,7 @@
 .event-editor-field-warning {
   font-size: 11px;
   color: var(--theme-danger);
+  flex-shrink: 0;
 }
 
 /* ===== Loading state ===== */
@@ -116,22 +64,7 @@
   color: var(--theme-danger);
 }
 
-/* ===== Frontmatter fields ===== */
-
-.event-editor-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--theme-border);
-  flex-shrink: 0;
-}
-
-.event-editor-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
+/* ===== Field labels (shared) ===== */
 
 .event-editor-field-label {
   font-size: 11px;
@@ -162,7 +95,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 3px;
+  align-items: center;
 }
 
 .event-editor-tag-chip {
@@ -202,8 +135,14 @@
   align-items: center;
 }
 
-.event-editor-color-select {
-  flex: 1;
+/* Inline variant used inside the bottom control rows — small, no flex-grow */
+.event-editor-color-row--inline {
+  flex-shrink: 0;
+}
+
+.event-editor-color-select--small {
+  flex: 0 0 auto;
+  width: 120px;
 }
 
 .event-editor-color-custom {
@@ -232,6 +171,76 @@
 .event-editor-body .markdown-editor-container {
   flex: 1;
   overflow: auto;
+}
+
+/* ===== Bottom controls ===== */
+
+.event-editor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--theme-border);
+  flex-shrink: 0;
+}
+
+/* A single horizontal row inside the controls area */
+.event-editor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Tag input box — shorter than full-width */
+.event-editor-tag-input {
+  flex: 0 0 auto;
+  width: 160px;
+}
+
+/* Date input — small fixed width */
+.event-editor-date-input {
+  flex: 0 0 auto;
+  width: 160px;
+}
+
+/* Read-only title display — fills the remaining row space */
+.event-editor-effective-title {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--theme-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 0;
+}
+
+/* Event ID display + copy button */
+.event-editor-id-block {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.event-editor-id-value {
+  font-size: 12px;
+  font-family: ui-monospace, 'Consolas', monospace;
+  color: var(--theme-text-muted);
+}
+
+.event-editor-id-copy {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+/* Label-override fields — each takes ~30% of row width */
+.event-editor-label-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 0 30%;
+  min-width: 120px;
 }
 
 /* ===== Conflict overlay ===== */
@@ -300,8 +309,7 @@
 }
 
 .event-editor-btn--primary:hover:not(:disabled) {
-  background: #4d6640;
-  color: #8aba6a;
+  filter: brightness(1.15);
 }
 
 .event-editor-btn--danger {
@@ -309,7 +317,7 @@
 }
 
 .event-editor-btn--danger:hover:not(:disabled) {
-  background: rgba(192, 96, 64, 0.15);
+  background: rgba(var(--theme-danger-rgb) / 0.15);
   border-color: var(--theme-danger);
 }
 
@@ -342,6 +350,5 @@
 }
 
 .timeline-new-event-btn:hover {
-  background: #4d6640;
-  color: #8aba6a;
+  filter: brightness(1.15);
 }

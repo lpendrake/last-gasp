@@ -14,6 +14,7 @@ import {
   validateBuffer,
   deriveFilename,
   getColorPresetValue,
+  formatIdWikiLink,
   buildTagChips,
   hasReservedTagPrefix,
   addTagsToText,
@@ -21,6 +22,7 @@ import {
   type EditorBuffer,
   type EditorMode,
 } from './domain';
+import { copyText } from './clipboard';
 import { resolveInitialCursor } from './domain/initial-cursor';
 import { ThemeProvider } from '../../theme';
 import { isValidCustomTag } from '../../../shared/entity-tags';
@@ -75,7 +77,7 @@ type LoadState = 'loading' | 'ready' | 'load-error';
 type ConflictPending = { kind: 'save' } | { kind: 'delete' };
 
 const SAVED_BANNER_MS = 900;
-const AUTOSAVE_DELAY_MS = 2000;
+const AUTOSAVE_DELAY_MS = 500;
 
 export interface EventEditorModalProps {
   campaignPath: string;
@@ -104,9 +106,6 @@ export function EventEditorModal({
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [conflictPending, setConflictPending] = useState<ConflictPending | null>(null);
-  const [currentFilename, setCurrentFilename] = useState<string>(
-    mode.kind === 'edit' ? mode.filename : '',
-  );
   const [entityIndex, setEntityIndex] = useState<
     Awaited<ReturnType<typeof notesData.getEntityIndex>>
   >([]);
@@ -143,7 +142,6 @@ export function EventEditorModal({
   const [tagInput, setTagInput] = useState('');
 
   const viewRef = useRef<EditorView | null>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimerRef = useRef<number | null>(null);
 
   // Clear pending timers if the modal unmounts mid-flight
@@ -152,14 +150,6 @@ export function EventEditorModal({
       if (savedTimerRef.current !== null) window.clearTimeout(savedTimerRef.current);
       if (autoSaveTimerRef.current !== null) window.clearTimeout(autoSaveTimerRef.current);
     };
-  }, []);
-
-  // Focus the title on new event creation. This runs after children's effects
-  // (including MarkdownEditor's mode-toggle effect that calls view.focus()),
-  // so it reliably wins the focus race.
-  useEffect(() => {
-    if (mode.kind === 'create') titleInputRef.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Capture mount-time values in a ref so the effect can have an empty deps array.
@@ -191,7 +181,7 @@ export function EventEditorModal({
   const doSave = useCallback(
     async (
       opts: {
-        /** Ctrl+Enter: close the editor immediately on success (no banner delay). */
+        /** Ctrl+Enter / Close: close the editor immediately on success (no banner delay). */
         closeAfterSave?: boolean;
         /** Auto-save: skip the error UI on failure; return to clean on success. */
         silent?: boolean;
@@ -231,7 +221,6 @@ export function EventEditorModal({
             desiredFilename,
           );
           filenameRef.current = result.event.filename;
-          setCurrentFilename(result.event.filename);
         } else {
           const filename = deriveFilename(current);
           result = await timelinePort.createEvent(
@@ -241,14 +230,13 @@ export function EventEditorModal({
             current.body,
           );
           filenameRef.current = result.event.filename;
-          setCurrentFilename(result.event.filename ?? '');
         }
         lastModifiedRef.current = result.lastModified;
         setConflictPending(null);
         setSaveState('saved');
 
         if (opts.closeAfterSave) {
-          // Ctrl+Enter: no banner delay, close immediately.
+          // Close immediately (no banner delay).
           onSaved(filenameRef.current!);
         } else if (opts.silent) {
           // Auto-save: show brief banner then return to clean (editor stays open).
@@ -257,7 +245,7 @@ export function EventEditorModal({
             onAutosaved?.(filenameRef.current!);
           }, SAVED_BANNER_MS);
         } else {
-          // Manual save (Save button / Ctrl+S): banner then close.
+          // Manual save (Ctrl+S): banner then close.
           savedTimerRef.current = window.setTimeout(
             () => onSaved(filenameRef.current!),
             SAVED_BANNER_MS,
@@ -304,6 +292,24 @@ export function EventEditorModal({
     [scheduleAutoSave],
   );
 
+  /** Flush any pending debounced autosave immediately (used on blur). */
+  const flushSave = useCallback(() => {
+    if (autoSaveTimerRef.current === null) return;
+    window.clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = null;
+    void doSave({ silent: true });
+  }, [doSave]);
+
+  /** Close the editor, saving first if there are unsaved changes. */
+  const requestClose = useCallback(() => {
+    if (saveState === 'saving') return;
+    if (saveState === 'dirty' || saveState === 'error') {
+      void doSave({ closeAfterSave: true });
+    } else {
+      onClose();
+    }
+  }, [saveState, doSave, onClose]);
+
   const handleTagInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== 'Enter') return;
@@ -339,11 +345,7 @@ export function EventEditorModal({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        if (saveState === 'saving') return;
-        if (saveState === 'dirty' || saveState === 'error') {
-          if (!window.confirm('You have unsaved changes — close anyway?')) return;
-        }
-        onClose();
+        requestClose();
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -359,7 +361,7 @@ export function EventEditorModal({
     };
     document.addEventListener('keydown', onKey, { capture: true });
     return () => document.removeEventListener('keydown', onKey, { capture: true });
-  }, [saveState, onClose, doSave]);
+  }, [saveState, onClose, doSave, requestClose]);
 
   // ---- Delete ----
 
@@ -447,18 +449,10 @@ export function EventEditorModal({
       <button
         type="button"
         className="event-editor-btn"
-        onClick={onClose}
+        onClick={requestClose}
         disabled={saveState === 'saving'}
       >
-        Cancel
-      </button>
-      <button
-        type="button"
-        className="event-editor-btn event-editor-btn--primary"
-        onClick={() => void doSave()}
-        disabled={isBusy || saveState === 'clean' || loadState !== 'ready'}
-      >
-        {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? '✓ Saved' : 'Save'}
+        Close
       </button>
     </div>
   );
@@ -468,39 +462,10 @@ export function EventEditorModal({
       <div
         className="event-editor-overlay"
         onClick={(e) => {
-          if (e.target === e.currentTarget && !isBusy) onClose();
+          if (e.target === e.currentTarget && !isBusy) requestClose();
         }}
       >
         <div className="event-editor-modal">
-          {/* Header */}
-          <div className="event-editor-header">
-            <h2 className="event-editor-title">
-              {isEditMode ? `Edit: ${currentFilename || mode.filename}` : 'New event'}
-            </h2>
-            <div className={`event-editor-save-status event-editor-save-status--${saveState}`}>
-              {saveState === 'dirty'
-                ? '• unsaved'
-                : saveState === 'saving'
-                  ? 'saving…'
-                  : saveState === 'saved'
-                    ? '✓ saved'
-                    : ''}
-            </div>
-            <button
-              type="button"
-              className="event-editor-close"
-              aria-label="Close"
-              onClick={onClose}
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Error banner */}
-          {saveState === 'error' && errorMessage && (
-            <div className="event-editor-error">⚠ {errorMessage}</div>
-          )}
-
           {/* Loading / load-error */}
           {loadState === 'loading' && <div className="event-editor-loading">Loading…</div>}
           {loadState === 'load-error' && (
@@ -511,120 +476,6 @@ export function EventEditorModal({
 
           {loadState === 'ready' && (
             <>
-              {/* Frontmatter fields */}
-              <div className="event-editor-fields">
-                <label className="event-editor-field">
-                  <span className="event-editor-field-label">Title</span>
-                  <input
-                    ref={titleInputRef}
-                    type="text"
-                    className="event-editor-input"
-                    value={buffer.title}
-                    onChange={(e) => updateBuffer({ title: e.target.value })}
-                    autoComplete="off"
-                  />
-                </label>
-
-                <label className="event-editor-field">
-                  <span className="event-editor-field-label">Date (Golarian ISO)</span>
-                  <input
-                    type="text"
-                    className="event-editor-input"
-                    value={buffer.date}
-                    onChange={(e) => updateBuffer({ date: e.target.value })}
-                    placeholder="4726-05-04T09:30"
-                    autoComplete="off"
-                  />
-                </label>
-
-                <label className="event-editor-field">
-                  <span className="event-editor-field-label">Link Label</span>
-                  <input
-                    type="text"
-                    className="event-editor-input"
-                    value={buffer.linkLabelOverride}
-                    onChange={(e) => updateBuffer({ linkLabelOverride: e.target.value })}
-                    placeholder={titlePlaceholder}
-                    autoComplete="off"
-                  />
-                </label>
-
-                <label className="event-editor-field">
-                  <span className="event-editor-field-label">Tag Label</span>
-                  <input
-                    type="text"
-                    className="event-editor-input"
-                    value={buffer.tagLabelOverride}
-                    onChange={(e) => updateBuffer({ tagLabelOverride: e.target.value })}
-                    placeholder={titlePlaceholder}
-                    autoComplete="off"
-                  />
-                </label>
-
-                <label className="event-editor-field">
-                  <span className="event-editor-field-label">
-                    Add tags (comma-separated, Enter to confirm)
-                  </span>
-                  <input
-                    type="text"
-                    className="event-editor-input"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagInputKeyDown}
-                    placeholder="plot:beast, location:fort"
-                    autoComplete="off"
-                  />
-                  {hasReservedTagPrefix(tagInput) && (
-                    <span className="event-editor-field-warning">
-                      {"Tags starting with 'id:' or 'sesh:' are reserved for system-generated tags"}
-                    </span>
-                  )}
-                  <TagChipList
-                    tagsText={buffer.tagsText}
-                    body={buffer.body}
-                    systemTags={buffer.systemTags}
-                    entityTagLabelMap={entityTagLabelMap}
-                    onRemoveCustomTag={handleRemoveCustomTag}
-                  />
-                </label>
-
-                <div className="event-editor-field">
-                  <span className="event-editor-field-label">Colour</span>
-                  <div className="event-editor-color-row">
-                    <select
-                      className="event-editor-input event-editor-color-select"
-                      value={colorPresetValue}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        // Switching to Custom clears color so the user can type; other presets set directly
-                        updateBuffer({ color: val === '__custom__' ? '' : val });
-                      }}
-                    >
-                      {ThemeProvider.get().timeline.eventColorPresets.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                    {colorPresetValue === '__custom__' && (
-                      <input
-                        type="text"
-                        className="event-editor-input event-editor-color-custom"
-                        value={buffer.color}
-                        onChange={(e) => updateBuffer({ color: e.target.value })}
-                        placeholder="#c43"
-                        autoComplete="off"
-                      />
-                    )}
-                    <span
-                      className="event-editor-color-swatch"
-                      style={{ background: buffer.color || 'transparent' }}
-                      title={buffer.color || 'weekday default'}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Markdown editor */}
               <div className="event-editor-body">
                 <MarkdownEditor
@@ -641,6 +492,131 @@ export function EventEditorModal({
                     entityLabels: entityLabelMap,
                   }}
                 />
+              </div>
+
+              {/* Error banner — sits just above the controls */}
+              {saveState === 'error' && errorMessage && (
+                <div className="event-editor-error">⚠ {errorMessage}</div>
+              )}
+
+              {/* Bottom controls */}
+              <div className="event-editor-controls">
+                {/* Row 1: colour (small) + tag input + tag chips */}
+                <div className="event-editor-row">
+                  <div className="event-editor-color-row event-editor-color-row--inline">
+                    <select
+                      className="event-editor-input event-editor-color-select--small"
+                      value={colorPresetValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateBuffer({ color: val === '__custom__' ? '' : val });
+                      }}
+                      onBlur={flushSave}
+                    >
+                      {ThemeProvider.get().timeline.eventColorPresets.map((p) => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    {colorPresetValue === '__custom__' && (
+                      <input
+                        type="text"
+                        className="event-editor-input event-editor-color-custom"
+                        value={buffer.color}
+                        onChange={(e) => updateBuffer({ color: e.target.value })}
+                        onBlur={flushSave}
+                        placeholder="#c43"
+                        autoComplete="off"
+                      />
+                    )}
+                    <span
+                      className="event-editor-color-swatch"
+                      style={{ background: buffer.color || 'transparent' }}
+                      title={buffer.color || 'weekday default'}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    className="event-editor-input event-editor-tag-input"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagInputKeyDown}
+                    placeholder="add tags…"
+                    autoComplete="off"
+                    aria-label="Add tags (comma-separated, Enter to confirm)"
+                  />
+                  {hasReservedTagPrefix(tagInput) && (
+                    <span className="event-editor-field-warning">
+                      {"Tags starting with 'id:' or 'sesh:' are reserved"}
+                    </span>
+                  )}
+                  <TagChipList
+                    tagsText={buffer.tagsText}
+                    body={buffer.body}
+                    systemTags={buffer.systemTags}
+                    entityTagLabelMap={entityTagLabelMap}
+                    onRemoveCustomTag={handleRemoveCustomTag}
+                  />
+                </div>
+
+                {/* Row 2: date (small) + effective title + event ID + copy button */}
+                <div className="event-editor-row">
+                  <input
+                    type="text"
+                    className="event-editor-input event-editor-date-input"
+                    value={buffer.date}
+                    onChange={(e) => updateBuffer({ date: e.target.value })}
+                    onBlur={flushSave}
+                    placeholder="4726-05-04T09:30"
+                    autoComplete="off"
+                    aria-label="Date (Golarian ISO)"
+                  />
+                  <span className="event-editor-effective-title">
+                    {effectiveTitle(buffer) || '—'}
+                  </span>
+                  {buffer.id && (
+                    <span className="event-editor-id-block">
+                      <span className="event-editor-id-value">{buffer.id}</span>
+                      <button
+                        type="button"
+                        className="event-editor-btn event-editor-id-copy"
+                        onClick={() => void copyText(formatIdWikiLink(buffer.id!))}
+                        aria-label="Copy event ID as wikilink"
+                      >
+                        copy [[id]]
+                      </button>
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 3: Tag Label + Link Label */}
+                <div className="event-editor-row">
+                  <label className="event-editor-label-field">
+                    <span className="event-editor-field-label">Tag Label</span>
+                    <input
+                      type="text"
+                      className="event-editor-input"
+                      value={buffer.tagLabelOverride}
+                      onChange={(e) => updateBuffer({ tagLabelOverride: e.target.value })}
+                      onBlur={flushSave}
+                      placeholder={titlePlaceholder}
+                      autoComplete="off"
+                    />
+                  </label>
+                  <label className="event-editor-label-field">
+                    <span className="event-editor-field-label">Link Label</span>
+                    <input
+                      type="text"
+                      className="event-editor-input"
+                      value={buffer.linkLabelOverride}
+                      onChange={(e) => updateBuffer({ linkLabelOverride: e.target.value })}
+                      onBlur={flushSave}
+                      placeholder={titlePlaceholder}
+                      autoComplete="off"
+                    />
+                  </label>
+                </div>
               </div>
             </>
           )}
