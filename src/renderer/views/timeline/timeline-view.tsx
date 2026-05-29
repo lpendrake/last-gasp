@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { timelinePort, ConflictError } from '../../timeline/data/ports';
+import { timelinePort, ConflictError, FilenameConflictError } from '../../timeline/data/ports';
 import type { EventListItem, Session, State } from '../../timeline/data/types';
 import {
   DEFAULT_SECONDS_PER_PIXEL,
@@ -24,6 +24,7 @@ import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 import { useReschedule } from '../../timeline/interactions/useReschedule';
 import { useQuickAddZones } from '../../timeline/interactions/useQuickAddZones';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
+import { deriveFilename } from '../../timeline/event-editor/domain';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
 import { NewEventModal } from '../../timeline/event-editor/new-event-modal';
 import { sessionTagsForSeconds } from '../../timeline/render/session-bands';
@@ -264,6 +265,16 @@ export function TimelineView({
         const nonSeshTags = (event.tags ?? []).filter((t) => !isSessionTag(t));
         const newSeshTags = sessionTagsForSeconds(newSeconds, sessionsRef.current);
         const updatedTags = [...nonSeshTags, ...newSeshTags];
+        const desiredFilename = deriveFilename({
+          title: event.title,
+          date: newDate,
+          body: event.body,
+          tagsText: '',
+          color: '',
+          tagLabelOverride: '',
+          linkLabelOverride: '',
+          systemTags: [],
+        });
         await timelinePort.updateEvent(
           campaignPath,
           filename,
@@ -276,14 +287,17 @@ export function TimelineView({
           },
           event.body,
           lastModified,
+          desiredFilename,
         );
         await refreshEvents();
       } catch (err) {
         console.error('[saveReschedule] failed', err);
         const msg =
-          err instanceof ConflictError
-            ? `"${filename}" was modified on disk — reschedule reverted.`
-            : 'Reschedule failed. Please try again.';
+          err instanceof FilenameConflictError
+            ? err.message
+            : err instanceof ConflictError
+              ? `"${filename}" was modified on disk — reschedule reverted.`
+              : 'Reschedule failed. Please try again.';
         setTimelineError(msg);
         setTimeout(() => setTimelineError(null), 4000);
         // Rethrow so the reschedule module immediately reverts the card's DOM position.
