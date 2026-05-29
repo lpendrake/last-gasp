@@ -14,7 +14,6 @@ import {
   validateBuffer,
   deriveFilename,
   getColorPresetValue,
-  formatIdWikiLink,
   buildTagChips,
   hasReservedTagPrefix,
   addTagsToText,
@@ -22,7 +21,6 @@ import {
   type EditorBuffer,
   type EditorMode,
 } from './domain';
-import { copyText } from './clipboard';
 import { resolveInitialCursor } from './domain/initial-cursor';
 import { ThemeProvider } from '../../theme';
 import { isValidCustomTag } from '../../../shared/entity-tags';
@@ -566,7 +564,7 @@ export function EventEditorModal({
                   />
                 </div>
 
-                {/* Row 2: date (small) + effective title + event ID + copy button */}
+                {/* Row 2: date + Tag Label + Link Label */}
                 <div className="event-editor-row">
                   <input
                     type="text"
@@ -578,26 +576,6 @@ export function EventEditorModal({
                     autoComplete="off"
                     aria-label="Date (Golarian ISO)"
                   />
-                  <span className="event-editor-effective-title">
-                    {effectiveTitle(buffer) || '—'}
-                  </span>
-                  {buffer.id && (
-                    <span className="event-editor-id-block">
-                      <span className="event-editor-id-value">{buffer.id}</span>
-                      <button
-                        type="button"
-                        className="event-editor-btn event-editor-id-copy"
-                        onClick={() => void copyText(formatIdWikiLink(buffer.id!))}
-                        aria-label="Copy event ID as wikilink"
-                      >
-                        copy [[id]]
-                      </button>
-                    </span>
-                  )}
-                </div>
-
-                {/* Row 3: Tag Label + Link Label */}
-                <div className="event-editor-row">
                   <label className="event-editor-label-field">
                     <span className="event-editor-field-label">Tag Label</span>
                     <input

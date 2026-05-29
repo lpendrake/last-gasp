@@ -142,7 +142,8 @@
 
 .event-editor-color-select--small {
   flex: 0 0 auto;
-  width: 120px;
+  width: auto;
+  min-width: 180px;
 }
 
 .event-editor-color-custom {
@@ -204,42 +205,12 @@
   width: 160px;
 }
 
-/* Read-only title display — fills the remaining row space */
-.event-editor-effective-title {
-  flex: 1 1 auto;
-  font-size: 13px;
-  color: var(--theme-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 4px 0;
-}
-
-/* Event ID display + copy button */
-.event-editor-id-block {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.event-editor-id-value {
-  font-size: 12px;
-  font-family: ui-monospace, 'Consolas', monospace;
-  color: var(--theme-text-muted);
-}
-
-.event-editor-id-copy {
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-/* Label-override fields — each takes ~30% of row width */
+/* Label-override fields — share remaining row space after the date input */
 .event-editor-label-field {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  flex: 0 0 30%;
+  flex: 1 1 140px;
   min-width: 120px;
 }
 

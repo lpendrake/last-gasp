@@ -150,11 +150,6 @@ export function deriveFilename(buf: EditorBuffer): string {
   return `${datePart}-${slug || 'event'}.md`;
 }
 
-/** Wraps an event ID in double-bracket wiki-link syntax (e.g. `[[evt-123]]`). */
-export function formatIdWikiLink(id: string): string {
-  return `[[${id}]]`;
-}
-
 /** Returns the <select> value for the color field (or '__custom__' for non-preset hex). */
 export function getColorPresetValue(color: string): string {
   if (!color) return '';

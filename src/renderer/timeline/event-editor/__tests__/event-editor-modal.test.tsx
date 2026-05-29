@@ -89,10 +89,6 @@ vi.mock('../../../theme', () => ({
   },
 }));
 
-vi.mock('../clipboard', () => ({
-  copyText: vi.fn().mockResolvedValue(undefined),
-}));
-
 // ---- Imports after mocks ----
 
 import { timelinePort } from '../../data/ports';
@@ -112,18 +108,6 @@ const BASE_EVENT_DATA = {
     tags: [],
     body: '# Big Battle\n\nNotes here.',
     id: 'evt-abc123',
-    mtime: MTIME,
-  },
-  lastModified: MTIME,
-};
-
-const BASE_EVENT_NO_ID_DATA = {
-  event: {
-    filename: EDIT_MODE.filename,
-    title: 'Big Battle',
-    date: '4726-05-04',
-    tags: [],
-    body: '# Big Battle\n\nNotes here.',
     mtime: MTIME,
   },
   lastModified: MTIME,
@@ -281,36 +265,14 @@ describe('EventEditorModal', () => {
     expect(btnTexts.some((t) => t === 'Save' || t === 'Saving…' || t === '✓ Saved')).toBe(false);
   });
 
-  // ── Test 3: ID copy button calls clipboard with [[id]] ──
+  // ── Effective title display and ID copy button are NOT rendered ──
 
-  it('copy button calls copyText([[id]]) when clicked', async () => {
+  it('does not render the effective-title display or the ID copy button', async () => {
     setup();
     await renderEdit(BASE_EVENT_DATA);
 
-    const copyBtn = container.querySelector<HTMLButtonElement>(
-      '[aria-label="Copy event ID as wikilink"]',
-    );
-    expect(copyBtn).not.toBeNull();
-
-    const { copyText } = await import('../clipboard');
-    const mockCopy = vi.mocked(copyText);
-
-    await act(async () => {
-      copyBtn!.click();
-      await Promise.resolve();
-    });
-
-    expect(mockCopy).toHaveBeenCalledTimes(1);
-    expect(mockCopy).toHaveBeenCalledWith('[[evt-abc123]]');
-  });
-
-  // Test 3b: ID block not rendered when event has no id
-  it('does not render the ID copy button when the event has no id', async () => {
-    setup();
-    await renderEdit(BASE_EVENT_NO_ID_DATA);
-
-    const copyBtn = container.querySelector('[aria-label="Copy event ID as wikilink"]');
-    expect(copyBtn).toBeNull();
+    expect(container.querySelector('[aria-label="Copy event ID as wikilink"]')).toBeNull();
+    expect(container.querySelector('.event-editor-effective-title')).toBeNull();
   });
 
   // ── Test 2a: Close with no changes just closes (no save) ──

@@ -12,7 +12,6 @@ import {
   hasReservedTagPrefix,
   addTagsToText,
   removeTagFromText,
-  formatIdWikiLink,
   type EditorBuffer,
 } from '../domain';
 import { ThemeProvider } from '../../../theme';
@@ -623,21 +622,5 @@ describe('getColorPresetValue', () => {
 
   it('does not treat __custom__ itself as a valid preset', () => {
     expect(getColorPresetValue('__custom__')).toBe('__custom__');
-  });
-});
-
-// ---- formatIdWikiLink ----
-
-describe('formatIdWikiLink', () => {
-  it('wraps a simple id in double brackets', () => {
-    expect(formatIdWikiLink('abc')).toBe('[[abc]]');
-  });
-
-  it('wraps a realistic id with dashes', () => {
-    expect(formatIdWikiLink('evt-4724-05-30')).toBe('[[evt-4724-05-30]]');
-  });
-
-  it('wraps an empty id without throwing', () => {
-    expect(formatIdWikiLink('')).toBe('[[]]');
   });
 });
