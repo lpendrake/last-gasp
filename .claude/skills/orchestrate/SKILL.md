@@ -21,13 +21,9 @@ catch mistakes early, and ship one cohesive PR.
 
 ## Why this works
 
-- **Opus keeps full context** across all sub-tasks instead of each
-  sonnet session starting cold from a ticket.
-- **Parallel worktrees** mean agents don't block each other.
-- **Unified review** catches cross-cutting issues that per-ticket
-  reviews miss.
-- **One PR** instead of many — less overhead for the human, fewer
-  merge conflicts, testable as a whole.
+Opus holds full context while cheaper agents implement slices in
+parallel worktrees; unified review catches cross-cutting issues and
+ships one PR instead of many.
 
 ---
 
@@ -39,7 +35,12 @@ Before planning anything, build a complete picture.
    epic, fetch all sub-issues too.
 2. **Explore the codebase** — use Explore agents to understand the
    systems involved. Don't research yourself — let Explore agents do
-   it so your context stays clean for orchestration.
+   it so your context stays clean for orchestration. Right-size the
+   fan-out: a single well-scoped ticket usually needs 1–2 targeted
+   Explores; reserve 3+ parallel Explores for genuine multi-system
+   epics. Each agent has real token cost — orchestration earns its
+   overhead through parallelism and isolation, not through spawning
+   agents for their own sake.
 3. **Identify the AGENTS.md and CLAUDE.md rules** that apply. Your
    sub-agents won't read these unless you tell them to.
 4. **Ask the user** if anything is ambiguous. Do this now, not after
@@ -122,6 +123,10 @@ Agent({
 ```
 
 **Writing good prompts** — the agent has zero context, so include:
+- **For batch 2+ only:** a literal step 0 — "before anything else, run
+  `git reset --hard <feature-branch>` to base your work on the merged
+  output of earlier batches" (see Phase 5 → *Between batches* for why).
+  Batch-1 agents skip this; `main` is already their correct base.
 - What the project is and what it does (one sentence)
 - What specific change to make and why
 - Which files to read first for context
@@ -208,10 +213,11 @@ prompt.
 
 ### Cherry-pick approved work
 
-Check how many commits the agent made:
+Check how many commits the agent made (relative to your feature
+branch, which is the agent's base once it has run step 0):
 
 ```bash
-git -C <worktree-path> log --oneline main..HEAD
+git -C <worktree-path> log --oneline <feature-branch>..HEAD
 ```
 
 If the agent made a single commit (as instructed), cherry-pick it:
@@ -252,49 +258,55 @@ To remove a specific worktree by name fragment:
 npm run prune-worktrees -- agent-abc
 ```
 
-### Between batches
+### Between batches — rebase later agents onto your branch
 
-After merging all batch N results and verifying tests pass, batch
-N+1 agents launch from the current state of the feature branch.
-The worktree isolation mechanism creates each agent's worktree from
-the current HEAD, so **the feature branch must be up-to-date before
-launching the next batch**. This is how batch-2 agents see batch-1's
-output.
+**Worktrees branch from the base branch (`main`), not your feature
+branch.** So a batch-2 agent does **not** automatically see batch-1's
+merged work — left alone, it will re-implement against stale `main`
+and its commit won't cherry-pick cleanly. Don't fight this on the
+merge-back side; fix it at the source.
+
+The repo's worktrees share the same `.git` (verified: commits survive
+`prune-worktrees`, and local branch refs resolve from inside a
+worktree). So every batch-2+ agent's **step 0** is to rebase its
+worktree onto your feature branch using the **local ref** — no push,
+no fetch needed:
+
+```bash
+git reset --hard <feature-branch>
+```
+
+Put that as the first instruction in the agent's prompt. Its commit is
+then parented on your feature-branch tip, so merge-back is an ordinary
+clean cherry-pick (Phase 5). Because of this, **the feature branch must
+have all prior batches merged before you launch the next batch.**
+
+Sanity-check the base of any agent you're unsure about:
+
+```bash
+git -C <worktree-path> rev-parse HEAD~1   # should be your feature-branch tip
+```
+
+> If a future harness ever isolates worktrees as separate clones
+> (local refs won't resolve), fall back to: push the feature branch,
+> then have the agent `git fetch origin <feature-branch> && git reset
+> --hard origin/<feature-branch>`.
 
 ### Handling merge conflicts
 
-When a cherry-pick conflicts:
+If you rebased each batch's agents onto the feature branch (Phase 5 →
+*Between batches*), clean cherry-picks are the norm. A conflict means
+two tasks in the **same** batch touched adjacent lines — which the
+"one file per batch" rule should have prevented.
+
+When a cherry-pick does conflict:
 
 1. **Don't resolve it yourself.** You are the orchestrator.
-2. Check what conflicted and why (usually two tasks touched adjacent
-   lines, or a batch-2 task assumed batch-1 output that merged
-   slightly differently).
-3. Spin up a **sonnet** agent with the conflict context:
-
-```
-Agent({
-  description: "Resolve merge conflict in <file>",
-  model: "sonnet",
-  prompt: "
-    You are resolving a merge conflict in <file>.
-    
-    The conflict arose because:
-    - Change A (from task '<description>'): <what it did and why>
-    - Change B (from task '<description>'): <what it did and why>
-    
-    Both changes are correct and should be preserved. The intended
-    final state is: <describe the desired outcome>.
-    
-    The file currently has conflict markers. Resolve them so both
-    changes coexist correctly. Run `npm test` to verify.
-    
-    Commit the resolution.
-  "
-})
-```
-
-4. Review the resolution. If it's wrong, try again with a more
-   specific prompt.
+2. Diagnose which two changes collided and why.
+3. Spin up a **sonnet** agent to resolve it. Give it: the file, a
+   one-line summary of each colliding change and why both must be
+   kept, the intended final state, and "resolve the conflict markers,
+   run `npm test`, commit." Review the result; re-prompt if wrong.
 
 ## Phase 6: Ship
 
@@ -342,6 +354,10 @@ Agent({
   modify unrelated code or make unauthorized "improvements".
 - **Over-batching** → 10 parallel agents sounds fast but produces
   10 things to review simultaneously. 3-5 per batch is practical.
+- **Splitting too fine** → a task smaller than the coordination
+  overhead it creates (prompt-writing, review, cherry-pick) isn't
+  worth its own agent. If two slices touch the same area and one is
+  trivial, fold them into one task. Cost scales with agent count.
 - **Under-specifying conventions** → agent doesn't know about
   kebab-case files, theme system, no-logic-in-hooks rule. Copy
   the relevant AGENTS.md/CLAUDE.md rules into the prompt.
