@@ -11,6 +11,7 @@ vi.mock('../../data/ports', () => ({
   timelinePort: {
     deleteEvent: vi.fn(),
     getEvent: vi.fn(),
+    readTemplate: vi.fn(),
   },
   ConflictError: class ConflictError extends Error {
     constructor() {
@@ -28,6 +29,7 @@ import { timelinePort } from '../../data/ports';
 import { createEventChecked } from '../create-event-checked';
 const mockDelete = vi.mocked(timelinePort.deleteEvent);
 const mockGetEvent = vi.mocked(timelinePort.getEvent);
+const mockReadTemplate = vi.mocked(timelinePort.readTemplate);
 const mockCreateEventChecked = vi.mocked(createEventChecked);
 
 const CAMPAIGN = '/fake/campaign';
@@ -59,6 +61,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   confirmMock.mockReturnValue(true);
   vi.stubGlobal('confirm', confirmMock);
+  mockReadTemplate.mockResolvedValue(null);
 });
 
 // ---- Initial state ----
@@ -333,5 +336,67 @@ describe('createAndOpen', () => {
     expect(result.current.editorMode).toBeNull();
     // onEventsChanged not called
     expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it('uses the template body when readTemplate resolves a template with <title>', async () => {
+    const successEvent: EventWithMtime = {
+      event: {
+        filename: '4726-05-04-battle.md',
+        title: 'Big Battle',
+        date: '4726-05-04',
+        tags: [],
+        body: '',
+        mtime: MTIME,
+      },
+      lastModified: MTIME,
+    };
+    mockReadTemplate.mockResolvedValue('# <title>\n\nNotes go here.\n');
+    mockCreateEventChecked.mockResolvedValue({ ok: true, event: successEvent });
+
+    const { result } = renderHook(() => useEventEditor(CAMPAIGN, vi.fn()));
+
+    act(() => result.current.openNewEventPrompt());
+    await act(async () => {
+      await result.current.createAndOpen('Big Battle');
+    });
+
+    expect(mockReadTemplate).toHaveBeenCalledWith(CAMPAIGN, 'event');
+    expect(mockCreateEventChecked).toHaveBeenCalledWith(
+      CAMPAIGN,
+      expect.any(String),
+      expect.any(Object),
+      '# Big Battle\n\nNotes go here.\n',
+    );
+  });
+
+  it('falls back to # title heading when readTemplate resolves null', async () => {
+    const successEvent: EventWithMtime = {
+      event: {
+        filename: '4726-05-04-battle.md',
+        title: 'Big Battle',
+        date: '4726-05-04',
+        tags: [],
+        body: '',
+        mtime: MTIME,
+      },
+      lastModified: MTIME,
+    };
+    mockReadTemplate.mockResolvedValue(null);
+    mockCreateEventChecked.mockResolvedValue({ ok: true, event: successEvent });
+
+    const { result } = renderHook(() => useEventEditor(CAMPAIGN, vi.fn()));
+
+    act(() => result.current.openNewEventPrompt());
+    await act(async () => {
+      await result.current.createAndOpen('Big Battle');
+    });
+
+    expect(mockReadTemplate).toHaveBeenCalledWith(CAMPAIGN, 'event');
+    expect(mockCreateEventChecked).toHaveBeenCalledWith(
+      CAMPAIGN,
+      expect.any(String),
+      expect.any(Object),
+      '# Big Battle\n\n',
+    );
   });
 });

@@ -20,6 +20,7 @@ import {
   type EditorBuffer,
   type EditorMode,
 } from './domain';
+import { resolveInitialCursor } from './domain/initial-cursor';
 import { ThemeProvider } from '../../theme';
 import { isValidCustomTag } from '../../../shared/entity-tags';
 import {
@@ -613,7 +614,7 @@ export function EventEditorModal({
                   content={buffer.body}
                   onChange={(s) => updateBuffer({ body: s })}
                   viewRef={viewRef}
-                  initialCursor={mode.kind === 'edit' ? mode.initialCursor : undefined}
+                  initialCursor={resolveInitialCursor(mode, buffer.body.length)}
                   wikiLinks={{
                     suggest: suggestLinksForIndex,
                     onOpen: onOpenById,

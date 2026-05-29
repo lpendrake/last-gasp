@@ -105,6 +105,9 @@ declare global {
       timelinePutState: (campaignPath: string, state: State) => Promise<{ ok: true }>;
       timelineGetTags: (campaignPath: string) => Promise<TagsRegistry>;
 
+      // Templates
+      templateRead: (campaignPath: string, name: string) => Promise<string | null>;
+
       // App
       getAppVersion: () => Promise<string>;
       installUpdate: () => Promise<void>;
