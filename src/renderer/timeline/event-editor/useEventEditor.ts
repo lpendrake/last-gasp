@@ -129,7 +129,8 @@ export function useEventEditor(
   const createAndOpen = useCallback(
     async (title: string) => {
       const buf = { ...emptyBuffer(newEventPrompt?.initialDate), title };
-      const { body, cursorOffset } = buildNewEventContent(title);
+      const template = await timelinePort.readTemplate(campaignPath, 'event');
+      const { body, cursorOffset } = buildNewEventContent(title, template);
       const frontmatter = bufferToFrontmatter(buf);
       const filename = deriveFilename(buf);
       const result = await createEventChecked(campaignPath, filename, frontmatter, body);
