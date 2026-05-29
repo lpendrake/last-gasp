@@ -90,4 +90,8 @@ export const timelinePort = {
   async getTags(campaignPath: string): Promise<TagsRegistry> {
     return window.fsApi.timelineGetTags(campaignPath);
   },
+
+  async readTemplate(campaignPath: string, name: string): Promise<string | null> {
+    return window.fsApi.templateRead(campaignPath, name);
+  },
 };

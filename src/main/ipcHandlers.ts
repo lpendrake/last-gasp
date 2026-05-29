@@ -7,6 +7,7 @@ import { generateShortId } from '../shared/ids.js';
 import { buildEntityIndex } from './entity-index.js';
 import { registerTimelineIpcHandlers } from './timelineIpcHandlers.js';
 import { registerEntityIndexHandlers } from './entity-index-handlers.js';
+import { ensureEventTemplate, readTemplate } from './event-template.js';
 
 const { autoUpdater } = pkg;
 
@@ -111,6 +112,7 @@ export function registerIpcHandlers() {
         fs.mkdirSync(path.join(campaignPath, 'notes'), { recursive: true });
         fs.mkdirSync(path.join(campaignPath, 'timeline'), { recursive: true });
         fs.mkdirSync(path.join(campaignPath, 'relationships'), { recursive: true });
+        ensureEventTemplate(campaignPath);
 
         // Create campaign.md with frontmatter
         const id = generateShortId();
@@ -282,6 +284,10 @@ ${description}
 
   registerTimelineIpcHandlers();
   registerEntityIndexHandlers();
+
+  ipcMain.handle('template:read', async (_event, campaignPath: string, name: string) =>
+    readTemplate(campaignPath, name),
+  );
 
   ipcMain.handle('app:getVersion', () => app.getVersion());
   ipcMain.handle('app:installUpdate', async () => {
