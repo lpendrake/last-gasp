@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import type { Session } from '../data/types';
 import { ThemeProvider } from '../../theme';
+import { useConfirm } from '../../shared/confirm-dialog/confirm-provider';
 import {
   type SessionEditorMode,
   type SessionBuffer,
@@ -32,6 +33,8 @@ export function SessionEditorModal({
   const isNew = mode.kind === 'create';
   const existingSession =
     mode.kind === 'edit' ? (sessions.find((s) => s.id === mode.sessionId) ?? null) : null;
+
+  const { confirm } = useConfirm();
 
   const [buffer, setBuffer] = useState<SessionBuffer>(() =>
     existingSession
@@ -77,9 +80,12 @@ export function SessionEditorModal({
 
   const handleDelete = useCallback(async () => {
     if (!existingSession) return;
-    const ok = window.confirm(
-      `Delete this session (${existingSession.id})? This cannot be undone.`,
-    );
+    const ok = await confirm({
+      title: 'Delete session',
+      message: `Delete this session (${existingSession.id})? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    });
     if (!ok) return;
     setSaving(true);
     try {
@@ -88,7 +94,7 @@ export function SessionEditorModal({
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
-  }, [existingSession, onDelete]);
+  }, [existingSession, onDelete, confirm]);
 
   return (
     <div
