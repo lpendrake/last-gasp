@@ -8,6 +8,11 @@ import { act } from 'react';
 // ---- Mock heavy deps before imports ----
 // NOTE: vi.mock paths are relative to THIS test file, not the component.
 
+const confirmMock = vi.fn();
+vi.mock('../../../shared/confirm-dialog/confirm-provider', () => ({
+  useConfirm: () => ({ confirm: confirmMock, alert: vi.fn().mockResolvedValue(undefined) }),
+}));
+
 vi.mock('../../data/ports', () => ({
   timelinePort: {
     getEvent: vi.fn(),
@@ -227,10 +232,7 @@ async function flush() {
 describe('EventEditorModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => false),
-    );
+    confirmMock.mockReset().mockResolvedValue(true);
     Object.defineProperty(window, 'fsApi', {
       value: fsApiStub,
       configurable: true,
@@ -327,8 +329,8 @@ describe('EventEditorModal', () => {
     });
     await flush();
 
-    // No discard confirmation prompt
-    expect(vi.mocked(window.confirm)).not.toHaveBeenCalledWith(expect.stringContaining('unsaved'));
+    // No discard confirmation prompt was shown
+    expect(confirmMock).not.toHaveBeenCalled();
     // Save was triggered and completed
     expect(timelinePort.updateEvent).toHaveBeenCalledTimes(1);
     expect(onSaved).toHaveBeenCalledTimes(1);
@@ -422,7 +424,7 @@ describe('EventEditorModal', () => {
     });
     await flush();
 
-    expect(vi.mocked(window.confirm)).not.toHaveBeenCalledWith(expect.stringContaining('unsaved'));
+    expect(confirmMock).not.toHaveBeenCalled();
     expect(timelinePort.updateEvent).toHaveBeenCalledTimes(1);
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
@@ -529,5 +531,45 @@ describe('EventEditorModal', () => {
     const callArgs = vi.mocked(timelinePort.updateEvent).mock.calls[0];
     // The frontmatter (4th arg) should include the selected color
     expect(callArgs[2]).toMatchObject({ color: '#a83030' });
+  });
+
+  // ── Delete button: confirmed → calls deleteEvent ──
+
+  it('clicking Delete when confirmed calls deleteEvent', async () => {
+    setup();
+    vi.mocked(timelinePort.deleteEvent).mockResolvedValue(undefined);
+    const { onDeleted } = await renderEdit();
+
+    const deleteBtn = findButton('Delete');
+    expect(deleteBtn).not.toBeUndefined();
+
+    await act(async () => {
+      deleteBtn!.click();
+    });
+    await flush();
+
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(timelinePort.deleteEvent).toHaveBeenCalledTimes(1);
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Delete button: cancelled → does NOT call deleteEvent ──
+
+  it('clicking Delete when cancelled does not call deleteEvent', async () => {
+    setup();
+    confirmMock.mockResolvedValueOnce(false);
+
+    await renderEdit();
+
+    const deleteBtn = findButton('Delete');
+    expect(deleteBtn).not.toBeUndefined();
+
+    await act(async () => {
+      deleteBtn!.click();
+    });
+    await flush();
+
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    expect(timelinePort.deleteEvent).not.toHaveBeenCalled();
   });
 });

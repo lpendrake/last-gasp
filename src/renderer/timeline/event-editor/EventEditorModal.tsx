@@ -3,6 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import { MarkdownEditor, FormatToolbar } from '../../shared/markdown-editor';
 import { suggestLinks } from '../../shared/suggest-links';
 import { FooterPortal } from '../../components/footer-portal';
+import { useConfirm } from '../../shared/confirm-dialog/confirm-provider';
 import { openFromWikiLink, closeFromWikiLink } from '../../peek/stack';
 import { timelinePort, ConflictError, FilenameConflictError } from '../data/ports';
 import { notesData } from '../../notes/data';
@@ -99,6 +100,7 @@ export function EventEditorModal({
   onAutosaved,
   onOpenById,
 }: EventEditorModalProps) {
+  const { confirm } = useConfirm();
   const [loadState, setLoadState] = useState<LoadState>(mode.kind === 'edit' ? 'loading' : 'ready');
   const [buffer, setBuffer] = useState<EditorBuffer>(
     mode.kind === 'create' ? emptyBuffer(mode.initialDate) : emptyBuffer(),
@@ -428,13 +430,18 @@ export function EventEditorModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [saveState, doSave]);
 
-  const handleDeleteClick = useCallback(() => {
+  const handleDeleteClick = useCallback(async () => {
     if (mode.kind !== 'edit') return;
     const displayName = buffer.title || mode.filename;
-    if (!window.confirm(`Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`))
-      return;
+    const ok = await confirm({
+      title: 'Move event to trash',
+      message: `Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`,
+      confirmLabel: 'Move to Trash',
+      danger: true,
+    });
+    if (!ok) return;
     void doDelete();
-  }, [mode, buffer.title, doDelete]);
+  }, [mode, buffer.title, doDelete, confirm]);
 
   const colorSelectValue = customMode ? '__custom__' : getColorPresetValue(buffer.color);
   const isCustomColor = colorSelectValue === '__custom__';
@@ -477,7 +484,7 @@ export function EventEditorModal({
         <button
           type="button"
           className="event-editor-btn event-editor-btn--danger"
-          onClick={handleDeleteClick}
+          onClick={() => void handleDeleteClick()}
           disabled={isBusy || loadState !== 'ready'}
         >
           Delete

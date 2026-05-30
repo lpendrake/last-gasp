@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Campaign } from '../../../types/global';
 import { ThemeProvider } from '../../theme';
+import { useConfirm } from '../../shared/confirm-dialog/confirm-provider';
 import tttIconUrl from '../../../assets/images/TTT.svg';
 
 interface CampaignManagerProps {
@@ -23,6 +24,7 @@ export function CampaignManager({
   rootDir,
 }: CampaignManagerProps) {
   const bs = ThemeProvider.get().bootstrap;
+  const { alert } = useConfirm();
 
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -52,7 +54,10 @@ export function CampaignManager({
       setNewName('');
       setNewDesc('');
     } else {
-      alert(result.error);
+      await alert({
+        title: 'Unable to create campaign',
+        message: result.error ?? 'Failed to create campaign.',
+      });
     }
   };
 

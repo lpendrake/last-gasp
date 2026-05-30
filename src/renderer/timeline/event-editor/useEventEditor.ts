@@ -5,6 +5,7 @@ import type { EditorMode } from './domain';
 import { emptyBuffer, bufferToFrontmatter, deriveFilename } from './domain';
 import { buildNewEventContent, duplicateEventMessage } from './domain/new-event-content';
 import { createEventChecked } from './create-event-checked';
+import { useConfirm } from '../../shared/confirm-dialog/confirm-provider';
 
 export type { EditorMode };
 
@@ -39,6 +40,7 @@ export function useEventEditor(
   campaignPath: string,
   onEventsChanged: () => void,
 ): UseEventEditorResult {
+  const { confirm } = useConfirm();
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [cardDeleteConflict, setCardDeleteConflict] = useState<CardDeleteConflict | null>(null);
   const [newEventPrompt, setNewEventPrompt] = useState<NewEventPromptState | null>(null);
@@ -76,9 +78,12 @@ export function useEventEditor(
   const requestDeleteFromCard = useCallback(
     async (item: EventListItem) => {
       const displayName = item.title || item.filename;
-      const ok = window.confirm(
-        `Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`,
-      );
+      const ok = await confirm({
+        title: 'Move event to trash',
+        message: `Move "${displayName}" to trash?\n\nRecoverable via Settings → Trash.`,
+        confirmLabel: 'Move to Trash',
+        danger: true,
+      });
       if (!ok) return;
       try {
         await timelinePort.deleteEvent(campaignPath, item.filename, item.mtime);
@@ -91,7 +96,7 @@ export function useEventEditor(
         console.error('[useEventEditor] delete failed', err);
       }
     },
-    [campaignPath, onEventsChanged],
+    [campaignPath, onEventsChanged, confirm],
   );
 
   const resolveCardDeleteConflict = useCallback(

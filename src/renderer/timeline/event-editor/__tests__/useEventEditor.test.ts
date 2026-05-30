@@ -7,6 +7,11 @@ import type { EventListItem, EventWithMtime } from '../../data/types';
 
 // ---- Mocks ----
 
+const confirmMock = vi.fn();
+vi.mock('../../../shared/confirm-dialog/confirm-provider', () => ({
+  useConfirm: () => ({ confirm: confirmMock, alert: vi.fn().mockResolvedValue(undefined) }),
+}));
+
 vi.mock('../../data/ports', () => ({
   timelinePort: {
     deleteEvent: vi.fn(),
@@ -55,12 +60,9 @@ const EVENT_WITH_MTIME: EventWithMtime = {
   lastModified: FRESH_MTIME,
 };
 
-const confirmMock = vi.fn(() => true);
-
 beforeEach(() => {
   vi.clearAllMocks();
-  confirmMock.mockReturnValue(true);
-  vi.stubGlobal('confirm', confirmMock);
+  confirmMock.mockReset().mockResolvedValue(true);
   mockReadTemplate.mockResolvedValue(null);
 });
 
@@ -144,7 +146,7 @@ describe('requestDeleteFromCard', () => {
 
   it('does nothing when user declines confirm', async () => {
     const onChanged = vi.fn();
-    confirmMock.mockReturnValue(false);
+    confirmMock.mockResolvedValueOnce(false);
     const { result } = renderHook(() => useEventEditor(CAMPAIGN, onChanged));
     await act(async () => {
       await result.current.requestDeleteFromCard(ITEM);

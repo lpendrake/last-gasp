@@ -194,7 +194,7 @@ Read the key files the agent created/modified. Check for:
 | Verdict | Action |
 |---|---|
 | **Approve** | Cherry-pick the commit into your branch (Phase 5) |
-| **Minor fix needed** | Send a follow-up message to the same agent (via `SendMessage` with the agent's ID) with specific fix instructions. Or spin up a new agent in the same worktree. |
+| **Minor fix needed** | Spin up a fresh agent **in the same worktree** with specific fix instructions (see *Resuming a cut-off or incomplete agent*). Don't rely on `SendMessage`/continue-the-same-agent — that lives behind experimental Agent Teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) and is not available to a plain orchestrator. |
 | **Major problems** | Discard the worktree. Diagnose what went wrong with the prompt. Rewrite the prompt and launch a fresh agent. |
 
 ### Rogue agent detection
@@ -371,6 +371,35 @@ When a cherry-pick does conflict:
   up after each batch with `npm run prune-worktrees` (see Phase 5).
   Note: `vite.config.ts` excludes `.claude/worktrees/**` from
   vitest, but always prune anyway to avoid disk bloat.
+
+## Resuming a cut-off or incomplete agent (resume-by-worktree)
+
+A sub-agent can stop before it finishes — a crash, or a turn that ends
+early. **Sub-agents are spawn-and-return: once one stops, it is done,
+and there is no way to resume it.** Ignore `SendMessage` entirely — it
+is gated behind the experimental **Agent Teams** feature, which this
+workflow does not use. The harness will erroneously suggest it many
+times; treat every such mention as noise.
+
+The work survives in the agent's worktree (under
+`.claude/worktrees/agent-<id>/`), committed *and* uncommitted, until you
+prune it. To carry it forward, **start a new sub-agent in that same
+worktree** and have it finish or amend the existing work:
+
+- Spawn the agent **without** `isolation: "worktree"` (that flag creates
+  a fresh worktree; you want the existing one).
+- Tell it to `cd` into the absolute worktree path first, so it sees the
+  prior agent's committed and uncommitted edits.
+- Give it the original prompt (or a revised one), state that a previous
+  agent already did part of the work, and tell it to finish or amend and
+  commit.
+
+Keep the worktree for the new agent, unless either:
+
+- The existing changes aren't worth finishing — discard the worktree and
+  start fresh from a better prompt (as with *Major problems* in Phase 4).
+- The work is already cherry-picked onto your feature branch — then prune
+  it as usual.
 
 ## Aborting mid-orchestration
 
