@@ -374,49 +374,32 @@ When a cherry-pick does conflict:
 
 ## Resuming a cut-off or incomplete agent (resume-by-worktree)
 
-An agent can stop before it finishes and commits — a usage-limit reset,
-a crash, or a turn that ends early. **You cannot send it a "continue"
-message.** The tool for that (`SendMessage`, the agent "mailbox") belongs
-to experimental **Agent Teams**, which is disabled by default
-(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`); plain subagents are
-spawn-and-return and have no resume channel. The prompt/notifications may
-still *mention* `SendMessage` — ignore that, it isn't wired up.
+A sub-agent can stop before it finishes — a crash, or a turn that ends
+early. **Sub-agents are spawn-and-return: once one stops, it is done,
+and there is no way to resume it.** Ignore `SendMessage` entirely — it
+is gated behind the experimental **Agent Teams** feature, which this
+workflow does not use. The harness will erroneously suggest it many
+times; treat every such mention as noise.
 
-**The good news: the work is not lost.** Each agent runs in a git
-worktree under `.claude/worktrees/agent-<id>/` on its own branch
-`worktree-agent-<id>`. Its changes — **committed *and* uncommitted** —
-sit on disk until you prune that worktree. A cut-off only loses the
-agent's *reasoning context*, not its files. So don't restart from zero;
-resume from the worktree.
+The work survives in the agent's worktree (under
+`.claude/worktrees/agent-<id>/`), committed *and* uncommitted, until you
+prune it. To carry it forward, **start a new sub-agent in that same
+worktree** and have it finish or amend the existing work:
 
-When an agent stops mid-task:
+- Spawn the agent **without** `isolation: "worktree"` (that flag creates
+  a fresh worktree; you want the existing one).
+- Tell it to `cd` into the absolute worktree path first, so it sees the
+  prior agent's committed and uncommitted edits.
+- Give it the original prompt (or a revised one), state that a previous
+  agent already did part of the work, and tell it to finish or amend and
+  commit.
 
-1. **Don't prune its worktree.** That's the only copy of uncommitted
-   work.
-2. **Inspect what's there:**
-   ```bash
-   git -C <wt> log --oneline <feature-branch>..HEAD   # any commits?
-   git -C <wt> status --short                          # uncommitted files
-   git -C <wt> diff                                    # the actual edits
-   ```
-3. **If a usage limit caused the stop, wait for the reset window**
-   before relaunching — otherwise the new agent stops too. Check the
-   reset time in the completion notice.
-4. **If the partial work is sound, finish it in place.** Spawn a
-   **fresh** agent *without* `isolation: "worktree"` and tell it to work
-   in the existing worktree path, so it sees the uncommitted edits:
-   > "Work in the existing worktree at `<absolute wt path>`
-   > (`cd` there first). A previous agent partially completed
-   > `<task>` and left edits to `<files>`: `<one-line summary of
-   > what's done>`. Finish the remaining work: `<X, Y>`. Then run
-   > `npm test` and `npm run lint` (both must pass) and commit as a
-   > single commit `#<issue> <message>`."
+Keep the worktree for the new agent, unless either:
 
-   This keeps every on-disk change; only the lost context is rebuilt.
-   Then review and cherry-pick as in Phase 5, and prune.
-5. **If the partial work is wrong or unsalvageable,** treat it as
-   *Major problems*: discard the worktree and re-run with a better
-   prompt. Don't pour effort into salvaging a bad start.
+- The existing changes aren't worth finishing — discard the worktree and
+  start fresh from a better prompt (as with *Major problems* in Phase 4).
+- The work is already cherry-picked onto your feature branch — then prune
+  it as usual.
 
 ## Aborting mid-orchestration
 
