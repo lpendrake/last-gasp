@@ -539,7 +539,7 @@ export function EventEditorModal({
               {/* Bottom controls */}
               <div className="event-editor-controls">
                 {/* Row 1: colour + tag input + tag chips */}
-                <div className="event-editor-row event-editor-row--meta">
+                <div className="event-editor-row event-editor-row--controls">
                   <div className="event-editor-control-field">
                     <span className="event-editor-field-label">Event Colour</span>
                     <div className="event-editor-color-row event-editor-color-row--inline">
@@ -571,7 +571,7 @@ export function EventEditorModal({
                       />
                     </div>
                   </div>
-                  <div className="event-editor-label-field">
+                  <div className="event-editor-label-field event-editor-label-field--tags">
                     <span className="event-editor-field-label">Tags</span>
                     <input
                       type="text"

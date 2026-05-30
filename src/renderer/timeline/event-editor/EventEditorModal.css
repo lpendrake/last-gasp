@@ -107,7 +107,7 @@
   color: var(--theme-text-secondary);
   border: 1px solid var(--theme-border);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 2px 8px;
   white-space: nowrap;
 }
 
@@ -199,13 +199,14 @@
   width: 160px;
 }
 
-/* Date input — small fixed width */
+/* Date input — wide enough for a full ISO timestamp (~19 chars, e.g. 4726-05-08T09:30:00) */
 .event-editor-date-input {
   flex: 0 0 auto;
-  width: 160px;
+  width: 190px;
+  box-sizing: border-box;
 }
 
-/* Label-override fields — fixed modest width, do not flex-grow */
+/* Label-override fields (Row 2: Tag Label, Link Label) — fixed modest width, do not flex-grow */
 .event-editor-label-field {
   display: flex;
   flex-direction: column;
@@ -214,23 +215,36 @@
   width: 200px;
 }
 
-/* Compact date field — narrower than the default label field */
+/* Date field wrapper — sized to its content (the input is sized by event-editor-date-input) */
 .event-editor-label-field--date {
-  width: 160px;
+  width: auto;
+  flex: 0 0 auto;
 }
 
-/* Colour control field — column wrapper for the colour picker trigger + swatch */
+/* Row-1 Tags wrapper — content-sized so it packs tightly next to the colour control */
+.event-editor-label-field--tags {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+/* Colour control field — column wrapper for the colour picker trigger + swatch.
+   Content-sized on Row 1 to prevent large empty gaps. */
 .event-editor-control-field {
   display: flex;
   flex-direction: column;
   gap: 3px;
   flex: 0 0 auto;
-  width: 220px;
+  width: auto;
 }
 
-/* Row 1 and Row 2 — bottom-align so input boxes share a baseline with captioned fields */
+/* Row 2 (date + label overrides) — bottom-align so inputs share a baseline with captioned fields */
 .event-editor-row--meta {
   align-items: flex-end;
+}
+
+/* Row 1 (colour + tags + chips) — center-align so chips sit flush next to the inputs */
+.event-editor-row--controls {
+  align-items: center;
 }
 
 /* ===== Conflict overlay ===== */
