@@ -305,6 +305,105 @@
   align-items: center;
 }
 
+/* ===== ColorSelect custom dropdown ===== */
+
+.event-editor-color-trigger-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.event-editor-color-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--theme-background);
+  border: 1px solid var(--theme-border);
+  border-radius: 2px;
+  color: var(--theme-text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.event-editor-color-trigger:hover {
+  border-color: var(--theme-accent);
+  background: var(--theme-panel-accent);
+}
+
+.event-editor-color-trigger[aria-expanded='true'] {
+  border-color: var(--theme-accent);
+}
+
+.event-editor-color-trigger-label {
+  flex: 1;
+}
+
+.event-editor-color-trigger-chevron {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.event-editor-color-popover {
+  position: fixed;
+  z-index: 400;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border-strong);
+  border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+  min-width: 160px;
+  padding: 4px 0;
+  font-family: ui-monospace, 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.event-editor-color-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--theme-text-secondary);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.event-editor-color-option:hover {
+  background: var(--theme-panel);
+  color: var(--theme-text-primary);
+}
+
+.event-editor-color-option--selected {
+  color: var(--theme-text-primary);
+}
+
+.event-editor-color-option-label {
+  flex: 1;
+}
+
+.event-editor-color-option-check {
+  font-size: 11px;
+  color: var(--theme-accent);
+}
+
+.event-editor-color-swatch-sm {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid var(--theme-border);
+  flex-shrink: 0;
+}
+
+.event-editor-color-swatch-sm--dashed {
+  border-style: dashed;
+}
+
 /* ===== New Event floating button ===== */
 
 .timeline-new-event-btn {
