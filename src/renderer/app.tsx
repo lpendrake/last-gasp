@@ -260,6 +260,9 @@ export default function App() {
           <CampaignSettingsModal
             campaignName={activeCampaign.name}
             onClose={() => setSettingsOpen(false)}
+            campaigns={campaigns}
+            activeCampaign={activeCampaign}
+            rootDir={rootDir}
           />
         )}
       </div>
