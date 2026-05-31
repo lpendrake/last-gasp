@@ -1,4 +1,41 @@
-# tabletop-timeline — Campaign On-Disk Format
+# tabletop-timeline
+
+## Purpose of the app
+This app is a tool for GMs, Game Masters who run table top role playing games.
+
+It's primary purpose is note taking and visualisation.
+
+It achieves this by presenting events the GM writes along a timeline, as well as allowing them to have traditional note
+files organised as they desire in folders.
+These two forms of structured information are called Notes and Events. Events are on the timeline, notes are in folders.
+
+The part that ties it together is wiki links and the Peek feature. This simply shows a preview of any event or note that
+is linked via it's ID, which all entities have and is stable.
+It is further enhanced by Auto-Tagging, whereby any link added to an event tags that event with the linked entity,
+making them easily filterable on the timeline.
+
+## Guiding Principles
+
+Simplicity, speed of action and speed of access to information supported by automation.
+
+There is a quiet intention to how features are built that aims for allowing speedy resolution of intent. For example,
+you don't go through a menu and complex forms to create an event, instead you can click anyone on the timeline and
+create an event at that point in time by just typing in the title. (simple and speedy action)
+
+The title itself serves as a note of something significant happening (simple) and the rest can be backfilled.
+Link insertion is easy, just type @ and start searching, enter to insert and it auto-fills the link name with the title
+of the linked file (simple and speedy action) which is easily overridable.
+
+Wiki links can then be used to quickly Peek at the file, (simple and speedy info), or navigate to it (speedy action).
+The timeline presents information on when things happens in a clear and concise manner (simple and speedy info).
+
+All this is complex, but in the end the users data is almost entirely made up of very simple markdown files that we
+create and manage on their behalf.
+
+Hopefully this pattern and these guiding principles continue to be infused throughout the life of TableTop Timeline.
+
+
+## Campaign On-Disk Format
 
 This document is the entry point for AI agents. It covers what a campaign is on disk, how files are structured, and how the ID system works.
 
@@ -14,9 +51,9 @@ A campaign is a directory inside a user-chosen root folder. The app scans the ro
     campaign.md                   # config — must exist for the folder to be recognised
     notes/                        # note markdown files, may be arbitrarily nested
       player characters/
-        aria.a1b2.md
+        aria.md
       factions/
-        iron-circle.c3d4.md
+        iron-circle.md
       locations/
       npcs/
       plots/
@@ -33,7 +70,7 @@ The app creates `notes/player characters`, `notes/factions`, `notes/locations`, 
 
 ## IDs
 
-Every note and event gets a **4-character alphanumeric ID** (chars `a-z0-9`, 36^4 = ~1.7 M combinations). The app generates one automatically when a file is first read and lacks an `id` frontmatter field, then writes it back.
+Every note, event and future referencable entity gets a **4-character alphanumeric ID** (chars `a-z0-9`, 36^4 = ~1.7 M combinations). The app generates one automatically when a file is first read and lacks an `id` frontmatter field, then writes it back.
 
 IDs appear in three places:
 
@@ -86,15 +123,17 @@ tags:
   - sesh:s1                       # session tags — managed by the app, not user-editable
 color: "#8b5cf6"                  # optional hex color
 status: happened                  # "happened" | "planned" (optional)
-id: e5f6                          # optional; auto-generated on create
-tagLabelOverride: Battle          # optional
-linkLabelOverride: Dawn Battle    # optional
+id: e5f6                          # auto-generated on create
+tagLabelOverride: Battle          # optional, when a file is tagged (id:{file_id} tags) this text overrides the title if present
+linkLabelOverride: Dawn Battle    # optional, same as tag overrides, but for wiki links
 ---
+Event body markdown.
 
-Event body markdown. Wiki links here drive the `id:XXXX` entity tags automatically.
+Must contain a h1 title as it drives the title field of the file, which in turn dictates the file name, and tag and link labels
+Wiki links here drive the `id:XXXX` entity tags automatically.
 ```
 
-Event filenames follow this pattern: `<date-only>-<title-slug>.md` where the slug is lowercased, apostrophes stripped, and non-alphanumeric runs replaced with `-`, capped at 60 chars. Example: `0001-01-15-battle-of-dawn.md`.
+Event filenames follow this pattern: `<event-date>-<title-slug>.md` where the slug is lowercased, apostrophes stripped, and non-alphanumeric runs replaced with `-`, capped at 60 chars. Example: `0001-01-15-battle-of-dawn.md`.
 
 ## `timeline/state.json`
 

@@ -679,6 +679,9 @@ export function TimelineView({
         <NewEventModal
           error={editor.newEventPrompt.error}
           onCreate={(title) => {
+            void editor.createOnly(title);
+          }}
+          onCreateAndOpen={(title) => {
             void editor.createAndOpen(title);
           }}
           onCancel={editor.cancelNewEventPrompt}

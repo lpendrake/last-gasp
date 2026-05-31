@@ -5,10 +5,17 @@ export interface NewEventModalProps {
   initialTitle?: string;
   error?: string | null;
   onCreate: (title: string) => void;
+  onCreateAndOpen: (title: string) => void;
   onCancel: () => void;
 }
 
-export function NewEventModal({ initialTitle, error, onCreate, onCancel }: NewEventModalProps) {
+export function NewEventModal({
+  initialTitle,
+  error,
+  onCreate,
+  onCreateAndOpen,
+  onCancel,
+}: NewEventModalProps) {
   const [title, setTitle] = useState(initialTitle ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +44,11 @@ export function NewEventModal({ initialTitle, error, onCreate, onCancel }: NewEv
     onCreate(trimmed);
   }
 
+  function handleCreateAndOpen() {
+    if (!canCreate) return;
+    onCreateAndOpen(trimmed);
+  }
+
   return (
     <div
       className="new-event-overlay"
@@ -56,7 +68,11 @@ export function NewEventModal({ initialTitle, error, onCreate, onCancel }: NewEv
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                handleCreateAndOpen();
+              } else if (e.key === 'Enter') {
+                handleCreate();
+              }
             }}
             autoComplete="off"
           />
@@ -73,8 +89,18 @@ export function NewEventModal({ initialTitle, error, onCreate, onCancel }: NewEv
             className="event-editor-btn event-editor-btn--primary"
             onClick={handleCreate}
             disabled={!canCreate}
+            title="Create and return to timeline (Enter)"
           >
             Create
+          </button>
+          <button
+            type="button"
+            className="event-editor-btn"
+            onClick={handleCreateAndOpen}
+            disabled={!canCreate}
+            title="Create and open in editor (Ctrl+Enter)"
+          >
+            Create &amp; Open
           </button>
         </div>
       </div>
