@@ -15,6 +15,7 @@ interface SearchableNote {
   path: string;
   title: string;
   body?: string;
+  tags?: string[];
 }
 
 type SearchResult =
@@ -31,6 +32,12 @@ interface SearchOverlayProps {
 
 export function matches(text: string | undefined, query: string): boolean {
   return !!text && text.toLowerCase().includes(query.toLowerCase());
+}
+
+export function matchesTags(tags: string[] | undefined, query: string): boolean {
+  if (!tags || tags.length === 0) return false;
+  const q = query.toLowerCase();
+  return tags.some((t) => t.toLowerCase().includes(q));
 }
 
 export function extractSnippet(text: string, query: string): string {
@@ -62,6 +69,7 @@ export function SearchOverlay({
   const [query, setQuery] = useState('');
   const [includeEvents, setIncludeEvents] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
+  const [includeTags, setIncludeTags] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [events, setEvents] = useState<SearchableEvent[]>([]);
   const [notes, setNotes] = useState<SearchableNote[]>([]);
@@ -91,7 +99,7 @@ export function SearchOverlay({
       const initialEvents: SearchableEvent[] = eventList;
       const initialNotes: SearchableNote[] = (entityIndex as EntityIndexEntry[])
         .filter((e) => e.type === 'note')
-        .map((e) => ({ path: e.path, title: e.title }));
+        .map((e) => ({ path: e.path, title: e.title, tags: e.tags }));
 
       setEvents(initialEvents);
       setNotes(initialNotes);
@@ -151,7 +159,11 @@ export function SearchOverlay({
 
     if (includeEvents) {
       for (const ev of events) {
-        if (matches(ev.title, query) || matches(ev.body, query)) {
+        if (
+          matches(ev.title, query) ||
+          matches(ev.body, query) ||
+          (includeTags && matchesTags(ev.tags, query))
+        ) {
           const snippet = ev.body ? extractSnippet(ev.body, query) : '';
           out.push({ kind: 'event', item: ev, snippet });
         }
@@ -163,7 +175,11 @@ export function SearchOverlay({
       for (const note of notes) {
         if (out.length >= 30) break;
         const bodyIdx = note.body ? note.body.toLowerCase().indexOf(query.toLowerCase()) : -1;
-        if (matches(note.title, query) || bodyIdx !== -1) {
+        if (
+          matches(note.title, query) ||
+          bodyIdx !== -1 ||
+          (includeTags && matchesTags(note.tags, query))
+        ) {
           const snippet = note.body && bodyIdx !== -1 ? extractSnippet(note.body, query) : '';
           const matchOffset = bodyIdx !== -1 ? bodyIdx : undefined;
           out.push({ kind: 'note', item: note, snippet, matchOffset });
@@ -172,7 +188,7 @@ export function SearchOverlay({
     }
 
     return out;
-  }, [query, events, notes, includeEvents, includeNotes]);
+  }, [query, events, notes, includeEvents, includeNotes, includeTags]);
 
   // Reset selectedIdx when results change
   useEffect(() => {
@@ -254,6 +270,14 @@ export function SearchOverlay({
               onChange={(e) => setIncludeNotes(e.target.checked)}
             />
             Notes
+          </label>
+          <label className="search-filter-label">
+            <input
+              type="checkbox"
+              checked={includeTags}
+              onChange={(e) => setIncludeTags(e.target.checked)}
+            />
+            Tags
           </label>
         </div>
 
