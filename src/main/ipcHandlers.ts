@@ -42,6 +42,15 @@ export function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
+  // File Selection
+  ipcMain.handle('dialog:selectFile', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+    });
+    if (result.canceled) return null;
+    return result.filePaths[0];
+  });
+
   // Settings
   ipcMain.handle('settings:getRootDir', async () => {
     return getSettings().rootDir || null;

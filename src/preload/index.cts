@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('fsApi', {
   getRootDir: () => ipcRenderer.invoke('settings:getRootDir'),
   setRootDir: (path: string) => ipcRenderer.invoke('settings:setRootDir', path),
   selectDirectory: () => ipcRenderer.invoke('dialog:selectDirectory'),
+  selectFile: () => ipcRenderer.invoke('dialog:selectFile'),
 
   // Campaign Management
   scanCampaigns: (rootDir: string) => ipcRenderer.invoke('campaign:scan', rootDir),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export type FooterSlot = 'left' | 'center' | 'right' | 'far-left';
+export type FooterSlot = 'left' | 'center' | 'right' | 'far-left' | 'settings';
 
 interface FooterPortalProps {
   children: React.ReactNode;

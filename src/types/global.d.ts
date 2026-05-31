@@ -65,6 +65,7 @@ declare global {
 
       // Dialog
       selectDirectory: () => Promise<string | null>;
+      selectFile: () => Promise<string | null>;
 
       // Timeline
       timelineListEvents: (campaignPath: string) => Promise<EventListItem[]>;

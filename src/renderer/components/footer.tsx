@@ -6,9 +6,17 @@ interface FooterProps {
   currentView: ViewType;
   onChangeView: (view: ViewType) => void;
   onBackToCampaigns: () => void;
+  onOpenSettings: () => void;
+  settingsOpen: boolean;
 }
 
-export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterProps) {
+export function Footer({
+  currentView,
+  onChangeView,
+  onBackToCampaigns,
+  onOpenSettings,
+  settingsOpen,
+}: FooterProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const viewNames: Record<ViewType, string> = {
@@ -122,6 +130,33 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
 
             <button
               onClick={() => {
+                onOpenSettings();
+                setMenuOpen(false);
+              }}
+              style={{
+                background: 'transparent',
+                color: 'var(--theme-text-primary)',
+                border: 'none',
+                padding: '10px 12px',
+                borderRadius: '2px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '14px',
+                transition: 'background 0.1s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--theme-panel)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              ⚙ Settings
+            </button>
+
+            <button
+              onClick={() => {
                 onBackToCampaigns();
                 setMenuOpen(false);
               }}
@@ -192,6 +227,27 @@ export function Footer({ currentView, onChangeView, onBackToCampaigns }: FooterP
           }}
         />
       </div>
+
+      {/* Settings masking bar — covers burger menu and view buttons when settings modal is open */}
+      {settingsOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'var(--theme-panel)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: '0 20px',
+            zIndex: 1,
+          }}
+        >
+          <div
+            id="footer-slot-settings"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          />
+        </div>
+      )}
     </div>
   );
 }

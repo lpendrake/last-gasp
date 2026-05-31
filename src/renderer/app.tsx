@@ -8,6 +8,7 @@ import { CampaignManager } from './views/campaigns/campaign-manager';
 import { useCampaigns } from './hooks/useCampaigns';
 import { ThemeProvider } from './theme';
 import { SearchOverlay } from './components/search-overlay';
+import { CampaignSettingsModal } from './views/settings/campaign-settings-modal';
 import { CampaignLoadOverlay } from './components/campaign-load-overlay';
 import { notesData } from './notes/data';
 import { timelinePort } from './timeline/data/ports';
@@ -24,6 +25,7 @@ import '../../src/index.css';
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('timeline');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingJumpFilename, setPendingJumpFilename] = useState<string | null>(null);
   const [pendingOpenNotePath, setPendingOpenNotePath] = useState<string | null>(null);
   const [pendingNoteMatchOffset, setPendingNoteMatchOffset] = useState<number | null>(null);
@@ -244,6 +246,8 @@ export default function App() {
           currentView={currentView}
           onChangeView={setCurrentView}
           onBackToCampaigns={handleCloseCampaign}
+          onOpenSettings={() => setSettingsOpen(true)}
+          settingsOpen={settingsOpen}
         />
         <SearchOverlay
           isOpen={isSearchOpen}
@@ -252,6 +256,12 @@ export default function App() {
           onJumpToEvent={handleJumpToEvent}
           onOpenNote={handleOpenNote}
         />
+        {settingsOpen && (
+          <CampaignSettingsModal
+            campaignName={activeCampaign.name}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
       </div>
     );
   };
