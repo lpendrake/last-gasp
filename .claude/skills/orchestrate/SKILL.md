@@ -10,22 +10,14 @@ You are the orchestrator. You plan, delegate, review, and merge — you
 implementation in isolated worktrees. You maintain the big picture,
 catch mistakes early, and ship one cohesive PR.
 
-## When to use
-
-| Scenario | Use this? |
-|---|---|
-| Task touches 3+ files across different systems | Yes |
-| Epic or sub-epic with multiple sub-tasks | Yes |
-| Task is large but confined to one file/module | No — give it to sonnet directly |
-| Quick bug fix or typo | No |
-
-## Why this works
-
-Opus holds full context while cheaper agents implement slices in
-parallel worktrees; unified review catches cross-cutting issues and
-ships one PR instead of many.
-
 ---
+
+# Phase 0: Base Branch
+
+If given a ticket to work on, follow branching etiquette and name the branch after the ticket.
+Check:
+- That you are an opus model, stop now if not and warn the user they invoked the skill on a another model family.
+- That planning mode is enabled. Stop now and remind the user to swap to planning mode.
 
 ## Phase 1: Understand
 
@@ -71,6 +63,8 @@ Batch 1:  [A] [B] [C]     ← no dependencies between A, B, C
 Batch 2:  [D] [E]          ← D depends on A; E depends on B
               ↓
 Batch 3:  [F]              ← F depends on D and E
+              ↓
+Batch N:  etc...
 ```
 
 Rules:
