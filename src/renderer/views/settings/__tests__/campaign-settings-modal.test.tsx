@@ -132,4 +132,28 @@ describe('CampaignSettingsModal', () => {
     expect(scrollSpy).toHaveBeenCalledOnce();
     expect(scrollSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
+
+  it('Templates section renders dummy template titles; clicking the first reveals the markdown editor', () => {
+    setup();
+    act(() => root.render(<CampaignSettingsModal {...defaultProps} />));
+
+    const templatesSection = container.querySelector('#templates')!;
+    expect(templatesSection).not.toBeNull();
+
+    // All three template titles should appear as accordion headers
+    const accordionHeaders = templatesSection.querySelectorAll('.accordion__header');
+    expect(accordionHeaders.length).toBeGreaterThanOrEqual(3);
+
+    // No editor mounted yet
+    expect(templatesSection.querySelector('.markdown-editor-container')).toBeNull();
+
+    // Click the first accordion header
+    const firstHeader = accordionHeaders[0] as HTMLButtonElement;
+    act(() => {
+      firstHeader.click();
+    });
+
+    // The markdown editor container should now be in the DOM
+    expect(templatesSection.querySelector('.markdown-editor-container')).not.toBeNull();
+  });
 });

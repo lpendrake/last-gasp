@@ -139,3 +139,26 @@
   padding-bottom: 8px;
 }
 
+/* Templates subheading */
+.campaign-settings-templates-subheading {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-text-muted);
+}
+
+/* Template editor host (accordion body) */
+.campaign-settings-template-editor {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.campaign-settings-template-editor .markdown-editor-container {
+  flex: 1;
+  overflow: auto;
+}
+

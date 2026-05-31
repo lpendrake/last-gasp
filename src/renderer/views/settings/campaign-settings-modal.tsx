@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { SETTINGS_SECTIONS } from './domain/settings-sections';
+import { DUMMY_TEMPLATES } from './domain/dummy-templates';
 import { SettingRow } from './controls/setting-row';
 import { Toggle } from './controls/toggle';
 import { SelectField } from './controls/select-field';
 import { SliderField } from './controls/slider-field';
 import { TextField } from './controls/text-field';
 import { FilePickerField } from './controls/file-picker-field';
+import { Accordion } from './controls/accordion';
+import { MarkdownEditor } from '../../shared/markdown-editor';
 import { FooterPortal } from '../../components/footer-portal';
 import { FooterButton } from '../../components/footer-button';
 import './campaign-settings-modal.css';
@@ -32,6 +35,11 @@ export function CampaignSettingsModal({ campaignName, onClose }: CampaignSetting
   // --- Templates state ---
   const [templatesFolder, setTemplatesFolder] = useState('templates');
   const [defaultTemplate, setDefaultTemplate] = useState<string | null>(null);
+  const [templates, setTemplates] = useState(DUMMY_TEMPLATES);
+
+  const updateTemplate = (id: string, content: string) => {
+    setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, content } : t)));
+  };
 
   // --- Keybindings state ---
   const [quickSearchShortcut, setQuickSearchShortcut] = useState('Ctrl+F');
@@ -235,6 +243,21 @@ export function CampaignSettingsModal({ campaignName, onClose }: CampaignSetting
                     buttonLabel="Choose template…"
                   />
                 </SettingRow>
+                <h4 className="campaign-settings-templates-subheading">Edit templates</h4>
+                <Accordion
+                  items={templates.map((t) => ({ id: t.id, title: t.name }))}
+                  renderBody={(id) => {
+                    const tpl = templates.find((t) => t.id === id)!;
+                    return (
+                      <div className="campaign-settings-template-editor">
+                        <MarkdownEditor
+                          content={tpl.content}
+                          onChange={(s) => updateTemplate(id, s)}
+                        />
+                      </div>
+                    );
+                  }}
+                />
               </section>
 
               {/* Keybindings section */}
