@@ -10,3 +10,4 @@ release/
 # Claude Code — ignore local session/project state, but ship skills with the repo
 .claude/*
 !.claude/skills/
+!.claude/settings.json
