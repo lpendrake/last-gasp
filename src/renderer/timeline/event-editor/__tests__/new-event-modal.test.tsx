@@ -34,6 +34,11 @@ function getCancelBtn(): HTMLButtonElement {
   return Array.from(btns).find((b) => b.textContent === 'Cancel') as HTMLButtonElement;
 }
 
+function getCreateAndOpenBtn(): HTMLButtonElement {
+  const btns = container.querySelectorAll('button');
+  return Array.from(btns).find((b) => b.textContent === 'Create & Open') as HTMLButtonElement;
+}
+
 describe('NewEventModal', () => {
   afterEach(() => {
     teardown();
@@ -52,6 +57,7 @@ describe('NewEventModal', () => {
     );
 
     expect(getCreateBtn().disabled).toBe(true);
+    expect(getCreateAndOpenBtn().disabled).toBe(true);
 
     // Type whitespace only — still disabled
     act(() => {
@@ -80,6 +86,7 @@ describe('NewEventModal', () => {
       ),
     );
     expect(getCreateBtn().disabled).toBe(false);
+    expect(getCreateAndOpenBtn().disabled).toBe(false);
   });
 
   it('fires onCreate with the trimmed title on Create click and on Enter', () => {
@@ -165,6 +172,31 @@ describe('NewEventModal', () => {
     act(() => {
       const event = new KeyboardEvent('keydown', { key: 'Enter', metaKey: true, bubbles: true });
       getInput().dispatchEvent(event);
+    });
+    expect(onCreateAndOpen).toHaveBeenCalledTimes(1);
+    expect(onCreateAndOpen).toHaveBeenCalledWith('Goblin Ambush');
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it('fires onCreateAndOpen with the trimmed title on Create & Open click', () => {
+    setup();
+    const onCreate = vi.fn();
+    const onCreateAndOpen = vi.fn();
+    const onCancel = vi.fn();
+
+    act(() =>
+      root.render(
+        <NewEventModal
+          initialTitle="  Goblin Ambush  "
+          onCreate={onCreate}
+          onCreateAndOpen={onCreateAndOpen}
+          onCancel={onCancel}
+        />,
+      ),
+    );
+
+    act(() => {
+      getCreateAndOpenBtn().click();
     });
     expect(onCreateAndOpen).toHaveBeenCalledTimes(1);
     expect(onCreateAndOpen).toHaveBeenCalledWith('Goblin Ambush');

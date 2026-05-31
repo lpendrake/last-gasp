@@ -89,11 +89,20 @@ export function NewEventModal({
             className="event-editor-btn event-editor-btn--primary"
             onClick={handleCreate}
             disabled={!canCreate}
+            title="Create and return to timeline (Enter)"
           >
             Create
           </button>
+          <button
+            type="button"
+            className="event-editor-btn"
+            onClick={handleCreateAndOpen}
+            disabled={!canCreate}
+            title="Create and open in editor (Ctrl+Enter)"
+          >
+            Create &amp; Open
+          </button>
         </div>
-        <p className="new-event-modal__hint">Ctrl+↵ to open in editor</p>
       </div>
     </div>
   );

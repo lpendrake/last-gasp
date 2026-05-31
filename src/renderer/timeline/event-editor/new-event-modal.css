@@ -61,10 +61,3 @@
   gap: 8px;
   justify-content: flex-end;
 }
-
-.new-event-modal__hint {
-  margin: 0;
-  font-size: 11px;
-  color: var(--theme-text-secondary);
-  text-align: right;
-}
