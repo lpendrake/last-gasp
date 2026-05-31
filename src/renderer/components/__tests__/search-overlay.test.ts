@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matches, extractSnippet } from '../search-overlay';
+import { matches, extractSnippet, matchesTags } from '../search-overlay';
 
 describe('matches', () => {
   it('returns false for undefined text', () => {
@@ -64,5 +64,37 @@ describe('extractSnippet', () => {
     const text = 'The DRAGON rose';
     const result = extractSnippet(text, 'dragon');
     expect(result).toContain('DRAGON');
+  });
+});
+
+describe('matchesTags', () => {
+  it('matches when a tag contains the query (case-insensitive)', () => {
+    expect(matchesTags(['Plot:Beast'], 'beast')).toBe(true);
+  });
+
+  it('no match when no tag contains the query', () => {
+    expect(matchesTags(['faction:abadar'], 'beast')).toBe(false);
+  });
+
+  it('returns false for undefined tags', () => {
+    expect(matchesTags(undefined, 'x')).toBe(false);
+  });
+
+  it('returns false for empty tags array', () => {
+    expect(matchesTags([], 'x')).toBe(false);
+  });
+
+  it('resolves entity tag id via labelMap when raw tag does not match', () => {
+    const map = new Map([['a1b2', "So-Yun's Ruins"]]);
+    expect(matchesTags(['id:a1b2'], 'so-yun', map)).toBe(true);
+  });
+
+  it('does not resolve entity tag when labelMap is absent', () => {
+    expect(matchesTags(['id:a1b2'], 'so-yun')).toBe(false);
+  });
+
+  it('still matches raw tag even when labelMap is provided', () => {
+    const map = new Map([['a1b2', 'Something Else']]);
+    expect(matchesTags(['plot:dragon'], 'dragon', map)).toBe(true);
   });
 });

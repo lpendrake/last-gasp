@@ -10,6 +10,7 @@ import type {
   TagsRegistry,
   ConflictResult,
 } from '../renderer/timeline/data/types';
+export type { EntityIndexEntry, EntityIndexDelta } from '../shared/entity-index-entry';
 
 export interface Campaign {
   id: string;
@@ -18,19 +19,6 @@ export interface Campaign {
   folderName: string;
   path: string;
 }
-
-export interface EntityIndexEntry {
-  id: string;
-  path: string;
-  title: string;
-  type: 'note' | 'event' | 'asset';
-  tagLabelOverride?: string;
-  linkLabelOverride?: string;
-}
-
-export type EntityIndexDelta =
-  | { op: 'add' | 'update'; entry: EntityIndexEntry }
-  | { op: 'remove'; path: string };
 
 declare global {
   interface Window {

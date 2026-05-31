@@ -2,17 +2,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { parseNote, stringifyNote } from '../shared/frontmatter.js';
 import { ASSET_EXTENSIONS } from '../shared/fileKinds.js';
+import type { EntityIndexEntry } from '../shared/entity-index-entry.js';
+export type { EntityIndexEntry } from '../shared/entity-index-entry.js';
 
 export { ASSET_EXTENSIONS };
-
-export interface EntityIndexEntry {
-  id: string;
-  path: string; // Campaign-relative path (using forward slashes)
-  title: string;
-  type: 'note' | 'event' | 'asset';
-  tagLabelOverride?: string;
-  linkLabelOverride?: string;
-}
 
 export function findEntityById(id: string, campaignPath: string): string | null {
   for (const subdir of ['notes', 'timeline']) {
@@ -101,6 +94,10 @@ export function indexSingleEntity(fullPath: string, campaignPath: string): Entit
         entry.tagLabelOverride = frontmatter.tagLabelOverride;
       if (typeof frontmatter.linkLabelOverride === 'string')
         entry.linkLabelOverride = frontmatter.linkLabelOverride;
+      if (Array.isArray(frontmatter.tags) && frontmatter.tags.length > 0)
+        entry.tags = (frontmatter.tags as unknown[]).filter(
+          (t): t is string => typeof t === 'string',
+        );
       return entry;
     } catch {
       return null;
@@ -168,6 +165,10 @@ function scanDir(
           indexEntry.tagLabelOverride = frontmatter.tagLabelOverride;
         if (typeof frontmatter.linkLabelOverride === 'string')
           indexEntry.linkLabelOverride = frontmatter.linkLabelOverride;
+        if (Array.isArray(frontmatter.tags) && frontmatter.tags.length > 0)
+          indexEntry.tags = (frontmatter.tags as unknown[]).filter(
+            (t): t is string => typeof t === 'string',
+          );
         index.push(indexEntry);
         tick?.();
       } else if (type === 'note' && ASSET_EXTENSIONS.has(ext)) {

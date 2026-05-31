@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { buildEntityIndex } from '../entity-index.js';
+import { buildEntityIndex, indexSingleEntity } from '../entity-index.js';
 
 function makeTmpCampaign(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'tti-test-'));
@@ -127,5 +127,54 @@ describe('buildEntityIndex – progress callback', () => {
     expect(calls).toHaveLength(3);
     expect(calls.every(([, t]) => t === 3)).toBe(true);
     expect(calls[calls.length - 1][0]).toBe(3);
+  });
+});
+
+describe('tags indexing', () => {
+  it('populates entry.tags from frontmatter for a note with tags', () => {
+    const dir = campaign();
+    const content = '---\nid: n001\ntitle: Tagged Note\ntags:\n  - a\n  - b\n---\n\nContent.\n';
+    writeFile(dir, 'notes/tagged.md', content);
+    const index = buildEntityIndex(dir);
+    expect(index).toHaveLength(1);
+    expect(index[0].tags).toEqual(['a', 'b']);
+  });
+
+  it('leaves entry.tags undefined when no tags field is present', () => {
+    const dir = campaign();
+    writeFile(dir, 'notes/no-tags.md', NOTE_CONTENT);
+    const index = buildEntityIndex(dir);
+    expect(index).toHaveLength(1);
+    expect(index[0].tags).toBeUndefined();
+  });
+
+  it('filters out non-string values from a mixed tags array', () => {
+    const dir = campaign();
+    // YAML: tags: [foo, 3, null] — yaml parses 3 as number and null as null
+    const content =
+      '---\nid: n002\ntitle: Mixed Tags\ntags:\n  - foo\n  - 3\n  - null\n---\n\nBody.\n';
+    writeFile(dir, 'notes/mixed.md', content);
+    const index = buildEntityIndex(dir);
+    expect(index).toHaveLength(1);
+    expect(index[0].tags).toEqual(['foo']);
+  });
+
+  it('populates entry.tags for a timeline event entry', () => {
+    const dir = campaign();
+    const content = '---\nid: ev02\ntitle: Dragon Plot\ntags:\n  - plot:dragon\n---\n\nDetails.\n';
+    writeFile(dir, 'timeline/dragon.md', content);
+    const index = buildEntityIndex(dir);
+    expect(index).toHaveLength(1);
+    expect(index[0].tags).toEqual(['plot:dragon']);
+  });
+
+  it('indexSingleEntity populates tags for a note', () => {
+    const dir = campaign();
+    const content = '---\nid: n003\ntitle: Single Note\ntags:\n  - x\n  - y\n---\n\nText.\n';
+    writeFile(dir, 'notes/single.md', content);
+    const fullPath = path.join(dir, 'notes/single.md');
+    const entry = indexSingleEntity(fullPath, dir);
+    expect(entry).not.toBeNull();
+    expect(entry!.tags).toEqual(['x', 'y']);
   });
 });

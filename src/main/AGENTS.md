@@ -36,6 +36,7 @@ interface EntityIndexEntry {
   type: 'note' | 'event' | 'asset';
   tagLabelOverride?: string;   // overrides title when entity appears as a tag
   linkLabelOverride?: string;  // overrides title when entity appears as a wiki link
+  tags?: string[];             // frontmatter tags; absent when none defined
 }
 ```
 
