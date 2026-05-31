@@ -112,6 +112,13 @@ declare global {
       ) => () => void;
       onLoadComplete: (callback: () => void) => () => void;
       onLoadError: (callback: (data: { message: string }) => void) => () => void;
+
+      // Theme Settings
+      getWorkspaceDefaultTheme: (rootDir: string) => Promise<string | null>;
+      setWorkspaceDefaultTheme: (rootDir: string, themeId: string) => Promise<void>;
+      getCampaignTheme: (campaignPath: string) => Promise<string | null>;
+      setCampaignTheme: (campaignPath: string, themeId: string | null) => Promise<void>;
+      getCampaignThemeOverrides: (campaignPaths: string[]) => Promise<Record<string, string>>;
     };
   }
 }
