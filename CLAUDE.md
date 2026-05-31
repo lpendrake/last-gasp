@@ -25,34 +25,22 @@ Before doing anything else, fetch both the **body** and the **labels** of the is
 
 **Images in issues:** `github.com/user-attachments` URLs require a two-step fetch. Call `WebFetch` on the URL — it will return a 302 redirect to a signed S3 URL. Call `WebFetch` again on that S3 URL; the image is downloaded and the path is reported in the result. Then use `Read` on that path to view the image. Do not give up after the first redirect — the image is always retrievable this way.
 
-### 2. Read the oversight tier from the labels
+### 2. Read the oversight mode from the labels
 
-| Label | Plan stage                                                                       | Pre-PR review |
-| --- |----------------------------------------------------------------------------------| --- |
-| `oversight:none` | Sonnet plans inline.                                                             | No opus review required. |
-| `oversight:basic` | Sonnet plans inline.                                                             | Opus advisor reviews the diff before the PR is opened. |
-| `oversight:extended` | Spawn an Opus `Plan` subagent first and post its plan as a comment on the issue. | Opus advisor reviews the diff before the PR is opened. |
-| `oversight:orchestrator` | Fire up the `orchestrate` skill. The work for this ticket is split across parallel sub-agents (in separate worktrees) that each handle a slice of the same deliverable. | The orchestrator reviews each sub-agent's output, resolves conflicts, merges into one base branch, and opens a single PR. |
-| (no `oversight:*` label) | Treat as `oversight:basic`.                                                      | Treat as `oversight:basic`. |
-
-> **Orchestration guardrails (enforced every time):**
-> 1. **Opus only.** The `orchestrate` skill must run on an Opus-family model. If the current model is not Opus, stop immediately and ask: "I'm running as `<model>`. Orchestration is designed for Opus — did you mean to switch?" Do not proceed without explicit confirmation.
-> 2. **Plan first, always.** Every orchestration must begin in plan mode. If the user triggers orchestration without a plan in place, enter plan mode before spawning any sub-agents or writing any code. Never skip the planning phase, even for small orchestrations.
-
-The ticket body may add **extra** reviewer criteria (e.g. "zero changes outside `./desktop/`"). It cannot waive the ones below.
+| Label | allowed models | Plan stage                                                                       | Pre-PR review                                                 |
+| --- |--------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|---------------------------------------------------------------|
+| `oversight:none` | Sonnet | Sonnet plans inline.                                                             | No opus review required.                                      |
+| `oversight:basic` | Sonnet | Sonnet plans inline.                                                             | Opus advisor reviews the diff before the PR is opened.        |
+| `oversight:extended` | Sonnet | Spawn an Opus `Plan` subagent first and post its plan as a comment on the issue. | Opus advisor reviews the diff before the PR is opened.        |
+| `oversight:orchestrator` | Opus | See the orchestrate skill                                                        | See the orchestrate skill                                     |
+| (no `oversight:*` label) | See chosen oversight mode | Stop and question the user as to which oversight mode to use.                    | Stop and question the user as to which oversight mode to use. |
 
 !Important! When asking a sub-agent to plan for you do not do research first, let it do its own research, else you pollute its views.
 Once it has a plan for you and has highlighted files, look into what it has guided you towards.
 
-### 3. Build a TodoWrite list
+### 3. Pre-PR opus advisor reviews for `basic` and `extended` oversight
 
-Convert the plan (the Plan subagent's output for `extended`, or your own sketch for `basic`/`none`) into a `TodoWrite` list before writing code. Keep exactly one item `in_progress` at a time and mark items `completed` as you go. If you discover the plan is wrong mid-implementation, stop, update the todos (and the plan comment, if `extended`), then continue — don't silently deviate.
-
-If you're about to edit a file without an active todo covering that work, that's the signal to go back to step 3.
-
-### 4. Pre-PR opus advisor review (`basic` and `extended`)
-
-Before opening the PR, spawn an opus advisor on the diff. The advisor must verify, on top of any ticket-specific checks:
+If in basic or extended oversight mode then before opening the PR, spawn an opus advisor on the diff. The advisor must verify, on top of any ticket-specific checks:
 
 - **Spec coverage** — whatever the ticket body specifies as the work to be done is actually implemented.
 - **De-duplication** — flag repeated logic that should be a shared helper, hook, or component.
@@ -105,3 +93,7 @@ kebab-case for all files and folders.
 # PR Template
 
 The template is in [pull-request-template.md](../.github/pull_request_template.md)
+
+# Link PRs to your ticket
+
+Make sure github links the PR to the ticket so it automatically tracks progress.
