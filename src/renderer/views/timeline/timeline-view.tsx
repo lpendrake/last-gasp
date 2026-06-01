@@ -49,6 +49,9 @@ import { applyFilters } from '../../timeline/filter/logic';
 import { isSessionTag } from '../../../shared/entity-tags';
 import { FilterPanel } from '../../timeline/filter/filter-panel';
 import { EventContextMenu } from '../../timeline/components/event-context-menu';
+import { revealInExplorer } from '../../shared/reveal-in-explorer';
+import { buildEntityLink } from '../../shared/entity-link';
+import { copyToClipboard } from '../../shared/clipboard';
 import { LabelOverrideEditor } from '../../shared/components/label-override-editor';
 import '../../timeline/session-editor/session-mode.css';
 import './timeline-view.css';
@@ -671,6 +674,12 @@ export function TimelineView({
           onDelete={(item) => editor.requestDeleteFromCard(item)}
           onEditTagLabel={(entityId) => setLabelEditorTarget({ entityId, target: 'tagLabel' })}
           onEditLinkLabel={(entityId) => setLabelEditorTarget({ entityId, target: 'linkLabel' })}
+          onOpenInExplorer={(item) => {
+            void revealInExplorer(`${campaignPath}/timeline/${item.filename}`);
+          }}
+          onCopyLink={(item) => {
+            if (item.id) void copyToClipboard(buildEntityLink(item.id));
+          }}
         />
       )}
 

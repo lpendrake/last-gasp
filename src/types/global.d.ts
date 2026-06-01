@@ -47,6 +47,7 @@ declare global {
       delete: (path: string) => Promise<boolean>;
       trash: (path: string) => Promise<boolean>;
       openExternal: (url: string) => Promise<boolean>;
+      showItemInFolder: (path: string) => Promise<boolean>;
       rename: (oldPath: string, newPath: string) => Promise<boolean>;
 
       // Notes

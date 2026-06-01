@@ -89,6 +89,7 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.invoke('template:read', campaignPath, name),
 
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+  showItemInFolder: (path: string) => ipcRenderer.invoke('shell:showItemInFolder', path),
 
   // App
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),

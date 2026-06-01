@@ -251,6 +251,20 @@ ${description}
     return true;
   });
 
+  ipcMain.handle('shell:showItemInFolder', async (_event, filePath: string) => {
+    try {
+      const normalized = path.resolve(filePath);
+      if (fs.existsSync(normalized)) {
+        shell.showItemInFolder(normalized);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to show item in folder:', error);
+      throw error;
+    }
+  });
+
   ipcMain.handle('fs:trash', async (event, filePath: string) => {
     try {
       const normalized = path.resolve(filePath);

@@ -11,6 +11,8 @@ interface Props {
   onDelete(item: EventListItem): void;
   onEditTagLabel(entityId: string): void;
   onEditLinkLabel(entityId: string): void;
+  onOpenInExplorer(item: EventListItem): void;
+  onCopyLink(item: EventListItem): void;
 }
 
 export function EventContextMenu({
@@ -22,6 +24,8 @@ export function EventContextMenu({
   onDelete,
   onEditTagLabel,
   onEditLinkLabel,
+  onOpenInExplorer,
+  onCopyLink,
 }: Props) {
   const { menuRef, pos } = useContextMenuBehavior(x, y, onClose);
 
@@ -68,6 +72,25 @@ export function EventContextMenu({
         }}
       >
         Edit Link Label
+      </button>
+      <div className="context-menu-sep" />
+      <button
+        className="context-menu-item"
+        onClick={() => {
+          onOpenInExplorer(item);
+          onClose();
+        }}
+      >
+        Open in file explorer
+      </button>
+      <button
+        className="context-menu-item"
+        onClick={() => {
+          onCopyLink(item);
+          onClose();
+        }}
+      >
+        Copy Link
       </button>
     </div>
   );

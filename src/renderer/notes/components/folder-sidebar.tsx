@@ -130,6 +130,8 @@ export function FolderSidebar(props: FolderSidebarProps) {
               kind: 'file',
               folder: topFolder,
               path: node.path,
+              id: node.id,
+              fileKind: node.fileKind,
               x: e.clientX,
               y: e.clientY,
             });
