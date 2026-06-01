@@ -26,7 +26,7 @@ describe('darkPathfinder', () => {
   });
 
   it('has a name', () => {
-    expect(darkPathfinder.name).toBe('Dark Pathfinder');
+    expect(darkPathfinder.name).toBe('Darkfinder');
   });
 
   it('defines all 7 weekday colors', () => {

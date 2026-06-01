@@ -1,7 +1,7 @@
 import type { Theme } from './types';
 
 export const darkPathfinder: Theme = {
-  name: 'Dark Pathfinder',
+  name: 'Darkfinder',
 
   chrome: {
     background: '#1a1a1a',
@@ -73,6 +73,7 @@ export const darkPathfinder: Theme = {
   editor: {
     foldPlaceholder: '#ddd',
     invalid: '#ff0000',
+    selection: '#c9a860',
   },
 
   bootstrap: {

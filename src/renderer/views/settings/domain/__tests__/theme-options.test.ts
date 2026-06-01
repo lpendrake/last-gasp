@@ -4,7 +4,7 @@ import type { ThemeListItem } from '../../../../theme';
 import type { Campaign } from '../../../../../types/global';
 
 const coreThemes: ThemeListItem[] = [
-  { id: 'dark-pathfinder', name: 'Dark Pathfinder', kind: 'core' },
+  { id: 'dark-pathfinder', name: 'Darkfinder', kind: 'core' },
   { id: 'lightfinder', name: 'Lightfinder', kind: 'core' },
 ];
 
@@ -28,7 +28,7 @@ describe('buildThemeOptionGroups', () => {
     const groups = buildThemeOptionGroups(mixedThemes);
 
     expect(groups.core).toHaveLength(2);
-    expect(groups.core[0]).toEqual({ id: 'dark-pathfinder', name: 'Dark Pathfinder' });
+    expect(groups.core[0]).toEqual({ id: 'dark-pathfinder', name: 'Darkfinder' });
     expect(groups.core[1]).toEqual({ id: 'lightfinder', name: 'Lightfinder' });
     expect(groups.customComingSoon).toBe(true);
   });

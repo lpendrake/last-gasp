@@ -14,9 +14,10 @@ export const lastGaspTheme = EditorView.theme(
       caretColor: 'var(--theme-accent-gold)',
     },
     '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--theme-accent-gold)' },
-    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-      backgroundColor: 'rgb(var(--theme-accent-gold-rgb) / 0.2)',
-    },
+    '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection, .cm-line ::selection':
+      {
+        backgroundColor: 'rgb(var(--editor-selection-rgb) / 0.35)',
+      },
 
     '.cm-panels': { backgroundColor: 'var(--theme-surface)', color: 'var(--theme-text-primary)' },
     '.cm-panels.cm-panels-top': { borderBottom: '1px solid var(--theme-border)' },
@@ -74,6 +75,11 @@ export const lastGaspTheme = EditorView.theme(
       },
     },
   },
+  // Note: { dark: true } tells CodeMirror to use its dark-mode defaults for
+  // any unthemed elements. The editor theme object is created once at module
+  // load and cannot be rebuilt at runtime on a theme switch — a known
+  // limitation. All selection / highlight colors are driven by CSS variables
+  // so they update live; only CodeMirror's own unthemed internals are affected.
   { dark: true },
 );
 

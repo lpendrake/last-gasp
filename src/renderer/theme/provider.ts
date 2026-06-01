@@ -13,7 +13,7 @@ interface RegistryEntry extends ThemeListItem {
 }
 
 const registry: RegistryEntry[] = [
-  { id: 'dark-pathfinder', name: 'Dark Pathfinder', kind: 'core', theme: darkPathfinder },
+  { id: 'dark-pathfinder', name: 'Darkfinder', kind: 'core', theme: darkPathfinder },
   { id: 'lightfinder', name: 'Lightfinder', kind: 'core', theme: lightfinder },
 ];
 
@@ -75,6 +75,8 @@ function applyCssVars(theme: Theme): void {
 
   root.setProperty('--notes-saved', theme.notes.savedIndicator);
   root.setProperty('--notes-error', theme.notes.errorToast);
+
+  root.setProperty('--editor-selection-rgb', hexToRgb(theme.editor.selection));
 }
 
 function deepMerge(base: Theme, overrides: DeepPartial<Theme>): Theme {

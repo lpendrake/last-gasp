@@ -18,7 +18,7 @@ There are two built-in ("core") themes in the registry:
 
 | id | Display name | File |
 |----|--------------|------|
-| `dark-pathfinder` | Dark Pathfinder | `dark-pathfinder.ts` |
+| `dark-pathfinder` | Darkfinder | `dark-pathfinder.ts` |
 | `lightfinder` | Lightfinder | `lightfinder.ts` |
 
 ## ThemeProvider API
@@ -48,7 +48,7 @@ const id = ThemeProvider.getActiveThemeId(); // e.g. 'lightfinder'
 
 // List all registered themes (id / name / kind — no Theme objects).
 const items = ThemeProvider.listThemes();
-// [{ id: 'dark-pathfinder', name: 'Dark Pathfinder', kind: 'core' }, ...]
+// [{ id: 'dark-pathfinder', name: 'Darkfinder', kind: 'core' }, ...]
 
 // Subscribe to theme changes (any setByName or set call notifies all listeners).
 const unsubscribe = ThemeProvider.subscribe(() => {
@@ -77,7 +77,7 @@ unsubscribe(); // call the returned function to remove the listener
 | `chrome` | App-wide shell: backgrounds, surfaces, panels, text, accents, links, borders, danger. These are the tokens exposed as `--theme-*` CSS variables. |
 | `timeline` | Day-of-week colors (`days`), session band palette (`sessions[]`), event color presets (`eventColorPresets[]`). Used by timeline render and editor code, not in CSS variables. |
 | `notes` | Note-kind accent colors (`kinds.*`) exposed as `--kind-*` CSS variables; `savedIndicator` and `errorToast` exposed as `--notes-saved` / `--notes-error`. |
-| `editor` | CodeMirror-specific tokens (`foldPlaceholder`, `invalid`). Passed directly to the editor theme builder. |
+| `editor` | CodeMirror-specific tokens (`foldPlaceholder`, `invalid`, `selection`). `selection` is emitted as `--editor-selection-rgb` and drives the CodeMirror selection highlight color. |
 | `bootstrap` | Campaign-selector / pre-campaign screens only. A darker, higher-contrast palette for the app before a campaign is loaded. **Do not use `bootstrap` tokens inside campaign views.** |
 
 ## Consuming colors
@@ -137,9 +137,10 @@ const sessionColor = ThemeProvider.get().timeline.sessions[0];
 
 RGB triplet variants (space-separated, suitable for `rgba()`):
 ```
---theme-accent-gold-rgb
---theme-accent-warm-rgb
---theme-danger-rgb
+--theme-accent-gold-rgb    chrome.accentGold
+--theme-accent-warm-rgb    chrome.accentWarm
+--theme-danger-rgb         chrome.danger
+--editor-selection-rgb     editor.selection   (base color for CodeMirror selection highlights)
 ```
 
 Note-kind and indicator variables:

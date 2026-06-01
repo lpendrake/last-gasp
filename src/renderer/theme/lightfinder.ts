@@ -75,6 +75,7 @@ export const lightfinder: Theme = {
   editor: {
     foldPlaceholder: '#5a4d33',
     invalid: '#c8281a',
+    selection: '#8a5e10',
   },
 
   bootstrap: {
