@@ -9,6 +9,9 @@ import {
   makePeekWikiLinksConfig,
 } from './editor-bindings';
 import { buildEntityLabelMap } from '../../shared/entity-labels';
+import { revealInExplorer } from '../shared/reveal-in-explorer';
+import { buildEntityLink, buildAssetLink } from '../shared/entity-link';
+import { copyToClipboard } from '../shared/clipboard';
 import { QuickAdd } from './components/quick-add.tsx';
 import { NoteContextMenu } from './components/note-context-menu.tsx';
 import { LabelOverrideEditor } from '../shared/components/label-override-editor';
@@ -326,6 +329,23 @@ export function NotesApp({
           }}
           onEditTagLabel={(folder, path) => ctrl.handleOpenLabelEditor(folder, path, 'tagLabel')}
           onEditLinkLabel={(folder, path) => ctrl.handleOpenLabelEditor(folder, path, 'linkLabel')}
+          onOpenInExplorer={(folder, path) => {
+            ctrl.setContextMenu(null);
+            void revealInExplorer(`${campaignPath}/notes/${folder}/${path}`);
+          }}
+          onCopyLink={(target) => {
+            ctrl.setContextMenu(null);
+            if (target.kind !== 'file') return;
+            if (target.fileKind === 'asset') {
+              const label = target.path
+                .split('/')
+                .pop()!
+                .replace(/\.[^.]+$/, '');
+              void copyToClipboard(buildAssetLink(`notes/${target.folder}/${target.path}`, label));
+            } else if (target.id) {
+              void copyToClipboard(buildEntityLink(target.id));
+            }
+          }}
         />
       )}
 

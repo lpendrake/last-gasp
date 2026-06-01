@@ -2,7 +2,15 @@ import { useContextMenuBehavior } from '../../shared/use-context-menu-behavior';
 import '../../shared/context-menu.css';
 
 export type ContextMenuTarget =
-  | { kind: 'file'; folder: string; path: string; x: number; y: number }
+  | {
+      kind: 'file';
+      folder: string;
+      path: string;
+      id?: string;
+      fileKind?: 'note' | 'asset' | 'unsupported';
+      x: number;
+      y: number;
+    }
   | { kind: 'dir'; folder: string; path: string; x: number; y: number }
   | { kind: 'topfolder'; folder: string; x: number; y: number };
 
@@ -15,6 +23,8 @@ interface Props {
   onDelete(folder: string, path: string | undefined, kind: ContextMenuTarget['kind']): void;
   onEditTagLabel?(folder: string, path: string): void;
   onEditLinkLabel?(folder: string, path: string): void;
+  onOpenInExplorer(folder: string, path: string): void;
+  onCopyLink(target: ContextMenuTarget): void;
 }
 
 export function NoteContextMenu({
@@ -26,6 +36,8 @@ export function NoteContextMenu({
   onDelete,
   onEditTagLabel,
   onEditLinkLabel,
+  onOpenInExplorer,
+  onCopyLink,
 }: Props) {
   const { menuRef, pos } = useContextMenuBehavior(target.x, target.y, onClose);
 
@@ -100,6 +112,24 @@ export function NoteContextMenu({
             }}
           >
             Edit Link Label
+          </button>
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              onOpenInExplorer(target.folder, target.path);
+              onClose();
+            }}
+          >
+            Open in file explorer
+          </button>
+          <button
+            className="context-menu-item"
+            onClick={() => {
+              onCopyLink(target);
+              onClose();
+            }}
+          >
+            Copy Link
           </button>
         </>
       )}
