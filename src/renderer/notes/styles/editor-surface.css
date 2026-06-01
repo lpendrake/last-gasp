@@ -108,6 +108,15 @@
 .cm-heading-2 { font-size: 1.4em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
 .cm-heading-3 { font-size: 1.2em; font-weight: 700; color: var(--theme-accent-gold); display: inline-block; }
 
+/* Wiki-link widgets on heading lines: match the heading's font-size.
+ * Decoration.replace widgets are siblings of the cm-heading-N mark span in the DOM
+ * (not children), so they do not inherit font-size by default. The cm-heading-line-N
+ * class is added as a Decoration.line on the .cm-line element, which wraps all inline
+ * content including replacement widgets, enabling this descendant rule. */
+.cm-line.cm-heading-line-1 .cm-note-link { font-size: 1.8em; }
+.cm-line.cm-heading-line-2 .cm-note-link { font-size: 1.4em; }
+.cm-line.cm-heading-line-3 .cm-note-link { font-size: 1.2em; }
+
 .cm-wiki-link-raw {
   color: var(--theme-text-muted);
 }

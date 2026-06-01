@@ -40,6 +40,62 @@ describe('isCursorNear', () => {
   });
 });
 
+describe('heading line-class decorations', () => {
+  // Heading lines get both a Decoration.mark (cm-heading-N) spanning the full heading
+  // text AND a Decoration.line (cm-heading-line-N) on the line start. The line-class
+  // is what allows CSS to target wiki-link replacement widgets inside the heading,
+  // because Decoration.replace widgets are DOM siblings of mark spans — not children —
+  // so they cannot inherit font-size from the mark alone.
+  function makeState(doc: string) {
+    return EditorState.create({
+      doc,
+      extensions: [markdown({ base: markdownLanguage })],
+      selection: { anchor: 0 },
+    });
+  }
+
+  function collectDecoClasses(state: EditorState): string[] {
+    const decos = buildDecorations(state);
+    const classes: string[] = [];
+    decos.between(0, state.doc.length, (_from, _to, deco) => {
+      const spec = deco.spec as Record<string, unknown>;
+      if (typeof spec['class'] === 'string') classes.push(spec['class'] as string);
+    });
+    return classes;
+  }
+
+  it('adds cm-heading-line-1 class for an h1 line', () => {
+    const state = makeState('# Ancient Research Points [[abc1]]');
+    const classes = collectDecoClasses(state);
+    expect(classes).toContain('cm-heading-line-1');
+  });
+
+  it('adds cm-heading-line-2 class for an h2 line', () => {
+    const state = makeState('## Sub-section [[abc1]]');
+    const classes = collectDecoClasses(state);
+    expect(classes).toContain('cm-heading-line-2');
+  });
+
+  it('adds cm-heading-line-3 class for an h3 line', () => {
+    const state = makeState('### Detail [[abc1]]');
+    const classes = collectDecoClasses(state);
+    expect(classes).toContain('cm-heading-line-3');
+  });
+
+  it('does NOT add a heading-line class for a plain body line', () => {
+    const state = makeState('A plain line with [[abc1]]');
+    const classes = collectDecoClasses(state);
+    expect(classes.some((c) => c.startsWith('cm-heading-line-'))).toBe(false);
+  });
+
+  it('adds both cm-heading-1 mark and cm-heading-line-1 line-class for h1', () => {
+    const state = makeState('# Title');
+    const classes = collectDecoClasses(state);
+    expect(classes).toContain('cm-heading-1');
+    expect(classes).toContain('cm-heading-line-1');
+  });
+});
+
 describe('readonly mode: syntax marks always hidden', () => {
   function makeState(doc: string, cursorPos: number, readOnly: boolean) {
     return EditorState.create({

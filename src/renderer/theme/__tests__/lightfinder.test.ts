@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { darkPathfinder } from '../dark-pathfinder';
+import { lightfinder } from '../lightfinder';
 
-const SKIP_PATHS = new Set(['darkPathfinder.timeline.eventColorPresets']);
+const SKIP_PATHS = new Set(['lightfinder.timeline.eventColorPresets']);
 
 function assertNoEmptyStrings(obj: unknown, path: string): void {
   if (SKIP_PATHS.has(path)) return;
@@ -20,29 +20,25 @@ function assertNoEmptyStrings(obj: unknown, path: string): void {
   }
 }
 
-describe('darkPathfinder', () => {
-  it('has no empty string values', () => {
-    assertNoEmptyStrings(darkPathfinder, 'darkPathfinder');
+describe('lightfinder', () => {
+  it('has no empty string values (skipping eventColorPresets)', () => {
+    assertNoEmptyStrings(lightfinder, 'lightfinder');
   });
 
-  it('has a name', () => {
-    expect(darkPathfinder.name).toBe('Darkfinder');
+  it('has name === "Lightfinder"', () => {
+    expect(lightfinder.name).toBe('Lightfinder');
   });
 
-  it('defines all 7 weekday colors', () => {
-    const days = darkPathfinder.timeline.days;
+  it('defines all 7 weekday colors as valid 6-digit hex values', () => {
+    const days = lightfinder.timeline.days;
     expect(Object.keys(days)).toHaveLength(7);
     for (const color of Object.values(days)) {
       expect(color).toMatch(/^#[0-9a-fA-F]{6}$/);
     }
   });
 
-  it('defines at least one session color', () => {
-    expect(darkPathfinder.timeline.sessions.length).toBeGreaterThan(0);
-  });
-
-  it('has a "Default (weekday)" preset as the first event color option', () => {
-    expect(darkPathfinder.timeline.eventColorPresets[0]).toEqual({
+  it('has "Default (weekday)" as the first event color preset sentinel', () => {
+    expect(lightfinder.timeline.eventColorPresets[0]).toEqual({
       label: 'Default (weekday)',
       value: '',
     });

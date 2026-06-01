@@ -1,7 +1,31 @@
 import { darkPathfinder } from './dark-pathfinder';
+import { lightfinder } from './lightfinder';
 import type { Theme, DeepPartial } from './types';
 
+export interface ThemeListItem {
+  id: string;
+  name: string;
+  kind: 'core' | 'custom';
+}
+
+interface RegistryEntry extends ThemeListItem {
+  theme: Theme;
+}
+
+const registry: RegistryEntry[] = [
+  { id: 'dark-pathfinder', name: 'Darkfinder', kind: 'core', theme: darkPathfinder },
+  { id: 'lightfinder', name: 'Lightfinder', kind: 'core', theme: lightfinder },
+];
+
+let activeThemeId: string = 'dark-pathfinder';
 let activeTheme: Theme = darkPathfinder;
+const subscribers: Set<() => void> = new Set();
+
+function notifySubscribers(): void {
+  for (const listener of subscribers) {
+    listener();
+  }
+}
 
 function hexToRgb(hex: string): string {
   const h = hex.replace('#', '');
@@ -51,6 +75,8 @@ function applyCssVars(theme: Theme): void {
 
   root.setProperty('--notes-saved', theme.notes.savedIndicator);
   root.setProperty('--notes-error', theme.notes.errorToast);
+
+  root.setProperty('--editor-selection-rgb', hexToRgb(theme.editor.selection));
 }
 
 function deepMerge(base: Theme, overrides: DeepPartial<Theme>): Theme {
@@ -88,7 +114,37 @@ export const ThemeProvider = {
   },
 
   set(custom: DeepPartial<Theme>): void {
-    activeTheme = deepMerge(darkPathfinder, custom);
+    activeTheme = deepMerge(activeTheme, custom);
     applyCssVars(activeTheme);
+    notifySubscribers();
+  },
+
+  listThemes(): ThemeListItem[] {
+    return registry.map(({ id, name, kind }) => ({ id, name, kind }));
+  },
+
+  getActiveThemeId(): string {
+    return activeThemeId;
+  },
+
+  setByName(id: string): void {
+    const entry = registry.find((r) => r.id === id);
+    if (entry) {
+      activeThemeId = entry.id;
+      activeTheme = entry.theme;
+    } else {
+      const fallback = registry.find((r) => r.id === 'dark-pathfinder')!;
+      activeThemeId = fallback.id;
+      activeTheme = fallback.theme;
+    }
+    applyCssVars(activeTheme);
+    notifySubscribers();
+  },
+
+  subscribe(listener: () => void): () => void {
+    subscribers.add(listener);
+    return () => {
+      subscribers.delete(listener);
+    };
   },
 };

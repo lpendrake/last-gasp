@@ -123,4 +123,16 @@ contextBridge.exposeInMainWorld('fsApi', {
     ipcRenderer.on('campaign:loadError', listener);
     return () => ipcRenderer.removeListener('campaign:loadError', listener);
   },
+
+  // Theme Settings
+  getWorkspaceDefaultTheme: (rootDir: string) =>
+    ipcRenderer.invoke('themeSettings:getWorkspaceDefault', rootDir),
+  setWorkspaceDefaultTheme: (rootDir: string, themeId: string) =>
+    ipcRenderer.invoke('themeSettings:setWorkspaceDefault', rootDir, themeId),
+  getCampaignTheme: (campaignPath: string) =>
+    ipcRenderer.invoke('themeSettings:getCampaign', campaignPath),
+  setCampaignTheme: (campaignPath: string, themeId: string | null) =>
+    ipcRenderer.invoke('themeSettings:setCampaign', campaignPath, themeId),
+  getCampaignThemeOverrides: (campaignPaths: string[]) =>
+    ipcRenderer.invoke('themeSettings:getCampaignOverrides', campaignPaths),
 });

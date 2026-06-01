@@ -8,6 +8,13 @@ import { buildEntityIndex } from './entity-index.js';
 import { registerTimelineIpcHandlers } from './timelineIpcHandlers.js';
 import { registerEntityIndexHandlers } from './entity-index-handlers.js';
 import { ensureEventTemplate, readTemplate } from './event-template.js';
+import {
+  getWorkspaceDefaultTheme,
+  setWorkspaceDefaultTheme,
+  getCampaignTheme,
+  setCampaignTheme,
+  getCampaignOverrides,
+} from './theme-settings.js';
 
 const { autoUpdater } = pkg;
 
@@ -61,6 +68,29 @@ export function registerIpcHandlers() {
     settings.rootDir = rootDir;
     saveSettings(settings);
   });
+
+  // Theme Settings
+  ipcMain.handle('themeSettings:getWorkspaceDefault', (_event, rootDir: string) =>
+    getWorkspaceDefaultTheme(rootDir),
+  );
+
+  ipcMain.handle('themeSettings:setWorkspaceDefault', (_event, rootDir: string, themeId: string) =>
+    setWorkspaceDefaultTheme(rootDir, themeId),
+  );
+
+  ipcMain.handle('themeSettings:getCampaign', (_event, campaignPath: string) =>
+    getCampaignTheme(campaignPath),
+  );
+
+  ipcMain.handle(
+    'themeSettings:setCampaign',
+    (_event, campaignPath: string, themeId: string | null) =>
+      setCampaignTheme(campaignPath, themeId),
+  );
+
+  ipcMain.handle('themeSettings:getCampaignOverrides', (_event, campaignPaths: string[]) =>
+    getCampaignOverrides(campaignPaths),
+  );
 
   // Campaign Management
   ipcMain.handle('campaign:scan', async (event, rootDir: string) => {

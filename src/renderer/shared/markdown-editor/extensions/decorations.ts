@@ -61,6 +61,16 @@ export function buildDecorations(state: EditorState): DecorationSet {
           to: node.to,
           decoration: Decoration.mark({ class: `cm-heading-${level}` }),
         });
+        // Add a line-class so that replacement widgets (e.g. wiki-link widgets) inside
+        // a heading line can inherit the heading font-size via CSS descendant selectors.
+        // Decoration.mark spans don't wrap replace-widgets in the DOM, but Decoration.line
+        // adds a class to the .cm-line element which wraps all inline content including widgets.
+        const lineFrom = state.doc.lineAt(node.from).from;
+        decorations.push({
+          from: lineFrom,
+          to: lineFrom,
+          decoration: Decoration.line({ class: `cm-heading-line-${level}` }),
+        });
       }
 
       // Emphasis / Strong — marks hidden unless cursor is inside the span

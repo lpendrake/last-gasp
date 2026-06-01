@@ -11,14 +11,25 @@ import { Accordion } from './controls/accordion';
 import { MarkdownEditor } from '../../shared/markdown-editor';
 import { FooterPortal } from '../../components/footer-portal';
 import { FooterButton } from '../../components/footer-button';
+import { ThemeSection } from './theme-section';
+import type { Campaign } from '../../../types/global';
 import './campaign-settings-modal.css';
 
 export interface CampaignSettingsModalProps {
   campaignName: string;
   onClose: () => void;
+  campaigns: Campaign[];
+  activeCampaign: Campaign;
+  rootDir: string;
 }
 
-export function CampaignSettingsModal({ campaignName, onClose }: CampaignSettingsModalProps) {
+export function CampaignSettingsModal({
+  campaignName,
+  onClose,
+  campaigns,
+  activeCampaign,
+  rootDir,
+}: CampaignSettingsModalProps) {
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id);
@@ -27,10 +38,6 @@ export function CampaignSettingsModal({ campaignName, onClose }: CampaignSetting
   const [showFutureEvents, setShowFutureEvents] = useState(false);
   const [defaultCalendar, setDefaultCalendar] = useState('gregorian');
   const [defaultZoom, setDefaultZoom] = useState(50);
-
-  // --- Theme state ---
-  const [selectedTheme, setSelectedTheme] = useState('dark-pathfinder');
-  const [highContrast, setHighContrast] = useState(false);
 
   // --- Templates state ---
   const [templatesFolder, setTemplatesFolder] = useState('templates');
@@ -185,29 +192,11 @@ export function CampaignSettingsModal({ campaignName, onClose }: CampaignSetting
                 }}
               >
                 <h3 className="campaign-settings-section__title">Theme</h3>
-                <SettingRow
-                  label="Theme"
-                  description="The visual theme applied to the entire application."
-                  htmlFor="theme-select"
-                >
-                  <SelectField
-                    id="theme-select"
-                    value={selectedTheme}
-                    options={[{ value: 'dark-pathfinder', label: 'Dark Pathfinder' }]}
-                    onChange={setSelectedTheme}
-                  />
-                </SettingRow>
-                <SettingRow
-                  label="High-contrast mode"
-                  description="Increase contrast for improved readability."
-                  htmlFor="theme-high-contrast"
-                >
-                  <Toggle
-                    id="theme-high-contrast"
-                    checked={highContrast}
-                    onChange={setHighContrast}
-                  />
-                </SettingRow>
+                <ThemeSection
+                  campaigns={campaigns}
+                  activeCampaign={activeCampaign}
+                  rootDir={rootDir}
+                />
               </section>
 
               {/* Templates section */}

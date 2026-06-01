@@ -61,6 +61,7 @@ export interface Theme {
   editor: {
     foldPlaceholder: string;
     invalid: string;
+    selection: string;
   };
 
   bootstrap: {

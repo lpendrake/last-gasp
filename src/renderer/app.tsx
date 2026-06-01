@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Footer, ViewType } from './components/footer';
 import { NotesView } from './views/notes/notes-view';
 import { TimelineView } from './views/timeline/timeline-view';
@@ -20,6 +20,7 @@ import {
   buildEntityTagLabelMap,
   applyEntityDelta,
 } from '../shared/entity-labels';
+import { applyWorkspaceDefaultTheme, applyCampaignTheme } from './views/settings/apply-theme';
 import '../../src/index.css';
 
 export default function App() {
@@ -44,6 +45,25 @@ export default function App() {
     handleOpenCampaign,
     handleCloseCampaign,
   } = useCampaigns();
+
+  const [, forceRender] = useReducer((n: number) => n + 1, 0);
+
+  // Re-render whenever the theme changes so ThemeProvider.get()-based inline
+  // styles (e.g. the bootstrap splash) pick up the new colours immediately.
+  useEffect(() => {
+    const unsub = ThemeProvider.subscribe(() => forceRender());
+    return unsub;
+  }, []);
+
+  // Apply the appropriate theme whenever the workspace root or active campaign changes.
+  useEffect(() => {
+    if (!rootDir) return;
+    if (activeCampaign) {
+      void applyCampaignTheme(rootDir, activeCampaign.path);
+    } else {
+      void applyWorkspaceDefaultTheme(rootDir);
+    }
+  }, [rootDir, activeCampaign?.path]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const entityIndexRef = useRef<EntityIndexEntry[]>([]);
   const [entityLabelMap, setEntityLabelMap] = useState<Map<string, string>>(new Map());
@@ -260,6 +280,9 @@ export default function App() {
           <CampaignSettingsModal
             campaignName={activeCampaign.name}
             onClose={() => setSettingsOpen(false)}
+            campaigns={campaigns}
+            activeCampaign={activeCampaign}
+            rootDir={rootDir}
           />
         )}
       </div>
