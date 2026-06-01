@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildThemeOptionGroups, buildInitialOverrideRows } from '../theme-options';
+import { buildThemeOptionGroups, buildCampaignThemeRows, USE_DEFAULT } from '../theme-options';
 import type { ThemeListItem } from '../../../../theme';
 import type { Campaign } from '../../../../../types/global';
 
@@ -13,10 +13,10 @@ const mixedThemes: ThemeListItem[] = [
   { id: 'my-custom', name: 'My Custom', kind: 'custom' },
 ];
 
-function makeCampaign(path: string): Campaign {
+function makeCampaign(path: string, name?: string): Campaign {
   return {
     id: path,
-    name: path,
+    name: name ?? path,
     description: '',
     folderName: path,
     path,
@@ -40,37 +40,78 @@ describe('buildThemeOptionGroups', () => {
   });
 });
 
-describe('buildInitialOverrideRows', () => {
-  it('returns one row per campaign present in the overrides map with its themeId', () => {
-    const campaigns = [makeCampaign('/campaigns/alpha'), makeCampaign('/campaigns/beta')];
+describe('buildCampaignThemeRows', () => {
+  it('returns one row per campaign in campaigns order', () => {
+    const campaigns = [
+      makeCampaign('/campaigns/alpha', 'Alpha'),
+      makeCampaign('/campaigns/beta', 'Beta'),
+    ];
     const overrides: Record<string, string> = {
       '/campaigns/alpha': 'lightfinder',
       '/campaigns/beta': 'dark-pathfinder',
     };
 
-    const rows = buildInitialOverrideRows(campaigns, overrides);
+    const rows = buildCampaignThemeRows(campaigns, overrides);
 
     expect(rows).toHaveLength(2);
-    expect(rows).toContainEqual({ campaignPath: '/campaigns/alpha', themeId: 'lightfinder' });
-    expect(rows).toContainEqual({ campaignPath: '/campaigns/beta', themeId: 'dark-pathfinder' });
+    expect(rows[0]).toEqual({
+      campaignPath: '/campaigns/alpha',
+      campaignName: 'Alpha',
+      themeId: 'lightfinder',
+    });
+    expect(rows[1]).toEqual({
+      campaignPath: '/campaigns/beta',
+      campaignName: 'Beta',
+      themeId: 'dark-pathfinder',
+    });
   });
 
-  it('returns [] when no overrides are provided', () => {
-    const campaigns = [makeCampaign('/campaigns/alpha')];
-    const rows = buildInitialOverrideRows(campaigns, {});
-    expect(rows).toHaveLength(0);
+  it('uses USE_DEFAULT for campaigns with no override', () => {
+    const campaigns = [
+      makeCampaign('/campaigns/alpha', 'Alpha'),
+      makeCampaign('/campaigns/beta', 'Beta'),
+    ];
+
+    const rows = buildCampaignThemeRows(campaigns, {});
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0].themeId).toBe(USE_DEFAULT);
+    expect(rows[1].themeId).toBe(USE_DEFAULT);
   });
 
-  it('ignores override entries whose path is not in the campaigns list', () => {
-    const campaigns = [makeCampaign('/campaigns/alpha')];
+  it('fills themeId from overrides and falls back to USE_DEFAULT when absent', () => {
+    const campaigns = [
+      makeCampaign('/campaigns/alpha', 'Alpha'),
+      makeCampaign('/campaigns/beta', 'Beta'),
+    ];
     const overrides: Record<string, string> = {
       '/campaigns/alpha': 'lightfinder',
-      '/campaigns/ghost': 'dark-pathfinder',
     };
 
-    const rows = buildInitialOverrideRows(campaigns, overrides);
+    const rows = buildCampaignThemeRows(campaigns, overrides);
 
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toEqual({ campaignPath: '/campaigns/alpha', themeId: 'lightfinder' });
+    expect(rows[0].themeId).toBe('lightfinder');
+    expect(rows[1].themeId).toBe(USE_DEFAULT);
+  });
+
+  it('preserves campaigns order regardless of override map key order', () => {
+    const campaigns = [
+      makeCampaign('/campaigns/zeta', 'Zeta'),
+      makeCampaign('/campaigns/alpha', 'Alpha'),
+    ];
+    const overrides: Record<string, string> = {
+      '/campaigns/alpha': 'lightfinder',
+      '/campaigns/zeta': 'dark-pathfinder',
+    };
+
+    const rows = buildCampaignThemeRows(campaigns, overrides);
+
+    expect(rows[0].campaignPath).toBe('/campaigns/zeta');
+    expect(rows[1].campaignPath).toBe('/campaigns/alpha');
+  });
+
+  it('returns [] when campaigns list is empty', () => {
+    const rows = buildCampaignThemeRows([], { '/campaigns/ghost': 'lightfinder' });
+    expect(rows).toHaveLength(0);
   });
 });

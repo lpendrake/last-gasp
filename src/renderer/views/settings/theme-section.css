@@ -11,28 +11,6 @@
   color: var(--theme-text-muted);
 }
 
-.theme-section__add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border: 1px solid var(--theme-border);
-  border-radius: 3px;
-  background: var(--theme-surface);
-  color: var(--theme-text-secondary);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  margin-bottom: 8px;
-}
-
-.theme-section__add-btn:hover {
-  background: var(--theme-panel-accent);
-  color: var(--theme-text-primary);
-  border-color: var(--theme-border-strong);
-}
-
 .theme-section__coming-soon {
   font-size: 12px;
   color: var(--theme-text-muted);
@@ -53,22 +31,12 @@
   border-bottom: none;
 }
 
-.theme-override-row__remove {
-  background: none;
-  border: none;
-  color: var(--theme-danger);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 4px;
-  flex-shrink: 0;
-}
-
-.theme-override-row__remove:hover {
-  color: var(--theme-danger-hover);
-}
-
-.theme-override-row__campaign-select {
+.theme-override-row__campaign-name {
   flex: 1;
   min-width: 0;
+  font-size: 13px;
+  color: var(--theme-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

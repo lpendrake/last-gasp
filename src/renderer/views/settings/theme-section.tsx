@@ -12,16 +12,11 @@ interface Props {
 }
 
 export function ThemeSection({ campaigns, activeCampaign, rootDir }: Props) {
-  const {
-    defaultThemeId,
-    overrideRows,
-    coreThemes,
-    setDefaultTheme,
-    addOverrideRow,
-    changeRowCampaign,
-    changeRowTheme,
-    removeRow,
-  } = useThemeMenu(rootDir, campaigns, activeCampaign);
+  const { defaultThemeId, rows, coreThemes, setDefaultTheme, changeRowTheme } = useThemeMenu(
+    rootDir,
+    campaigns,
+    activeCampaign,
+  );
 
   return (
     <>
@@ -38,22 +33,20 @@ export function ThemeSection({ campaigns, activeCampaign, rootDir }: Props) {
         />
       </SettingRow>
 
-      <h4 className="theme-section__subsection-title">Per-Campaign Overrides</h4>
-      <button type="button" className="theme-section__add-btn" onClick={addOverrideRow}>
-        + Specify campaign theme
-      </button>
-      {overrideRows.map((row, index) => (
-        <ThemeOverrideRow
-          key={index}
-          campaigns={campaigns}
-          selectedCampaignPath={row.campaignPath}
-          selectedThemeId={row.themeId}
-          coreThemes={coreThemes}
-          onChangeCampaign={(path) => changeRowCampaign(index, path)}
-          onChangeTheme={(id) => changeRowTheme(index, id)}
-          onRemove={() => removeRow(index)}
-        />
-      ))}
+      {rows.length > 0 && (
+        <>
+          <h4 className="theme-section__subsection-title">Per-Campaign Overrides</h4>
+          {rows.map((row) => (
+            <ThemeOverrideRow
+              key={row.campaignPath}
+              campaignName={row.campaignName}
+              selectedThemeId={row.themeId}
+              coreThemes={coreThemes}
+              onChangeTheme={(id) => changeRowTheme(row.campaignPath, id)}
+            />
+          ))}
+        </>
+      )}
 
       <h4 className="theme-section__subsection-title">Custom Themes</h4>
       <p className="theme-section__coming-soon">Coming soon</p>

@@ -11,8 +11,13 @@ export interface ThemeOptionGroups {
   customComingSoon: true;
 }
 
-export interface OverrideRow {
+/** Sentinel value meaning "no override — use the workspace default". */
+export const USE_DEFAULT = '';
+
+export interface CampaignThemeRow {
   campaignPath: string;
+  campaignName: string;
+  /** Override theme id, or USE_DEFAULT ('') if no override is set. */
   themeId: string;
 }
 
@@ -22,13 +27,17 @@ export function buildThemeOptionGroups(themes: ThemeListItem[]): ThemeOptionGrou
   return { core, customComingSoon: true };
 }
 
-export function buildInitialOverrideRows(
+/**
+ * Builds one row per campaign, in campaigns order.
+ * themeId is the persisted override id, or USE_DEFAULT ('') if no override exists.
+ */
+export function buildCampaignThemeRows(
   campaigns: Campaign[],
   overrides: Record<string, string>,
-): OverrideRow[] {
-  const campaignPathSet = new Set(campaigns.map((c) => c.path));
-
-  return Object.entries(overrides)
-    .filter(([path]) => campaignPathSet.has(path))
-    .map(([campaignPath, themeId]) => ({ campaignPath, themeId }));
+): CampaignThemeRow[] {
+  return campaigns.map((c) => ({
+    campaignPath: c.path,
+    campaignName: c.name,
+    themeId: overrides[c.path] ?? USE_DEFAULT,
+  }));
 }

@@ -227,74 +227,101 @@ describe('CampaignSettingsModal', () => {
     expect(templatesSection.querySelector('.markdown-editor-container')).not.toBeNull();
   });
 
-  it('Theme section renders the default theme picker and "Specify campaign theme" button', () => {
+  it('Theme section renders the default theme picker and a row for every campaign', async () => {
     setup();
-    act(() => root.render(<CampaignSettingsModal {...defaultProps} />));
+    await act(async () => {
+      root.render(<CampaignSettingsModal {...defaultProps} />);
+    });
 
     const themeSection = container.querySelector('#theme')!;
     expect(themeSection).not.toBeNull();
 
-    // The "Specify campaign theme" button should be present
-    const addBtn = Array.from(themeSection.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Specify campaign theme'),
-    );
-    expect(addBtn).not.toBeUndefined();
-
     // The default theme select should be present
     const defaultSelect = themeSection.querySelector('#theme-default-select');
     expect(defaultSelect).not.toBeNull();
+
+    // There should be no "Specify campaign theme" add button
+    const addBtn = Array.from(themeSection.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Specify campaign theme'),
+    );
+    expect(addBtn).toBeUndefined();
+
+    // Every campaign gets a row
+    const rows = themeSection.querySelectorAll('.theme-override-row');
+    expect(rows).toHaveLength(mockCampaigns.length);
+
+    // Each row shows the campaign name
+    const rowText = Array.from(rows).map((r) => r.textContent ?? '');
+    expect(rowText.some((t) => t.includes('Alpha Campaign'))).toBe(true);
+    expect(rowText.some((t) => t.includes('Beta Campaign'))).toBe(true);
   });
 
-  it('clicking "Specify campaign theme" adds an override row', async () => {
+  it('each campaign row theme select offers a "Use Default" option', async () => {
     setup();
     await act(async () => {
       root.render(<CampaignSettingsModal {...defaultProps} />);
     });
 
     const themeSection = container.querySelector('#theme')!;
+    const rows = themeSection.querySelectorAll('.theme-override-row');
+    expect(rows.length).toBeGreaterThan(0);
 
-    const addBtn = Array.from(themeSection.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Specify campaign theme'),
-    ) as HTMLButtonElement;
-
-    expect(themeSection.querySelectorAll('.theme-override-row')).toHaveLength(0);
-
-    await act(async () => {
-      addBtn.click();
-    });
-
-    expect(themeSection.querySelectorAll('.theme-override-row')).toHaveLength(1);
+    for (const row of Array.from(rows)) {
+      const select = row.querySelector('select') as HTMLSelectElement;
+      const options = Array.from(select.options).map((o) => o.text);
+      expect(options).toContain('Use Default');
+    }
   });
 
-  it('selecting a theme in an override row calls setCampaignTheme', async () => {
+  it('selecting a real theme in an override row calls setCampaignTheme with the theme id', async () => {
     setup();
     await act(async () => {
       root.render(<CampaignSettingsModal {...defaultProps} />);
     });
 
     const themeSection = container.querySelector('#theme')!;
-
-    const addBtn = Array.from(themeSection.querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('Specify campaign theme'),
-    ) as HTMLButtonElement;
-
-    await act(async () => {
-      addBtn.click();
-    });
-
-    const overrideRow = themeSection.querySelector('.theme-override-row')!;
-    // The last select in the row is the theme select
-    const selects = overrideRow.querySelectorAll('select');
-    const themeSelect = selects[selects.length - 1] as HTMLSelectElement;
+    // First row corresponds to the first campaign (Alpha)
+    const firstRow = themeSection.querySelector('.theme-override-row')!;
+    const select = firstRow.querySelector('select') as HTMLSelectElement;
 
     await act(async () => {
-      themeSelect.value = 'lightfinder';
-      themeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      select.value = 'lightfinder';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
     expect(window.fsApi.setCampaignTheme).toHaveBeenCalledWith(
       mockActiveCampaign.path,
       'lightfinder',
     );
+  });
+
+  it('selecting "Use Default" in an override row calls setCampaignTheme with null', async () => {
+    // Start with an override already set for the active campaign
+    Object.defineProperty(window, 'fsApi', {
+      configurable: true,
+      value: {
+        getWorkspaceDefaultTheme: vi.fn().mockResolvedValue('dark-pathfinder'),
+        setWorkspaceDefaultTheme: vi.fn().mockResolvedValue(undefined),
+        getCampaignTheme: vi.fn().mockResolvedValue(null),
+        setCampaignTheme: vi.fn().mockResolvedValue(undefined),
+        getCampaignThemeOverrides: vi.fn().mockResolvedValue({ '/campaigns/alpha': 'lightfinder' }),
+      },
+    });
+
+    setup();
+    await act(async () => {
+      root.render(<CampaignSettingsModal {...defaultProps} />);
+    });
+
+    const themeSection = container.querySelector('#theme')!;
+    const firstRow = themeSection.querySelector('.theme-override-row')!;
+    const select = firstRow.querySelector('select') as HTMLSelectElement;
+
+    await act(async () => {
+      select.value = '';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    expect(window.fsApi.setCampaignTheme).toHaveBeenCalledWith(mockActiveCampaign.path, null);
   });
 });
