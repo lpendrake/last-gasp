@@ -7,8 +7,8 @@ import {
   type ViewState,
   type ViewportSize,
 } from '../math/zoom';
-
-export const SNAP_SECS = 600; // 10 minutes
+export { SNAP_SECS } from './time-increments';
+import { SNAP_SECS } from './time-increments';
 export const QUICK_ADD_ZONE_TOP = 4; // px below axisY where indicator activates
 export const QUICK_ADD_ZONE_BOTTOM = 68; // px below axisY where it stops
 
@@ -26,6 +26,10 @@ export interface QuickAddZonesDeps {
 export interface QuickAddZonesController {
   destroy(): void;
   hide(): void;
+  /** Show the quick-add marker at the given absolute seconds (keyboard navigation). */
+  keyboardShowAt(seconds: number): void;
+  /** Hide the quick-add marker (keyboard navigation). */
+  keyboardHide(): void;
 }
 
 export function createQuickAddZones(
@@ -60,6 +64,19 @@ export function createQuickAddZones(
     shiftPreviewSeconds = null;
   }
 
+  /** Render the quick-add marker at the given snapped seconds and x position. */
+  function renderQuickAddMarker(snapped: number, labelText: string) {
+    const view = deps.getView();
+    const size = deps.getViewport();
+    const axisY = Math.floor(container.clientHeight * 0.8);
+    const x = secondsToX(snapped, view, size);
+    const label = quickAdd.querySelector('.quick-add-label') as HTMLElement;
+    label.textContent = labelText;
+    quickAdd.style.left = `${x}px`;
+    quickAdd.style.top = `${axisY}px`;
+    quickAdd.style.display = '';
+  }
+
   function onMouseMove(e: MouseEvent) {
     if (deps.isInteractionActive()) {
       hide();
@@ -81,7 +98,6 @@ export function createQuickAddZones(
     const rawSecs = xToSeconds(x, view, size);
     const snapUnit = e.ctrlKey ? SECONDS_PER_DAY : SNAP_SECS;
     const snapped = Math.round(rawSecs / snapUnit) * snapUnit;
-    const snappedX = secondsToX(snapped, view, size);
     const date = fromAbsoluteSeconds(snapped);
 
     if (e.shiftKey) {
@@ -89,6 +105,7 @@ export function createQuickAddZones(
       quickAddSeconds = null;
       shiftPreviewSeconds = snapped;
       const [dayMonth, year, time] = formatNowMarker(date);
+      const snappedX = secondsToX(snapped, view, size);
       shiftPreview.style.left = `${snappedX}px`;
       shiftPreview.style.display = '';
       const labelsEl = shiftPreview.querySelector('.shift-now-labels') as HTMLElement;
@@ -102,13 +119,10 @@ export function createQuickAddZones(
       shiftPreview.style.display = 'none';
       shiftPreviewSeconds = null;
       quickAddSeconds = snapped;
-      const label = quickAdd.querySelector('.quick-add-label') as HTMLElement;
-      label.textContent = e.ctrlKey
+      const labelText = e.ctrlKey
         ? formatAxisDay(date)
         : `${formatAxisDay(date)} ${formatAxisHour(date)}`;
-      quickAdd.style.left = `${snappedX}px`;
-      quickAdd.style.top = `${axisY}px`;
-      quickAdd.style.display = '';
+      renderQuickAddMarker(snapped, labelText);
     }
   }
 
@@ -156,5 +170,16 @@ export function createQuickAddZones(
       shiftPreview.remove();
     },
     hide,
+    keyboardShowAt(seconds: number) {
+      quickAddSeconds = seconds;
+      const date = fromAbsoluteSeconds(seconds);
+      const labelText = `${formatAxisDay(date)} ${formatAxisHour(date)}`;
+      shiftPreview.style.display = 'none';
+      shiftPreviewSeconds = null;
+      renderQuickAddMarker(seconds, labelText);
+    },
+    keyboardHide() {
+      hide();
+    },
   };
 }

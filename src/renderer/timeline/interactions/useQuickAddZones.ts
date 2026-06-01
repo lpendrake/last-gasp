@@ -15,6 +15,8 @@ export function useQuickAddZones(
   const innerRef = useRef<QuickAddZonesController>({
     destroy: () => {},
     hide: () => {},
+    keyboardShowAt: () => {},
+    keyboardHide: () => {},
   });
 
   const depsRef = useRef(deps);
@@ -24,6 +26,8 @@ export function useQuickAddZones(
   const stable = useRef<QuickAddZonesController>({
     destroy: () => innerRef.current.destroy(),
     hide: () => innerRef.current.hide(),
+    keyboardShowAt: (seconds: number) => innerRef.current.keyboardShowAt(seconds),
+    keyboardHide: () => innerRef.current.keyboardHide(),
   }).current;
 
   useEffect(() => {
@@ -42,7 +46,12 @@ export function useQuickAddZones(
 
     return () => {
       controller.destroy();
-      innerRef.current = { destroy: () => {}, hide: () => {} };
+      innerRef.current = {
+        destroy: () => {},
+        hide: () => {},
+        keyboardShowAt: () => {},
+        keyboardHide: () => {},
+      };
     };
     // containerRef.current is stable for the component lifetime.
     // depsRef is updated each render; the stable wrapper above delegates to depsRef.current.

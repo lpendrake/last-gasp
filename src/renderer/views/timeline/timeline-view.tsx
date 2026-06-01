@@ -23,6 +23,7 @@ import { useCardExpansion } from '../../timeline/interactions/useCardExpansion';
 import { usePreviewSize } from '../../timeline/interactions/usePreviewSize';
 import { useReschedule } from '../../timeline/interactions/useReschedule';
 import { useQuickAddZones } from '../../timeline/interactions/useQuickAddZones';
+import { useTimelineKeyboard } from '../../timeline/interactions/useTimelineKeyboard';
 import { useEventEditor } from '../../timeline/event-editor/useEventEditor';
 import { deriveFilename } from '../../timeline/event-editor/domain';
 import { EventEditorModal } from '../../timeline/event-editor/EventEditorModal';
@@ -365,7 +366,7 @@ export function TimelineView({
 
   const editor = useEventEditor(campaignPath, refreshEvents);
 
-  useQuickAddZones(viewportRef, {
+  const quickAdd = useQuickAddZones(viewportRef, {
     getView: () => viewRef.current,
     getViewport: () => sizeRef.current,
     isInteractionActive: () =>
@@ -497,6 +498,24 @@ export function TimelineView({
     () => applyFilters(loadedData.events, filterState, loadedData.sessions),
     [loadedData.events, filterState, loadedData.sessions],
   );
+
+  const filteredEventsRef = useRef(filteredEvents);
+  filteredEventsRef.current = filteredEvents;
+
+  useTimelineKeyboard({
+    isBlocked: () => !!(editor.editorMode || editor.newEventPrompt),
+    getView: () => viewRef.current,
+    getSize: () => sizeRef.current,
+    setView: setViewState,
+    getEvents: () => filteredEventsRef.current,
+    getFocusedFilename: () => expansion?.filename ?? null,
+    expandEvent: handleCardClick,
+    collapse,
+    quickAddShowAt: quickAdd.keyboardShowAt,
+    quickAddHide: quickAdd.keyboardHide,
+    createEventAt: (seconds) =>
+      editor.openNewEventPrompt(toISOString(fromAbsoluteSeconds(seconds))),
+  });
 
   const inGameNow = loadedData.gameState?.in_game_now || null;
   const inGameNowSeconds = inGameNow ? toAbsoluteSeconds(parseISOString(inGameNow)) : Infinity;

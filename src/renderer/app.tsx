@@ -145,6 +145,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [activeCampaign]);
 
+  useEffect(() => {
+    function handleViewSwitch(e: KeyboardEvent) {
+      if (!activeCampaign) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (e.key === 'F1') {
+        e.preventDefault();
+        setCurrentView('timeline');
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        setCurrentView('notes');
+      }
+    }
+    window.addEventListener('keydown', handleViewSwitch, true);
+    return () => window.removeEventListener('keydown', handleViewSwitch, true);
+  }, [activeCampaign]);
+
   const handleJumpToEvent = useCallback((target: string | EventListItem) => {
     const filename = typeof target === 'string' ? target : target.filename;
     setCurrentView('timeline');
